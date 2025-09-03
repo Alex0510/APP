@@ -7,10 +7,13 @@
 import Foundation
 import Security
 import Network
-// 从 iTunesAPI 导入共享类型
-// DeviceFamily 和 iTunesSearchResult 定义在 iTunesAPI.swift 中
-// MARK: - 类型别名和导入
-// 移除自引用类型别名 - 这些类型已在各自文件中可用
+#if canImport(ZipArchive)
+import ZipArchive
+#endif
+
+// 类型别名，引用其他文件中定义的类型
+// 注意：这些类型在StoreRequest.swift中定义
+
 // MARK: - 本地账户定义
 // 用于 StoreClient 兼容性的本地账户定义
 struct LocalAccount {
@@ -84,11 +87,7 @@ struct ExtendedSearchResult: Codable {
     let advisories: [String]?
     let features: [String]?
 }
-// 注意：StoreError 定义在 StoreRequest.swift 中以避免类型歧义
-// MARK: - StoreRequest 引用
-// StoreRequest 定义在 StoreRequest.swift 中
-// Account 定义在其他文件中以避免重复
-// AuthenticationManager 定义在 AuthenticationManager.swift 中以避免重复
+
 // MARK: - 商店客户端实现
 class StoreClient {
     static let shared = StoreClient()
@@ -99,98 +98,45 @@ class StoreClient {
         country: String = "US",
         deviceType: String = "iPhone"
     ) async -> Result<[ExtendedSearchResult], Error> {
-        // 模拟搜索结果
-        let mockResult = ExtendedSearchResult(
-            trackId: 123,
-            trackName: query,
-            artistName: "Developer",
-            bundleId: "com.example.\(query.lowercased())",
-            version: "1.0",
-            formattedPrice: "Free",
-            price: nil,
-            currency: nil,
-            trackViewUrl: nil,
-            artworkUrl60: nil,
-            artworkUrl100: nil,
-            artworkUrl512: nil,
-            screenshotUrls: nil,
-            ipadScreenshotUrls: nil,
-            description: nil,
-            releaseNotes: nil,
-            sellerName: nil,
-            genres: nil,
-            primaryGenreName: nil,
-            contentAdvisoryRating: nil,
-            averageUserRating: nil,
-            userRatingCount: nil,
-            fileSizeBytes: nil,
-            minimumOsVersion: nil,
-            currentVersionReleaseDate: nil,
-            releaseDate: nil,
-            isGameCenterEnabled: nil,
-            supportedDevices: nil,
-            languageCodesISO2A: nil,
-            advisories: nil,
-            features: nil
-        )
-        return .success([mockResult])
+        return .failure(NSError(domain: "StoreAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "真正的Apple Store API搜索尚未实现"]))
     }
     func lookupApp(
         bundleId: String,
         country: String = "US",
         deviceType: String = "iPhone"
     ) async -> Result<ExtendedSearchResult?, Error> {
-        // 模拟应用查找
-        let mockResult = ExtendedSearchResult(
-            trackId: 456,
-            trackName: "App",
-            artistName: "Developer",
-            bundleId: bundleId,
-            version: "1.0",
-            formattedPrice: "Free",
-            price: nil,
-            currency: nil,
-            trackViewUrl: nil,
-            artworkUrl60: nil,
-            artworkUrl100: nil,
-            artworkUrl512: nil,
-            screenshotUrls: nil,
-            ipadScreenshotUrls: nil,
-            description: nil,
-            releaseNotes: nil,
-            sellerName: nil,
-            genres: nil,
-            primaryGenreName: nil,
-            contentAdvisoryRating: nil,
-            averageUserRating: nil,
-            userRatingCount: nil,
-            fileSizeBytes: nil,
-            minimumOsVersion: nil,
-            currentVersionReleaseDate: nil,
-            releaseDate: nil,
-            isGameCenterEnabled: nil,
-            supportedDevices: nil,
-            languageCodesISO2A: nil,
-            advisories: nil,
-            features: nil
-        )
-        return .success(mockResult)
+        return .failure(NSError(domain: "StoreAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "真正的Apple Store API查找尚未实现"]))
     }
     func getTrackId(
         bundleIdentifier: String,
         countryCode: String = "US",
         deviceFamily: String = "phone"
     ) async throws -> Int? {
-        // 模拟曲目 ID 查找
-        return 789
+        throw NSError(domain: "StoreAPI", code: 1, userInfo: [NSLocalizedDescriptionKey: "真正的Apple Store API获取曲目ID尚未实现"])
     }
 }
 // SignatureClient 定义在 SignatureClient.swift 中以避免重复
     func sign() throws {
-        // 模拟签名
+        // 使用真正的签名逻辑
+        try performRealSigning()
     }
+    
     func save(to path: String) throws {
-        // 模拟保存
+        // 使用真正的保存逻辑
+        try performRealSaving(to: path)
+    }
+    
+    /// 执行真正的签名逻辑
+    private func performRealSigning() throws {
+        // 暂时抛出错误，表示需要实现真正的签名逻辑
+        throw NSError(domain: "SignatureError", code: 1, userInfo: [NSLocalizedDescriptionKey: "真正的签名逻辑尚未实现"])
+    }
+    
+    /// 执行真正的保存逻辑
+    private func performRealSaving(to path: String) throws {
+        // 这里应该调用真正的保存服务
+        // 暂时抛出错误，表示需要实现真正的保存逻辑
+        throw NSError(domain: "SaveError", code: 1, userInfo: [NSLocalizedDescriptionKey: "真正的保存逻辑尚未实现"])
     }
 // MARK: - 商店响应模型（从 StoreAPI.swift 移动过来）
 struct LocalStoreAuthResponse: Codable {
@@ -550,6 +496,10 @@ extension StoreClient {
                 to: finalOutputPath,
                 progressCallback: progressCallback
             )
+            
+            // 处理IPA文件，添加必要的元数据和签名信息
+            try await processDownloadedIPA(at: finalOutputPath, with: item)
+            
             // 对 IPA 文件签名
             let signatureClient = SignatureClient(email: "default@example.com")
             try signatureClient.loadFile(path: finalOutputPath)
@@ -559,6 +509,136 @@ extension StoreClient {
         } catch {
             return .failure(error)
         }
+    }
+    
+    // MARK: - IPA文件处理
+    /// 处理下载的IPA文件，添加必要的元数据和签名信息
+    private func processDownloadedIPA(at ipaPath: String, with storeItem: StoreItem) async throws {
+        print("🔧 [StoreClient] 开始处理IPA文件: \(ipaPath)")
+        
+        // 创建临时工作目录
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("IPAProcessing_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        
+        defer {
+            // 清理临时目录
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+        
+        // 解压IPA文件
+        let extractedDir = try extractIPA(at: URL(fileURLWithPath: ipaPath), to: tempDir)
+        print("🔧 [StoreClient] IPA文件解压完成")
+        
+        // 添加iTunesMetadata.plist
+        try addiTunesMetadata(to: extractedDir, with: storeItem)
+        print("🔧 [StoreClient] 添加iTunesMetadata.plist完成")
+        
+        // 重新打包IPA文件
+        try repackIPA(from: extractedDir, to: ipaPath)
+        print("🔧 [StoreClient] IPA文件重新打包完成")
+    }
+    
+    /// 解压IPA文件
+    private func extractIPA(at ipaPath: URL, to tempDir: URL) throws -> URL {
+        let extractedDir = tempDir.appendingPathComponent("extracted")
+        try FileManager.default.createDirectory(at: extractedDir, withIntermediateDirectories: true)
+        
+        #if os(macOS)
+        // macOS上使用Process类
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        process.arguments = ["-q", ipaPath.path, "-d", extractedDir.path]
+        
+        try process.run()
+        process.waitUntilExit()
+        
+        if process.terminationStatus != 0 {
+            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "IPA解压失败，退出码: \(process.terminationStatus)"])
+        }
+        #else
+        // iOS上使用ZipArchive解压
+        #if canImport(ZipArchive)
+        let success = SSZipArchive.unzipFile(atPath: ipaPath.path, toDestination: extractedDir.path)
+        guard success else {
+            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive解压失败"])
+        }
+        print("🔧 [StoreClient] 使用SSZipArchive成功解压IPA文件")
+        #else
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
+        #endif
+        #endif
+        
+        return extractedDir
+    }
+    
+    /// 添加iTunesMetadata.plist到解压的IPA目录
+    private func addiTunesMetadata(to extractedDir: URL, with storeItem: StoreItem) throws {
+        let metadataPath = extractedDir.appendingPathComponent("iTunesMetadata.plist")
+        
+        // 构建iTunesMetadata.plist内容
+        let metadataDict: [String: Any] = [
+            "appleId": storeItem.metadata.bundleId,
+            "artistId": 0,
+            "artistName": storeItem.metadata.bundleDisplayName,
+            "bundleId": storeItem.metadata.bundleId,
+            "bundleVersion": storeItem.metadata.bundleShortVersionString,
+            "copyright": "Copyright © 2025",
+            "drmVersionNumber": 0,
+            "fileExtension": "ipa",
+            "fileName": "\(storeItem.metadata.bundleDisplayName).ipa",
+            "genre": "Productivity",
+            "genreId": 6007,
+            "itemId": 0,
+            "itemName": storeItem.metadata.bundleDisplayName,
+            "kind": "software",
+            "playlistName": "iOS Apps",
+            "price": 0.0,
+            "priceDisplay": "Free",
+            "rating": "4+",
+            "releaseDate": "2025-01-01T00:00:00Z",
+            "s": 143441,
+            "softwareIcon57x57URL": "",
+            "softwareIconNeedsShine": false,
+            "softwareSupportedDeviceIds": [1, 2], // iPhone and iPad
+            "softwareVersionBundleId": storeItem.metadata.bundleId,
+            "softwareVersionExternalIdentifier": Int(storeItem.metadata.softwareVersionExternalIdentifier) ?? 0,
+            "softwareVersionExternalIdentifiers": [],
+            "subgenres": [],
+            "vendorId": 0,
+            "versionRestrictions": 0
+        ]
+        
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: metadataDict,
+            format: .xml,
+            options: 0
+        )
+        
+        try plistData.write(to: metadataPath)
+        print("🔧 [StoreClient] 成功创建iTunesMetadata.plist")
+    }
+    
+    /// 重新打包IPA文件
+    private func repackIPA(from extractedDir: URL, to ipaPath: String) throws {
+        let processedIPAPath = URL(fileURLWithPath: ipaPath).deletingLastPathComponent()
+            .appendingPathComponent("processed_\(URL(fileURLWithPath: ipaPath).lastPathComponent)")
+        
+        // 使用ZipArchive重新打包IPA文件
+        #if canImport(ZipArchive)
+        let success = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
+        guard success else {
+            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive重新打包失败"])
+        }
+        print("🔧 [StoreClient] 使用SSZipArchive成功重新打包IPA文件")
+        #else
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
+        #endif
+        
+        // 替换原文件
+        try FileManager.default.removeItem(at: URL(fileURLWithPath: ipaPath))
+        try FileManager.default.moveItem(at: processedIPAPath, to: URL(fileURLWithPath: ipaPath))
     }
     // MARK: - 文件下载辅助方法
     private func downloadFile(

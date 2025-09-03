@@ -5,7 +5,7 @@
 //  Created by pxx917144686 on 2024/12/30.
 //
 import Foundation
-// import SSZipArchive // TODO: 修复 ZipArchive 导入问题
+// import ZipArchive // TODO: 修复 ZipArchive 导入问题
 /// 用于处理 IPA 签名和元数据注入的签名客户端
 class SignatureClient {
     private var filename: String = ""

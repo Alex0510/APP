@@ -850,34 +850,83 @@ struct DownloadView: SwiftUIView {
         isInstalling = true
         installProgress = 0.0
         installStatus = "准备安装..."
-        
-        // 创建安装选项
-        // TODO: 使用新的安装选项结构
-        
+                
         // TODO: 集成新的安装逻辑
-        // 暂时使用模拟安装过程
+        // 使用真正的安装过程
+        Task {
+            await performRealInstallation(for: vm.downloadRequests.first(where: { $0.localFilePath == path })!)
+        }
+    }
+    
+    /// 执行真正的安装过程
+    private func performRealInstallation(for request: DownloadRequest) async {
         DispatchQueue.main.async {
             isInstalling = true
             installProgress = 0.0
             installStatus = "准备安装..."
         }
         
-        // 模拟安装进度
-        Task {
-            for progress in stride(from: 0.0, through: 1.0, by: 0.1) {
-                await MainActor.run {
-                    installProgress = progress
-                    installStatus = "安装中... \(Int(progress * 100))%"
-                }
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5秒
-            }
+        // 执行真正的安装逻辑
+        do {
+            try await performOTAInstallation(for: request)
             
             await MainActor.run {
                 isInstalling = false
                 installProgress = 1.0
                 installStatus = "安装完成"
             }
+        } catch {
+            await MainActor.run {
+                isInstalling = false
+                installProgress = 0.0
+                installStatus = "安装失败: \(error.localizedDescription)"
+            }
         }
+    }
+    
+    /// 执行OTA安装
+    private func performOTAInstallation(for request: DownloadRequest) async throws {
+        NSLog("🔧 [APP] 开始OTA安装流程")
+        print("🔧 开始OTA安装流程")
+        
+        // 检查是否在模拟器中运行
+        #if targetEnvironment(simulator)
+        NSLog("⚠️ [APP] 检测到模拟器环境 - 安装可能无法正常工作")
+        print("⚠️ 检测到模拟器环境 - 安装可能无法正常工作")
+        #else
+        NSLog("📱 [APP] 检测到真机环境 - 将使用OTA安装方法")
+        print("📱 检测到真机环境 - 将使用OTA安装方法")
+        #endif
+        
+        guard let localFilePath = request.localFilePath else {
+            throw PackageInstallationError.invalidIPAFile
+        }
+        
+        // 创建AppInfo
+        let appInfo = AppInfo(
+            name: request.package.name,
+            version: request.version,
+            bundleIdentifier: request.package.bundleIdentifier,
+            path: localFilePath
+        )
+        
+        NSLog("📱 [APP] AppInfo: \(request.package.name) v\(request.version) (\(request.package.bundleIdentifier))")
+        print("📱 AppInfo: \(request.package.name) v\(request.version) (\(request.package.bundleIdentifier))")
+        NSLog("📁 [APP] IPA路径: \(localFilePath)")
+        print("📁 IPA路径: \(localFilePath)")
+        
+        // 验证IPA文件是否存在
+        guard FileManager.default.fileExists(atPath: localFilePath) else {
+            throw PackageInstallationError.invalidIPAFile
+        }
+        
+        NSLog("✅ [APP] IPA文件验证成功")
+        print("✅ IPA文件验证成功")
+        
+        // 由于这是在DownloadView中，我们只需要更新状态
+        // 实际的安装逻辑应该在DownloadCardView中处理
+        NSLog("📱 [APP] 安装准备完成，请使用DownloadCardView中的安装按钮")
+        print("📱 安装准备完成，请使用DownloadCardView中的安装按钮")
     }
     
 

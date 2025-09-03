@@ -7,12 +7,32 @@
 import Foundation
 import CryptoKit
 import SwiftUI
+#if canImport(ZipArchive)
+import ZipArchive
+#endif
 
-// 使用Apple.swift中已定义的类型
-// 不再重复定义这些类型，避免编译冲突
+// 为了避免与StoreRequest.swift中的类型冲突，这里使用不同的名称
+struct DownloadStoreItem {
+    let url: String
+    let md5: String
+    let sinfs: [DownloadSinfInfo]
+    let metadata: DownloadAppMetadata
+}
+
+struct DownloadAppMetadata {
+    let bundleId: String
+    let bundleDisplayName: String
+    let bundleShortVersionString: String
+    let softwareVersionExternalIdentifier: String
+    let softwareVersionExternalIdentifiers: [Int]?
+}
+
+struct DownloadSinfInfo {
+    let id: Int
+    let sinf: String
+}
 
 // IPAProcessor类定义在IPAProcessor.swift中
-// 如果IPAProcessor.swift不可用，这里提供一个简单的实现
 #if canImport(IPAProcessor)
 // 使用外部IPAProcessor
 #else
@@ -79,24 +99,16 @@ class IPAProcessor {
         let extractedDir = tempDir.appendingPathComponent("extracted")
         try FileManager.default.createDirectory(at: extractedDir, withIntermediateDirectories: true)
         
-        // 在iOS上，Process类不可用，使用替代方案
-        #if os(macOS)
-        // macOS上使用Process类
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-q", ipaPath.path, "-d", extractedDir.path]
-        
-        try process.run()
-        process.waitUntilExit()
-        
-        if process.terminationStatus != 0 {
-            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "IPA解压失败，退出码: \(process.terminationStatus)"])
+        // 使用ZipArchive解压IPA文件
+        #if canImport(ZipArchive)
+        let success = SSZipArchive.unzipFile(atPath: ipaPath.path, toDestination: extractedDir.path)
+        guard success else {
+            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "IPA解压失败"])
         }
+        print("🔧 [IPA处理器] 使用ZipArchive成功解压IPA文件")
         #else
-        // iOS上使用模拟实现
-        print("⚠️ [IPA处理器] iOS上Process不可用，使用模拟解压")
-        // 这里可以集成第三方解压库，如SSZipArchive
-        // 暂时跳过解压步骤，直接返回目录
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
         #endif
         
         return extractedDir
@@ -153,6 +165,10 @@ class IPAProcessor {
             try createSCInfoPlist(at: scInfoPlistPath, withSinfs: sinfs)
             print("🔧 [IPA处理器] 创建SC_Info.plist文件")
         }
+        
+        // 创建iTunesMetadata.plist文件（在IPA根目录）
+        try createiTunesMetadataPlist(in: extractedDir, appFolder: appFolder)
+        print("🔧 [IPA处理器] 创建iTunesMetadata.plist文件")
     }
     
     /// 创建SC_Info.plist文件
@@ -187,30 +203,83 @@ class IPAProcessor {
         try plistData.write(to: path)
     }
     
+    /// 创建iTunesMetadata.plist文件
+    private func createiTunesMetadataPlist(in extractedDir: URL, appFolder: URL) throws {
+        let metadataPath = extractedDir.appendingPathComponent("iTunesMetadata.plist")
+        
+        // 尝试从Info.plist读取应用信息
+        let infoPlistPath = appFolder.appendingPathComponent("Info.plist")
+        var appInfo: [String: Any] = [:]
+        
+        if FileManager.default.fileExists(atPath: infoPlistPath.path) {
+            do {
+                let infoPlistData = try Data(contentsOf: infoPlistPath)
+                if let plist = try PropertyListSerialization.propertyList(from: infoPlistData, options: [], format: nil) as? [String: Any] {
+                    appInfo = plist
+                }
+            } catch {
+                print("⚠️ [IPA处理器] 无法读取Info.plist: \(error)")
+            }
+        }
+        
+        // 构建iTunesMetadata.plist内容
+        let metadataDict: [String: Any] = [
+            "appleId": appInfo["CFBundleIdentifier"] as? String ?? "com.unknown.app",
+            "artistId": 0,
+            "artistName": appInfo["CFBundleDisplayName"] as? String ?? appInfo["CFBundleName"] as? String ?? "Unknown Developer",
+            "bundleId": appInfo["CFBundleIdentifier"] as? String ?? "com.unknown.app",
+            "bundleVersion": appInfo["CFBundleVersion"] as? String ?? "1.0",
+            "copyright": appInfo["NSHumanReadableCopyright"] as? String ?? "Copyright © 2025",
+            "drmVersionNumber": 0,
+            "fileExtension": "ipa",
+            "fileName": appFolder.lastPathComponent,
+            "genre": "Productivity",
+            "genreId": 6007,
+            "itemId": 0,
+            "itemName": appInfo["CFBundleDisplayName"] as? String ?? appInfo["CFBundleName"] as? String ?? "Unknown App",
+            "kind": "software",
+            "playlistName": "iOS Apps",
+            "price": 0.0,
+            "priceDisplay": "Free",
+            "rating": "4+",
+            "releaseDate": appInfo["CFBundleReleaseDate"] as? String ?? "2025-01-01T00:00:00Z",
+            "s": 143441,
+            "softwareIcon57x57URL": "",
+            "softwareIconNeedsShine": false,
+            "softwareSupportedDeviceIds": [1, 2], // iPhone and iPad
+            "softwareVersionBundleId": appInfo["CFBundleIdentifier"] as? String ?? "com.unknown.app",
+            "softwareVersionExternalIdentifier": 0,
+            "softwareVersionExternalIdentifiers": [],
+            "subgenres": [],
+            "vendorId": 0,
+            "versionRestrictions": 0
+        ]
+        
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: metadataDict,
+            format: .xml,
+            options: 0
+        )
+        
+        try plistData.write(to: metadataPath)
+        print("🔧 [IPA处理器] 成功创建iTunesMetadata.plist，大小: \(ByteCountFormatter().string(fromByteCount: Int64(plistData.count)))")
+    }
+    
     /// 重新打包IPA文件
     private func repackIPA(from extractedDir: URL, originalPath: URL) throws -> URL {
         let processedIPAPath = originalPath.deletingLastPathComponent()
             .appendingPathComponent("processed_\(originalPath.lastPathComponent)")
         
-        #if os(macOS)
-        // macOS上使用Process类
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        process.arguments = ["-r", "-q", processedIPAPath.path, "."]
-        process.currentDirectoryURL = extractedDir
-        
-        try process.run()
-        process.waitUntilExit()
-        
-        if process.terminationStatus != 0 {
-            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "IPA重新打包失败，退出码: \(process.terminationStatus)"])
+        // 使用ZipArchive重新打包IPA文件
+        #if canImport(ZipArchive)
+        let success = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
+        guard success else {
+            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "IPA重新打包失败"])
         }
+        print("🔧 [IPA处理器] 使用ZipArchive成功重新打包IPA文件")
         #else
-        // iOS上使用模拟实现
-        print("⚠️ [IPA处理器] iOS上Process不可用，使用模拟打包")
-        // 这里可以集成第三方打包库
-        // 暂时跳过打包步骤，直接返回原文件
-        return originalPath
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
         #endif
         
         // 替换原文件
@@ -231,7 +300,7 @@ class DownloadManager: NSObject, ObservableObject {
     private var lastProgressUpdate: [String: (bytes: Int64, time: Date)] = [:]
     private var lastUIUpdate: [String: Date] = [:]
     private var downloadDestinations: [String: URL] = [:]
-    private var downloadStoreItems: [String: StoreItem] = [:]
+    private var downloadStoreItems: [String: DownloadStoreItem] = [:]
     private lazy var urlSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
@@ -246,7 +315,7 @@ class DownloadManager: NSObject, ObservableObject {
     }
     /// 从iTunes商店下载一个IPA文件
     /// - 参数:
-    ///   - appIdentifier: 应用标识符（曲目ID）
+    ///   - appIdentifier: 应用标识符（应用ID）
     ///   - account: 用户账户信息
     ///   - destinationURL: 保存IPA文件的本地文件URL
     ///   - appVersion: 特定的应用版本（可选）
@@ -273,9 +342,7 @@ class DownloadManager: NSObject, ObservableObject {
                 let downloadResponse = try await StoreRequest.shared.download(
                     appIdentifier: appIdentifier,
                     directoryServicesIdentifier: account.dsPersonId,
-                    appVersion: appVersion,
-                    passwordToken: account.passwordToken,
-                    storeFront: account.storeResponse.storeFront
+                    appVersion: appVersion
                 )
                 guard let storeItem = downloadResponse.songList.first else {
                     let error: DownloadError = .unknownError("无法获取下载信息")
@@ -287,9 +354,23 @@ class DownloadManager: NSObject, ObservableObject {
                 print("✅ [下载管理器] 成功获取下载信息")
                 print("   - 下载URL: \(storeItem.url)")
                 print("   - MD5: \(storeItem.md5)")
+                
+                // 将StoreDownloadResponse转换为DownloadStoreItem
+                // downloadResponse是StoreDownloadResponse，包含songList数组
+                guard let firstStoreItem = downloadResponse.songList.first else {
+                    let error: DownloadError = .unknownError("下载响应中没有找到应用信息")
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
+                    }
+                    return
+                }
+                
+                // 将StoreItem转换为DownloadStoreItem
+                let downloadStoreItem = convertToDownloadStoreItem(from: firstStoreItem)
+                
                 // 开始实际的文件下载
                 await startFileDownload(
-                    storeItem: storeItem,
+                    storeItem: downloadStoreItem,
                     destinationURL: destinationURL,
                     progressHandler: progressHandler,
                     completion: completion
@@ -350,10 +431,152 @@ class DownloadManager: NSObject, ObservableObject {
                    task.state == .suspended ? .paused : .completed
         )
     }
-    // MARK: - 私有方法
+    
+    /// 将StoreItem转换为DownloadStoreItem
+    private func convertToDownloadStoreItem(from storeItem: Any) -> DownloadStoreItem {
+        print("🔍 [转换开始] 开始解析StoreItem数据")
+        print("🔍 [转换开始] StoreItem类型: \(type(of: storeItem))")
+        
+        // 使用反射来安全地访问属性，避免类型依赖问题
+        let mirror = Mirror(reflecting: storeItem)
+        
+        // 提取基本字段
+        var url: String = ""
+        var md5: String = ""
+        var bundleId: String = "unknown"
+        var bundleDisplayName: String = "Unknown App"
+        var bundleShortVersionString: String = "1.0"
+        var softwareVersionExternalIdentifier: String = "0"
+        var softwareVersionExternalIdentifiers: [Int] = []
+        var sinfs: [DownloadSinfInfo] = []
+        
+        // 遍历所有属性
+        for child in mirror.children {
+            guard let label = child.label else { continue }
+            
+            switch label {
+            case "url":
+                if let urlValue = child.value as? String {
+                    url = urlValue
+                }
+            case "md5":
+                if let md5Value = child.value as? String {
+                    md5 = md5Value
+                }
+            case "metadata":
+                // 处理元数据
+                let metadataMirror = Mirror(reflecting: child.value)
+                for metadataChild in metadataMirror.children {
+                    guard let metadataLabel = metadataChild.label else { continue }
+                    
+                    switch metadataLabel {
+                    case "bundleId":
+                        if let value = metadataChild.value as? String {
+                            bundleId = value
+                        }
+                    case "bundleDisplayName":
+                        if let value = metadataChild.value as? String {
+                            bundleDisplayName = value
+                        }
+                    case "bundleShortVersionString":
+                        if let value = metadataChild.value as? String {
+                            bundleShortVersionString = value
+                        }
+                    case "softwareVersionExternalIdentifier":
+                        if let value = metadataChild.value as? String {
+                            softwareVersionExternalIdentifier = value
+                        }
+                    case "softwareVersionExternalIdentifiers":
+                        if let value = metadataChild.value as? [Int] {
+                            softwareVersionExternalIdentifiers = value
+                        }
+                    default:
+                        break
+                    }
+                }
+            case "sinfs":
+                // 处理签名信息
+                if let sinfsArray = child.value as? [Any] {
+                    for sinfItem in sinfsArray {
+                        let sinfMirror = Mirror(reflecting: sinfItem)
+                        var sinfId: Int = 0
+                        var sinfString: String = ""
+                        
+                        for sinfChild in sinfMirror.children {
+                            guard let sinfLabel = sinfChild.label else { continue }
+                            
+                            switch sinfLabel {
+                            case "id":
+                                if let value = sinfChild.value as? Int {
+                                    sinfId = value
+                                }
+                            case "sinf":
+                                if let value = sinfChild.value as? String {
+                                    sinfString = value
+                                }
+                            default:
+                                break
+                            }
+                        }
+                        
+                        if sinfId > 0 && !sinfString.isEmpty {
+                            sinfs.append(DownloadSinfInfo(id: sinfId, sinf: sinfString))
+                        }
+                    }
+                }
+            default:
+                break
+            }
+        }
+        
+        // 验证必要字段
+        guard !url.isEmpty && !md5.isEmpty else {
+            print("❌ [转换失败] 无法获取URL或MD5")
+            return createDefaultDownloadStoreItem()
+        }
+        
+        let downloadMetadata = DownloadAppMetadata(
+            bundleId: bundleId,
+            bundleDisplayName: bundleDisplayName,
+            bundleShortVersionString: bundleShortVersionString,
+            softwareVersionExternalIdentifier: softwareVersionExternalIdentifier,
+            softwareVersionExternalIdentifiers: softwareVersionExternalIdentifiers
+        )
+        
+        print("✅ [转换成功] 解析到以下数据:")
+        print("   - URL: \(url)")
+        print("   - MD5: \(md5)")
+        print("   - Bundle ID: \(bundleId)")
+        print("   - Display Name: \(bundleDisplayName)")
+        
+        print("✅ [转换完成] 成功创建DownloadStoreItem")
+        return DownloadStoreItem(
+            url: url,
+            md5: md5,
+            sinfs: sinfs,
+            metadata: downloadMetadata
+        )
+    }
+    
+    /// 创建默认的DownloadStoreItem（用于错误情况）
+    private func createDefaultDownloadStoreItem() -> DownloadStoreItem {
+        return DownloadStoreItem(
+            url: "",
+            md5: "",
+            sinfs: [],
+            metadata: DownloadAppMetadata(
+                bundleId: "unknown",
+                bundleDisplayName: "Unknown App",
+                bundleShortVersionString: "1.0",
+                softwareVersionExternalIdentifier: "0",
+                softwareVersionExternalIdentifiers: []
+            )
+        )
+    }
+    
     /// 开始实际的文件下载
     private func startFileDownload(
-        storeItem: StoreItem,
+        storeItem: DownloadStoreItem,
         destinationURL: URL,
         progressHandler: @escaping (DownloadProgress) -> Void,
         completion: @escaping (Result<DownloadResult, DownloadError>) -> Void
@@ -466,7 +689,7 @@ extension DownloadManager: URLSessionDownloadDelegate {
                 downloadId: downloadId,
                 fileURL: destinationURL,
                 fileSize: downloadTask.countOfBytesReceived,
-                metadata: AppMetadata(
+                metadata: DownloadAppMetadata(
                     bundleId: storeItem.metadata.bundleId,
                     bundleDisplayName: storeItem.metadata.bundleDisplayName,
                     bundleShortVersionString: storeItem.metadata.bundleShortVersionString,
@@ -479,23 +702,55 @@ extension DownloadManager: URLSessionDownloadDelegate {
             print("✅ [下载完成] 文件大小: \(ByteCountFormatter().string(fromByteCount: downloadTask.countOfBytesReceived))")
             
             // 处理IPA文件，添加SC_Info文件夹和签名信息
+            print("🔧 [下载完成] 开始处理IPA文件...")
+            print("🔧 [下载完成] 签名信息数量: \(storeItem.sinfs.count)")
+            
             if !storeItem.sinfs.isEmpty {
-                print("🔧 [下载完成] 开始处理IPA文件，添加签名信息...")
+                print("🔧 [下载完成] 有签名信息，开始处理IPA文件，添加签名信息...")
                 IPAProcessor.shared.processIPA(at: destinationURL, withSinfs: storeItem.sinfs) { processingResult in
                     switch processingResult {
                     case .success(let processedIPA):
                         print("✅ [IPA处理] 成功处理IPA文件: \(processedIPA.path)")
-                        // 创建新的结果对象，包含处理后的文件URL
-                        let updatedResult = DownloadResult(
-                            downloadId: result.downloadId,
-                            fileURL: processedIPA,
-                            fileSize: result.fileSize,
-                            metadata: result.metadata,
-                            sinfs: result.sinfs,
-                            expectedMD5: result.expectedMD5
-                        )
-                        DispatchQueue.main.async {
-                            completion(.success(updatedResult))
+                        
+                        // 添加iTunesMetadata.plist
+                        Task {
+                            do {
+                                print("🔧 [元数据处理] 开始为有签名的IPA添加iTunesMetadata.plist...")
+                                // 安全解包metadata
+                                guard let metadata = result.metadata else {
+                                    print("❌ [元数据处理] metadata为空，无法创建iTunesMetadata.plist")
+                                    DispatchQueue.main.async {
+                                        completion(.success(result))
+                                    }
+                                    return
+                                }
+                                
+                                print("🔧 [元数据处理] 元数据信息:")
+                                print("   - Bundle ID: \(metadata.bundleId)")
+                                print("   - Display Name: \(metadata.bundleDisplayName)")
+                                print("   - Version: \(metadata.bundleShortVersionString)")
+                                
+                                // 直接生成iTunesMetadata.plist
+                                let finalIPA = try await self.generateiTunesMetadata(
+                                    for: processedIPA.path,
+                                    bundleId: metadata.bundleId,
+                                    displayName: metadata.bundleDisplayName,
+                                    version: metadata.bundleShortVersionString,
+                                    externalVersionId: Int(metadata.softwareVersionExternalIdentifier) ?? 0,
+                                    externalVersionIds: metadata.softwareVersionExternalIdentifiers
+                                )
+                                
+                                print("✅ [元数据处理] 成功生成iTunesMetadata.plist，最终IPA: \(finalIPA)")
+                                
+                                DispatchQueue.main.async {
+                                    completion(.success(result))
+                                }
+                            } catch {
+                                print("❌ [元数据处理] 生成iTunesMetadata.plist失败: \(error)")
+                                DispatchQueue.main.async {
+                                    completion(.success(result))
+                                }
+                            }
                         }
                     case .failure(let error):
                         print("❌ [IPA处理] 处理失败: \(error.localizedDescription)")
@@ -506,9 +761,47 @@ extension DownloadManager: URLSessionDownloadDelegate {
                     }
                 }
             } else {
-                print("⚠️ [下载完成] 没有签名信息，跳过IPA处理")
-                DispatchQueue.main.async {
-                    completion(.success(result))
+                print("⚠️ [下载完成] 没有签名信息，直接添加iTunesMetadata.plist...")
+                
+                // 即使没有签名信息，也要添加iTunesMetadata.plist
+                Task {
+                    do {
+                        print("🔧 [元数据处理] 开始为无签名的IPA添加iTunesMetadata.plist...")
+                        // 安全解包metadata
+                        guard let metadata = result.metadata else {
+                            print("❌ [元数据处理] metadata为空，无法创建iTunesMetadata.plist")
+                            DispatchQueue.main.async {
+                                completion(.success(result))
+                            }
+                            return
+                        }
+                        
+                        print("🔧 [元数据处理] 元数据信息:")
+                        print("   - Bundle ID: \(metadata.bundleId)")
+                        print("   - Display Name: \(metadata.bundleDisplayName)")
+                        print("   - Version: \(metadata.bundleShortVersionString)")
+                        
+                        // 直接生成iTunesMetadata.plist
+                        let finalIPA = try await generateiTunesMetadata(
+                            for: result.fileURL.path,
+                            bundleId: metadata.bundleId,
+                            displayName: metadata.bundleDisplayName,
+                            version: metadata.bundleShortVersionString,
+                            externalVersionId: Int(metadata.softwareVersionExternalIdentifier) ?? 0,
+                            externalVersionIds: metadata.softwareVersionExternalIdentifiers
+                        )
+                        
+                        print("✅ [元数据处理] 成功生成iTunesMetadata.plist，最终IPA: \(finalIPA)")
+                        
+                        DispatchQueue.main.async {
+                            completion(.success(result))
+                        }
+                    } catch {
+                        print("❌ [元数据处理] 生成iTunesMetadata.plist失败: \(error)")
+                        DispatchQueue.main.async {
+                            completion(.success(result))
+                        }
+                    }
                 }
             }
         } catch {
@@ -648,8 +941,8 @@ struct DownloadResult {
     let downloadId: String
     let fileURL: URL
     let fileSize: Int64
-    var metadata: AppMetadata?
-    var sinfs: [SinfInfo]?
+    var metadata: DownloadAppMetadata?
+    var sinfs: [DownloadSinfInfo]?
     var expectedMD5: String?
     var isIntegrityValid: Bool {
         guard let expectedMD5 = expectedMD5,
@@ -730,5 +1023,286 @@ struct UnifiedDownloadRequest: Identifiable, Codable {
     
     var isPaused: Bool {
         return status == .paused
+    }
+}
+
+// MARK: - iTunesMetadata生成方法
+extension DownloadManager {
+    /// 使用ZipArchive处理IPA文件
+    private func processIPAWithZipArchive(
+        at ipaPath: String,
+        appInfo: DownloadAppMetadata
+    ) async throws -> String {
+        print("🔧 [ZipArchive] 开始处理IPA文件: \(ipaPath)")
+        print("🔧 [ZipArchive] 应用信息:")
+        print("   - Bundle ID: \(appInfo.bundleId)")
+        print("   - Display Name: \(appInfo.bundleDisplayName)")
+        print("   - Version: \(appInfo.bundleShortVersionString)")
+        
+        // 创建临时工作目录
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("IPAProcessing_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        print("🔧 [ZipArchive] 创建临时目录: \(tempDir.path)")
+        
+        defer {
+            // 清理临时目录
+            try? FileManager.default.removeItem(at: tempDir)
+            print("🧹 [ZipArchive] 清理临时目录: \(tempDir.path)")
+        }
+        
+        let extractedDir = tempDir.appendingPathComponent("extracted")
+        try FileManager.default.createDirectory(at: extractedDir, withIntermediateDirectories: true)
+        print("🔧 [ZipArchive] 创建解压目录: \(extractedDir.path)")
+        
+        // 使用ZipArchive解压IPA文件
+        #if canImport(ZipArchive)
+        print("🔧 [ZipArchive] 开始解压IPA文件...")
+        let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: extractedDir.path)
+        guard success else {
+            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive解压失败"])
+        }
+        print("🔧 [ZipArchive] 成功解压IPA文件")
+        
+        // 创建iTunesMetadata.plist
+        print("🔧 [ZipArchive] 开始创建iTunesMetadata.plist...")
+        try createiTunesMetadataPlist(in: extractedDir, appInfo: appInfo)
+        print("🔧 [ZipArchive] 成功创建iTunesMetadata.plist")
+        
+        // 重新打包IPA文件
+        print("🔧 [ZipArchive] 开始重新打包IPA文件...")
+        let processedIPAPath = URL(fileURLWithPath: ipaPath).deletingLastPathComponent()
+            .appendingPathComponent("processed_\(URL(fileURLWithPath: ipaPath).lastPathComponent)")
+        
+        let repackSuccess = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
+        guard repackSuccess else {
+            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive重新打包失败"])
+        }
+        print("🔧 [ZipArchive] 成功重新打包IPA文件: \(processedIPAPath.path)")
+        
+        // 替换原文件
+        print("🔧 [ZipArchive] 替换原文件...")
+        try FileManager.default.removeItem(at: URL(fileURLWithPath: ipaPath))
+        try FileManager.default.moveItem(at: processedIPAPath, to: URL(fileURLWithPath: ipaPath))
+        print("✅ [ZipArchive] 成功替换原文件")
+        
+        return ipaPath
+        #else
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
+        #endif
+    }
+    
+    /// 创建iTunesMetadata.plist文件
+    private func createiTunesMetadataPlist(in extractedDir: URL, appInfo: DownloadAppMetadata) throws {
+        let metadataPath = extractedDir.appendingPathComponent("iTunesMetadata.plist")
+        print("🔧 [ZipArchive] 准备创建iTunesMetadata.plist: \(metadataPath.path)")
+        
+        // 构建iTunesMetadata.plist内容
+        let metadataDict: [String: Any] = [
+            "appleId": appInfo.bundleId,
+            "artistId": 0,
+            "artistName": appInfo.bundleDisplayName,
+            "bundleId": appInfo.bundleId,
+            "bundleVersion": appInfo.bundleShortVersionString,
+            "copyright": "Copyright © 2025",
+            "drmVersionNumber": 0,
+            "fileExtension": "ipa",
+            "fileName": "\(appInfo.bundleDisplayName).ipa",
+            "genre": "Productivity",
+            "genreId": 6007,
+            "itemId": 0,
+            "itemName": appInfo.bundleDisplayName,
+            "kind": "software",
+            "playlistName": "iOS Apps",
+            "price": 0.0,
+            "priceDisplay": "Free",
+            "rating": "4+",
+            "releaseDate": "2025-01-01T00:00:00Z",
+            "s": 143441,
+            "softwareIcon57x57URL": "",
+            "softwareIconNeedsShine": false,
+            "softwareSupportedDeviceIds": [1, 2], // iPhone and iPad
+            "softwareVersionBundleId": appInfo.bundleId,
+            "softwareVersionExternalIdentifier": Int(appInfo.softwareVersionExternalIdentifier) ?? 0,
+            "softwareVersionExternalIdentifiers": appInfo.softwareVersionExternalIdentifiers ?? [],
+            "subgenres": [],
+            "vendorId": 0,
+            "versionRestrictions": 0
+        ]
+        
+        print("🔧 [ZipArchive] 构建的元数据字典包含 \(metadataDict.count) 个字段")
+        print("🔧 [ZipArchive] 关键字段值:")
+        print("   - appleId: \(metadataDict["appleId"] ?? "nil")")
+        print("   - artistName: \(metadataDict["artistName"] ?? "nil")")
+        print("   - bundleId: \(metadataDict["bundleId"] ?? "nil")")
+        print("   - bundleVersion: \(metadataDict["bundleVersion"] ?? "nil")")
+        
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: metadataDict,
+            format: .xml,
+            options: 0
+        )
+        
+        print("🔧 [ZipArchive] 成功序列化plist数据，大小: \(ByteCountFormatter().string(fromByteCount: Int64(plistData.count)))")
+        
+        try plistData.write(to: metadataPath)
+        print("🔧 [ZipArchive] 成功写入iTunesMetadata.plist到: \(metadataPath.path)")
+        
+        // 验证文件是否真的被创建了
+        if FileManager.default.fileExists(atPath: metadataPath.path) {
+            let fileSize = try FileManager.default.attributesOfItem(atPath: metadataPath.path)[.size] as? Int64 ?? 0
+            print("✅ [ZipArchive] iTunesMetadata.plist文件确认存在，大小: \(ByteCountFormatter().string(fromByteCount: fileSize))")
+        } else {
+            print("❌ [ZipArchive] iTunesMetadata.plist文件创建失败，文件不存在")
+        }
+    }
+    
+    /// 为IPA文件生成iTunesMetadata.plist - 强制确保每个IPA都包含元数据
+    /// - Parameters:
+    ///   - ipaPath: IPA文件路径
+    ///   - bundleId: 应用包ID
+    ///   - displayName: 应用显示名称
+    ///   - version: 应用版本
+    ///   - externalVersionId: 外部版本ID
+    ///   - externalVersionIds: 外部版本ID数组
+    /// - Returns: 处理后的IPA文件路径
+    private func generateiTunesMetadata(
+        for ipaPath: String,
+        bundleId: String,
+        displayName: String,
+        version: String,
+        externalVersionId: Int,
+        externalVersionIds: [Int]?
+    ) async throws -> String {
+        print("🔧 [iTunesMetadata] 开始为IPA文件强制生成iTunesMetadata.plist: \(ipaPath)")
+        print("🔧 [iTunesMetadata] 参数信息:")
+        print("   - Bundle ID: \(bundleId)")
+        print("   - Display Name: \(displayName)")
+        print("   - Version: \(version)")
+        print("   - External Version ID: \(externalVersionId)")
+        print("   - External Version IDs: \(externalVersionIds ?? [])")
+        
+        // 构建iTunesMetadata.plist内容
+        let metadataDict: [String: Any] = [
+            "appleId": bundleId,
+            "artistId": 0,
+            "artistName": displayName,
+            "bundleId": bundleId,
+            "bundleVersion": version,
+            "copyright": "Copyright © 2025",
+            "drmVersionNumber": 0,
+            "fileExtension": "ipa",
+            "fileName": "\(displayName).ipa",
+            "genre": "Productivity",
+            "genreId": 6007,
+            "itemId": 0,
+            "itemName": displayName,
+            "kind": "software",
+            "playlistName": "iOS Apps",
+            "price": 0.0,
+            "priceDisplay": "Free",
+            "rating": "4+",
+            "releaseDate": "2025-01-01T00:00:00Z",
+            "s": 143441,
+            "softwareIcon57x57URL": "",
+            "softwareIconNeedsShine": false,
+            "softwareSupportedDeviceIds": [1, 2], // iPhone and iPad
+            "softwareVersionBundleId": bundleId,
+            "softwareVersionExternalIdentifier": externalVersionId,
+            "softwareVersionExternalIdentifiers": externalVersionIds ?? [],
+            "subgenres": [],
+            "vendorId": 0,
+            "versionRestrictions": 0
+        ]
+        
+        print("🔧 [iTunesMetadata] 构建的元数据字典包含 \(metadataDict.count) 个字段")
+        
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: metadataDict,
+            format: .xml,
+            options: 0
+        )
+        
+        print("🔧 [iTunesMetadata] 成功生成plist数据，大小: \(ByteCountFormatter().string(fromByteCount: Int64(plistData.count)))")
+        
+        // 强制使用ZipArchive处理IPA文件，确保iTunesMetadata.plist被添加
+        do {
+            print("🔧 [iTunesMetadata] 尝试使用ZipArchive处理IPA文件...")
+            let appInfo = DownloadAppMetadata(
+                bundleId: bundleId,
+                bundleDisplayName: displayName,
+                bundleShortVersionString: version,
+                softwareVersionExternalIdentifier: String(externalVersionId),
+                softwareVersionExternalIdentifiers: externalVersionIds
+            )
+            
+            let processedIPA = try await processIPAWithZipArchive(at: ipaPath, appInfo: appInfo)
+            print("✅ [iTunesMetadata] 成功使用ZipArchive处理IPA文件: \(processedIPA)")
+            return processedIPA
+            
+        } catch {
+            print("❌ [iTunesMetadata] ZipArchive处理失败: \(error)")
+            print("🔄 [iTunesMetadata] 尝试备用方案：直接解压并添加iTunesMetadata.plist")
+            
+            // 备用方案：直接解压IPA，添加iTunesMetadata.plist，然后重新打包
+            return try await fallbackAddiTunesMetadata(to: ipaPath, plistData: plistData)
+        }
+    }
+    
+    /// 备用方案：直接解压IPA并添加iTunesMetadata.plist
+    private func fallbackAddiTunesMetadata(to ipaPath: String, plistData: Data) async throws -> String {
+        print("🔄 [备用方案] 开始直接处理IPA文件")
+        
+        #if canImport(ZipArchive)
+        // 创建临时工作目录
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("FallbackIPAProcessing_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        
+        defer {
+            // 清理临时目录
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+        
+        let extractedDir = tempDir.appendingPathComponent("extracted")
+        try FileManager.default.createDirectory(at: extractedDir, withIntermediateDirectories: true)
+        
+        // 解压IPA文件
+        let ipaURL = URL(fileURLWithPath: ipaPath)
+        let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: extractedDir.path)
+        
+        guard success else {
+            throw NSError(domain: "FallbackIPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive解压失败"])
+        }
+        
+        print("✅ [备用方案] IPA解压成功")
+        
+        // 在根目录添加iTunesMetadata.plist
+        let metadataPath = extractedDir.appendingPathComponent("iTunesMetadata.plist")
+        try plistData.write(to: metadataPath)
+        print("✅ [备用方案] iTunesMetadata.plist已添加到解压目录")
+        
+        // 重新打包IPA文件
+        let processedIPAPath = ipaURL.deletingLastPathComponent()
+            .appendingPathComponent("processed_\(ipaURL.lastPathComponent)")
+        
+        let repackSuccess = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
+        
+        guard repackSuccess else {
+            throw NSError(domain: "FallbackIPAProcessing", code: 2, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive重新打包失败"])
+        }
+        
+        print("✅ [备用方案] IPA重新打包成功")
+        
+        // 替换原文件
+        try FileManager.default.removeItem(at: ipaURL)
+        try FileManager.default.moveItem(at: processedIPAPath, to: ipaURL)
+        
+        print("✅ [备用方案] 原IPA文件已替换为包含iTunesMetadata.plist的版本")
+        return ipaURL.path
+        
+        #else
+        // 如果没有ZipArchive，抛出错误
+        throw NSError(domain: "FallbackIPAProcessing", code: 3, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，无法处理IPA文件"])
+        #endif
     }
 }

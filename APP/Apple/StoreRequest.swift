@@ -28,6 +28,7 @@ class StoreRequest {
     static let shared = StoreRequest()
     private let session: URLSession
     private let baseURL = "https://p25-buy.itunes.apple.com"
+    
     private init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
@@ -643,6 +644,8 @@ struct StoreAuthResponse: Codable {
         }
     }
 }
+
+// MARK: - 响应类型定义
 struct StoreDownloadResponse: Codable {
     let songList: [StoreItem]
     let dsPersonId: String
@@ -650,18 +653,21 @@ struct StoreDownloadResponse: Codable {
     let jingleAction: String?
     let pings: [String]?
 }
+
 struct StorePurchaseResponse: Codable {
     let dsPersonId: String
     let jingleDocType: String?
     let jingleAction: String?
     let pings: [String]?
 }
+
 struct StoreItem: Codable {
     let url: String
     let md5: String
     let sinfs: [SinfInfo]
     let metadata: AppMetadata
 }
+
 struct AppMetadata: Codable {
     let bundleId: String
     let bundleDisplayName: String
@@ -676,6 +682,7 @@ struct AppMetadata: Codable {
         case softwareVersionExternalIdentifiers
     }
 }
+
 struct SinfInfo: Codable {
     let id: Int
     let sinf: String
