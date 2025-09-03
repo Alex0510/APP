@@ -1,20 +1,37 @@
 name: Build IPA
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "请输入版本号 (例如: 1.0.0)"
+        required: true
+        default: "1.0.0"
 
 jobs:
   build:
     runs-on: macos-15
     steps:
-     - uses: actions/checkout@v3
-     - name: Compile
-       run: make
-     
-     - name: Upload artifact
-       uses: actions/upload-artifact@v4
-       with:
-        name: APP
-        path: APP.ipa
+      - uses: actions/checkout@v3
+
+      - name: Compile
+        run: make
+
+      - name: Set tag name
+        id: vars
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          DATE=$(date +'%Y%m%d-%H%M%S')
+          TAG="v${VERSION}-${DATE}"
+          echo "TAG_NAME=$TAG" >> $GITHUB_ENV
+          echo "RELEASE_NAME=AppStore" >> $GITHUB_ENV
+          echo "生成的 tag: $TAG"
+
+      - name: Create Release and Upload IPA
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          files: APP.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
