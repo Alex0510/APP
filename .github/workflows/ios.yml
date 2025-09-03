@@ -1,118 +1,20 @@
-name: Build iOS IPA and Release
+name: Build IPA
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
-    inputs:
-      version:
-        description: '版本号 (可选, 不填则用时间戳)'
-        required: false
-        default: ''
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.app
-
-      # 自动检测 workspace/project
-      - name: Detect Xcode Project
-        id: detect
-        run: |
-          workspace=$(find . -maxdepth 1 -type d -name "*.xcworkspace" | head -n 1)
-          project=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
-          if [ -n "$workspace" ]; then
-            echo "type=workspace" >> $GITHUB_ENV
-            echo "file=$workspace" >> $GITHUB_ENV
-          elif [ -n "$project" ]; then
-            echo "type=project" >> $GITHUB_ENV
-            echo "file=$project" >> $GITHUB_ENV
-          else
-            echo "❌ 没找到 .xcworkspace 或 .xcodeproj"
-            exit 1
-          fi
-
-      # 自动获取 scheme
-      - name: Detect Scheme
-        id: scheme
-        run: |
-          if [ "${{ env.type }}" = "workspace" ]; then
-            SCHEME=$(xcodebuild -list -json -workspace "${{ env.file }}" | jq -r '.workspace.schemes[0]')
-          else
-            SCHEME=$(xcodebuild -list -json -project "${{ env.file }}" | jq -r '.project.schemes[0]')
-          fi
-          if [ -z "$SCHEME" ] || [ "$SCHEME" = "null" ]; then
-            echo "❌ 没找到 scheme"
-            exit 1
-          fi
-          echo "scheme=$SCHEME" >> $GITHUB_ENV
-
-      # 解析 SPM 依赖
-      - name: Resolve Swift Packages
-        run: |
-          if [ "${{ env.type }}" = "workspace" ]; then
-            xcodebuild -workspace "${{ env.file }}" -scheme "${{ env.scheme }}" -sdk iphoneos -resolvePackageDependencies
-          else
-            xcodebuild -project "${{ env.file }}" -scheme "${{ env.scheme }}" -sdk iphoneos -resolvePackageDependencies
-          fi
-
-      # 编译 .app
-      - name: Build .app
-        run: |
-          if [ "${{ env.type }}" = "workspace" ]; then
-            xcodebuild \
-              -workspace "${{ env.file }}" \
-              -scheme "${{ env.scheme }}" \
-              -sdk iphoneos \
-              -configuration Release \
-              CODE_SIGNING_ALLOWED=NO \
-              clean build \
-              CONFIGURATION_BUILD_DIR=$PWD/build/Release-iphoneos
-          else
-            xcodebuild \
-              -project "${{ env.file }}" \
-              -scheme "${{ env.scheme }}" \
-              -sdk iphoneos \
-              -configuration Release \
-              CODE_SIGNING_ALLOWED=NO \
-              clean build \
-              CONFIGURATION_BUILD_DIR=$PWD/build/Release-iphoneos
-          fi
-
-      # 打包 .app -> .ipa
-      - name: Package IPA
-        run: |
-          mkdir Payload
-          app_path=$(ls build/Release-iphoneos/*.app | head -n 1)
-          cp -r "$app_path" Payload/
-          zip -r App.ipa Payload
-          rm -rf Payload
-
-      # 自动生成 tag，如果 workflow_dispatch 没传版本号则用时间戳
-      - name: Generate Tag
-        id: tag
-        run: |
-          if [ -z "${{ github.event.inputs.version }}" ]; then
-            TAG="v$(date +'%Y%m%d%H%M')"
-          else
-            TAG="v${{ github.event.inputs.version }}"
-          fi
-          echo "tag=$TAG" >> $GITHUB_ENV
-          echo "Generated tag: $TAG"
-
-      # 上传 IPA 到 Release
-      - name: Create Release and Upload IPA
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ env.tag }}
-          name: "iOS Build ${{ env.tag }}"
-          artifacts: App.ipa
-          draft: false
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+     - uses: actions/checkout@v3
+     - name: Compile
+       run: make
+     
+     - name: Upload artifact
+       uses: actions/upload-artifact@v4
+       with:
+        name: APP
+        path: APP.ipa
