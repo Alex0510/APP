@@ -200,7 +200,7 @@ struct AccountView: View {
 
 // MARK: - Account Row View
 struct AccountRowView: View {
-    let account: Account
+    let account: Any
     @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
@@ -214,53 +214,294 @@ struct AccountRowView: View {
             
             // 账户信息
             VStack(alignment: .leading, spacing: 6) { // 增加间距
-                Text(account.email)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                
-                if !account.name.isEmpty {
-                    Text(account.name)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2) // 允许两行显示
-                }
-                
-                HStack(spacing: 8) {
-                    Text(account.countryCode)
-                        .font(.caption)
-                        .foregroundColor(.white) // 改为白色以提高可读性
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4) // 增加垂直间距
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.8)) // 使用更明显的颜色
-                        )
+                if let account = account as? Account {
+                    Text(account.email)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
                     
-                    if !account.dsPersonId.isEmpty {
-                        Text("DS: \(account.dsPersonId)")
-                            .font(.caption)
+                    if !account.name.isEmpty {
+                        Text(account.name)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.gray.opacity(0.1))
-                            )
+                            .lineLimit(2) // 允许两行显示
                     }
+                    
+                    HStack(spacing: 8) {
+                        // 显示地区代码，使用更友好的显示方式
+                        let regionDisplay = getRegionDisplay(for: account.countryCode)
+                        Text(regionDisplay)
+                            .font(.caption)
+                            .foregroundColor(.white) // 改为白色以提高可读性
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4) // 增加垂直间距
+                            .background(
+                                Capsule()
+                                    .fill(Color.blue.opacity(0.8)) // 使用更明显的颜色
+                            )
+                        
+                        if !account.dsPersonId.isEmpty {
+                            Text("DS: \(account.dsPersonId)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.gray.opacity(0.1))
+                                )
+                        }
+                    }
+                } else {
+                    // 如果无法转换为Account类型，显示默认信息
+                    Text("账户信息")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Text("无法加载详细信息")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
             
             Spacer()
-            
-            // 箭头指示器
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
         .padding(.vertical, 12) // 增加垂直间距
         .padding(.horizontal, 4) // 添加水平间距
         .background(Color(.systemBackground)) // 确保有背景色
+    }
+    
+    // MARK: - 辅助方法
+    private func getRegionDisplay(for countryCode: String) -> String {
+        // 地区代码映射 - 完整版本（去重）
+        let regionMap: [String: String] = [
+            // 北美
+            "US": "美国",
+            "CA": "加拿大",
+            "MX": "墨西哥",
+            
+            // 欧洲
+            "GB": "英国",
+            "DE": "德国",
+            "FR": "法国",
+            "IT": "意大利",
+            "ES": "西班牙",
+            "NL": "荷兰",
+            "SE": "瑞典",
+            "NO": "挪威",
+            "DK": "丹麦",
+            "FI": "芬兰",
+            "CH": "瑞士",
+            "AT": "奥地利",
+            "BE": "比利时",
+            "IE": "爱尔兰",
+            "PT": "葡萄牙",
+            "GR": "希腊",
+            "PL": "波兰",
+            "CZ": "捷克",
+            "HU": "匈牙利",
+            "RO": "罗马尼亚",
+            "BG": "保加利亚",
+            "HR": "克罗地亚",
+            "SI": "斯洛文尼亚",
+            "SK": "斯洛伐克",
+            "LT": "立陶宛",
+            "LV": "拉脱维亚",
+            "EE": "爱沙尼亚",
+            "LU": "卢森堡",
+            "MT": "马耳他",
+            "CY": "塞浦路斯",
+            "IS": "冰岛",
+            "LI": "列支敦士登",
+            "MC": "摩纳哥",
+            "AD": "安道尔",
+            "SM": "圣马力诺",
+            "VA": "梵蒂冈",
+            
+            // 亚洲
+            "CN": "中国",
+            "HK": "香港",
+            "MO": "澳门",
+            "TW": "台湾",
+            "JP": "日本",
+            "KR": "韩国",
+            "SG": "新加坡",
+            "TH": "泰国",
+            "VN": "越南",
+            "MY": "马来西亚",
+            "ID": "印尼",
+            "PH": "菲律宾",
+            "IN": "印度",
+            "PK": "巴基斯坦",
+            "BD": "孟加拉国",
+            "LK": "斯里兰卡",
+            "NP": "尼泊尔",
+            "MM": "缅甸",
+            "KH": "柬埔寨",
+            "LA": "老挝",
+            "BN": "文莱",
+            "TL": "东帝汶",
+            "MN": "蒙古",
+            "KZ": "哈萨克斯坦",
+            "UZ": "乌兹别克斯坦",
+            "KG": "吉尔吉斯斯坦",
+            "TJ": "塔吉克斯坦",
+            "TM": "土库曼斯坦",
+            "AF": "阿富汗",
+            "IR": "伊朗",
+            "IQ": "伊拉克",
+            "SA": "沙特阿拉伯",
+            "AE": "阿联酋",
+            "QA": "卡塔尔",
+            "KW": "科威特",
+            "BH": "巴林",
+            "OM": "阿曼",
+            "YE": "也门",
+            "JO": "约旦",
+            "LB": "黎巴嫩",
+            "SY": "叙利亚",
+            "IL": "以色列",
+            "PS": "巴勒斯坦",
+            "TR": "土耳其",
+            "GE": "格鲁吉亚",
+            "AM": "亚美尼亚",
+            "AZ": "阿塞拜疆",
+            
+            // 大洋洲
+            "AU": "澳大利亚",
+            "NZ": "新西兰",
+            "FJ": "斐济",
+            "PG": "巴布亚新几内亚",
+            "NC": "新喀里多尼亚",
+            "PF": "法属波利尼西亚",
+            "VU": "瓦努阿图",
+            "SB": "所罗门群岛",
+            "TO": "汤加",
+            "WS": "萨摩亚",
+            "KI": "基里巴斯",
+            "TV": "图瓦卢",
+            "NR": "瑙鲁",
+            "PW": "帕劳",
+            "MH": "马绍尔群岛",
+            "FM": "密克罗尼西亚",
+            "CK": "库克群岛",
+            "NU": "纽埃",
+            "TK": "托克劳",
+            
+            // 南美
+            "BR": "巴西",
+            "AR": "阿根廷",
+            "CL": "智利",
+            "CO": "哥伦比亚",
+            "PE": "秘鲁",
+            "VE": "委内瑞拉",
+            "EC": "厄瓜多尔",
+            "BO": "玻利维亚",
+            "PY": "巴拉圭",
+            "UY": "乌拉圭",
+            "GY": "圭亚那",
+            "SR": "苏里南",
+            "FK": "福克兰群岛",
+            "GF": "法属圭亚那",
+            
+            // 非洲
+            "ZA": "南非",
+            "EG": "埃及",
+            "NG": "尼日利亚",
+            "KE": "肯尼亚",
+            "ET": "埃塞俄比亚",
+            "TZ": "坦桑尼亚",
+            "UG": "乌干达",
+            "GH": "加纳",
+            "CI": "科特迪瓦",
+            "SN": "塞内加尔",
+            "ML": "马里",
+            "BF": "布基纳法索",
+            "NE": "尼日尔",
+            "TD": "乍得",
+            "SD": "苏丹",
+            "SS": "南苏丹",
+            "CF": "中非共和国",
+            "CM": "喀麦隆",
+            "GQ": "赤道几内亚",
+            "GA": "加蓬",
+            "CG": "刚果共和国",
+            "CD": "刚果民主共和国",
+            "AO": "安哥拉",
+            "ZM": "赞比亚",
+            "ZW": "津巴布韦",
+            "BW": "博茨瓦纳",
+            "NA": "纳米比亚",
+            "SZ": "斯威士兰",
+            "LS": "莱索托",
+            "MG": "马达加斯加",
+            "MU": "毛里求斯",
+            "SC": "塞舌尔",
+            "KM": "科摩罗",
+            "DJ": "吉布提",
+            "SO": "索马里",
+            "ER": "厄立特里亚",
+            "LY": "利比亚",
+            "TN": "突尼斯",
+            "DZ": "阿尔及利亚",
+            "MA": "摩洛哥",
+            "EH": "西撒哈拉",
+            "MR": "毛里塔尼亚",
+            
+            // 中美洲和加勒比海
+            "GT": "危地马拉",
+            "BZ": "伯利兹",
+            "SV": "萨尔瓦多",
+            "HN": "洪都拉斯",
+            "NI": "尼加拉瓜",
+            "CR": "哥斯达黎加",
+            "PA": "巴拿马",
+            "CU": "古巴",
+            "JM": "牙买加",
+            "HT": "海地",
+            "DO": "多米尼加",
+            "PR": "波多黎各",
+            "TT": "特立尼达和多巴哥",
+            "BB": "巴巴多斯",
+            "GD": "格林纳达",
+            "LC": "圣卢西亚",
+            "VC": "圣文森特和格林纳丁斯",
+            "AG": "安提瓜和巴布达",
+            "KN": "圣基茨和尼维斯",
+            "DM": "多米尼克",
+            "BS": "巴哈马",
+            "TC": "特克斯和凯科斯群岛",
+            "KY": "开曼群岛",
+            "BM": "百慕大",
+            "AW": "阿鲁巴",
+            "CW": "库拉索",
+            "SX": "圣马丁",
+            "MF": "法属圣马丁",
+            "BL": "圣巴泰勒米",
+            "GP": "瓜德罗普",
+            "MQ": "马提尼克",
+            "RE": "留尼汪",
+            "YT": "马约特",
+            "WF": "瓦利斯和富图纳",
+            "TF": "法属南部领地",
+            "PM": "圣皮埃尔和密克隆",
+            "GL": "格陵兰",
+            "FO": "法罗群岛",
+            "AX": "奥兰群岛",
+            "SJ": "斯瓦尔巴和扬马延",
+            "BV": "布韦岛",
+            "GS": "南乔治亚和南桑威奇群岛",
+            "IO": "英属印度洋领地",
+            "SH": "圣赫勒拿",
+            "GI": "直布罗陀"
+        ]
+        
+        // 如果找到对应的中文名称，返回"中文名 (代码)"格式
+        if let chineseName = regionMap[countryCode] {
+            return "\(chineseName) (\(countryCode))"
+        } else {
+            // 如果没有找到，只返回代码
+            return countryCode
+        }
     }
 }

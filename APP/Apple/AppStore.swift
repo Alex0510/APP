@@ -18,6 +18,10 @@ class AppStore: ObservableObject {
     /// 初始化，确保单例模式
     private init() {
         loadAccounts()
+        // 自动选择第一个账户作为当前账户
+        if !accounts.isEmpty {
+            selectedAccount = accounts.first
+        }
     }
     /// 设置GUID
     func setupGUID() {
@@ -29,6 +33,13 @@ class AppStore: ObservableObject {
         // 从 AuthenticationManager 加载保存的账户
         if let savedAccount = AuthenticationManager.shared.loadSavedAccount() {
             accounts = [savedAccount]
+            // 自动选择第一个账户作为当前账户
+            selectedAccount = savedAccount
+            print("[AppStore] 加载账户: \(savedAccount.email), 地区: \(savedAccount.countryCode)")
+        } else {
+            print("[AppStore] 没有找到保存的账户")
+            accounts = []
+            selectedAccount = nil
         }
     }
     /// 添加账户 - 使用 AuthenticationManager 进行认证
@@ -42,6 +53,11 @@ class AppStore: ObservableObject {
         // 保存认证成功的账户
         try AuthenticationManager.shared.saveAccount(account)
         accounts.append(account)
+        
+        // 自动选择新添加的账户作为当前账户
+        selectedAccount = account
+        print("[AppStore] 新账户添加成功: \(account.email), 地区: \(account.countryCode)")
+        
         saveAccounts()
     }
     /// 删除账户
@@ -96,6 +112,20 @@ class AppStore: ObservableObject {
     private func saveAccounts() {
         // 实现账户数据的持久化存储
         // 应该使用Keychain等安全存储
+    }
+    
+    /// 切换当前选中的账户
+    func selectAccount(_ account: Account) {
+        selectedAccount = account
+        print("[AppStore] 切换到账户: \(account.email), 地区: \(account.countryCode)")
+        // 设置账户的cookie到HTTPCookieStorage
+        AuthenticationManager.shared.setCookies(account.cookies)
+        objectWillChange.send()
+    }
+    
+    /// 获取当前选中账户的地区代码
+    var currentAccountRegion: String {
+        return selectedAccount?.countryCode ?? "US"
     }
 }
 // MARK: - Account 模型
