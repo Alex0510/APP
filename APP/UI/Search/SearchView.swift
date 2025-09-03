@@ -12,8 +12,9 @@ struct SearchView: View {
     @State var searchType = DeviceFamily.phone
     @EnvironmentObject var themeManager: ThemeManager
     @State var searching = false
-    // 视图模式状态
-    @AppStorage("searchViewMode") var viewMode: ViewMode = .list
+    // 视图模式状态 - 改用@State确保实时更新
+    @State var viewMode: ViewMode = .list
+    @State var viewModeRefreshTrigger = UUID() // 添加刷新触发器
     // 视图模式枚举
     enum ViewMode: String, CaseIterable {
         case list = "list"
@@ -127,33 +128,45 @@ struct SearchView: View {
                 themeManager.backgroundColor
                     .ignoresSafeArea()
                 
-                // 主要内容区域
-                ScrollViewReader { proxy in
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(spacing: 0) {
-                            // 搜索头部区域
-                            modernSearchBar
-                                .scaleEffect(animateHeader ? 1 : 0.95)
-                                .opacity(animateHeader ? 1 : 0)
-                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateHeader)
-                                .id("searchBar")
-                            
-                            // 分类选择器
-                            categorySelector
-                                .scaleEffect(animateHeader ? 1 : 0.95)
-                                .opacity(animateHeader ? 1 : 0)
-                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateHeader)
-                            
-                            // 搜索结果区域
-                            searchResultsSection
-                                .scaleEffect(animateResults ? 1 : 0.95)
-                                .opacity(animateResults ? 1 : 0)
-                                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateResults)
-                        }
+                // 顶部安全区域占位 - 真机适配
+                VStack(spacing: 0) {
+                    GeometryReader { geometry in
+                        Color.clear
+                            .frame(height: geometry.safeAreaInsets.top > 0 ? geometry.safeAreaInsets.top : 44)
+                            .onAppear {
+                                print("[SearchView] 顶部安全区域: \(geometry.safeAreaInsets.top)")
+                            }
                     }
-                    .refreshable {
-                        if !searchKey.isEmpty {
-                            await performSearch()
+                    .frame(height: 44) // 固定高度，避免布局跳动
+                    
+                    // 主要内容区域
+                    ScrollViewReader { proxy in
+                        ScrollView(.vertical, showsIndicators: false) {
+                            LazyVStack(spacing: 0) {
+                                // 搜索头部区域
+                                modernSearchBar
+                                    .scaleEffect(animateHeader ? 1 : 0.95)
+                                    .opacity(animateHeader ? 1 : 0)
+                                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: animateHeader)
+                                    .id("searchBar")
+                                
+                                // 分类选择器
+                                categorySelector
+                                    .scaleEffect(animateHeader ? 1 : 0.95)
+                                    .opacity(animateHeader ? 1 : 0)
+                                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.2), value: animateHeader)
+                                
+                                // 搜索结果区域
+                                searchResultsSection
+                                    .scaleEffect(animateResults ? 1 : 0.95)
+                                    .opacity(animateResults ? 1 : 0)
+                                    .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: animateResults)
+                            }
+                        }
+                        .refreshable {
+                            if !searchKey.isEmpty {
+                                await performSearch()
+                            }
                         }
                     }
                 }
@@ -164,7 +177,19 @@ struct SearchView: View {
         .navigationViewStyle(.stack)
         .onAppear {
             loadSearchHistory()
-            startAnimations()
+            // 强制刷新UI
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                print("[SearchView] 强制刷新UI")
+                startAnimations()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ForceRefreshUI"))) { _ in
+            // 接收强制刷新通知 - 真机适配
+            print("[SearchView] 接收到强制刷新通知")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                print("[SearchView] 真机适配强制刷新完成")
+                startAnimations()
+            }
         }
         .sheet(isPresented: $showVersionPicker) {
             versionPickerSheet
@@ -441,6 +466,7 @@ struct SearchView: View {
                 emptyStateView
             } else {
                 searchResultsGrid
+                    .id("searchResultsGrid-\(viewMode.rawValue)-\(viewModeRefreshTrigger)") // 添加ID确保视图刷新
             }
         }
     }
@@ -609,9 +635,13 @@ struct SearchView: View {
         HStack(spacing: 0) {
             ForEach(ViewMode.allCases, id: \.self) { mode in
                 Button {
+                    print("[SearchView] 视图模式切换: \(viewMode) -> \(mode)")
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         viewMode = mode
+                        // 强制刷新视图模式
+                        viewModeRefreshTrigger = UUID()
                     }
+                    print("[SearchView] 视图模式已更新: \(viewMode), 刷新触发器: \(viewModeRefreshTrigger)")
                 } label: {
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: mode.icon)
@@ -654,6 +684,9 @@ struct SearchView: View {
                     }
                 }
                 .padding(.horizontal, Spacing.lg)
+                .onAppear {
+                    print("[SearchView] 显示卡片视图，结果数量: \(searchResult.count)")
+                }
             } else {
                 // 列表视图
                 LazyVStack(spacing: Spacing.md) {
@@ -663,6 +696,9 @@ struct SearchView: View {
                     }
                 }
                 .padding(.horizontal, Spacing.lg)
+                .onAppear {
+                    print("[SearchView] 显示列表视图，结果数量: \(searchResult.count)")
+                }
             }
             // 加载更多指示器
             if isLoadingMore {

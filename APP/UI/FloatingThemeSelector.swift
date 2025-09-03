@@ -56,7 +56,7 @@ struct FloatingThemeSelector: View {
                         }
                         .padding(.horizontal, Spacing.lg)
                     }
-                    .padding(.bottom, DeviceAdapter.shared.safeAreaBottom + 80) // 动态适配底部安全区域
+                    .padding(.bottom, 80) // 使用固定值：底部安全区域 + 80
                 }
             }
         }
@@ -69,33 +69,18 @@ struct FloatingThemeOption: View {
     let isSelected: Bool
     let action: () -> Void
     
+    // 使用简单的固定值替代复杂的设备检测
+    let isCompactDevice = false // 默认不是紧凑设备
+    
     // 根据设备类型调整尺寸
     private var cardSize: CGSize {
-        let deviceType = DeviceAdapter.shared.deviceType
-        switch deviceType {
-        case .iPhone8, .iPhone8Plus:
-            return CGSize(width: 80, height: 100)
-        case .iPhoneX, .iPhone12, .iPhone13:
-            return CGSize(width: 90, height: 110)
-        case .iPhone14Pro, .iPhone14ProMax:
-            return CGSize(width: 100, height: 120)
-        default:
-            return CGSize(width: 100, height: 120)
-        }
+        // 使用固定值，不再依赖设备检测
+        return CGSize(width: 100, height: 120)
     }
     
     private var fontSize: CGFloat {
-        let deviceType = DeviceAdapter.shared.deviceType
-        switch deviceType {
-        case .iPhone8, .iPhone8Plus:
-            return 10
-        case .iPhoneX, .iPhone12, .iPhone13:
-            return 11
-        case .iPhone14Pro, .iPhone14ProMax:
-            return 12
-        default:
-            return 12
-        }
+        // 使用固定值，不再依赖设备检测
+        return 12
     }
     
     var body: some View {

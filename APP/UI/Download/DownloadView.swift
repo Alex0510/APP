@@ -757,6 +757,16 @@ struct DownloadView: SwiftUIView {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    // 顶部安全区域占位 - 真机适配
+                    GeometryReader { geometry in
+                        Color.clear
+                            .frame(height: geometry.safeAreaInsets.top > 0 ? geometry.safeAreaInsets.top : 44)
+                            .onAppear {
+                                print("[DownloadView] 顶部安全区域: \(geometry.safeAreaInsets.top)")
+                            }
+                    }
+                    .frame(height: 44) // 固定高度，避免布局跳动
+                    
                     // 内容区域
                     downloadManagementSegmentView
                 }
@@ -780,13 +790,23 @@ struct DownloadView: SwiftUIView {
 
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 0.5)) {
-                animateCards = true
+            // 强制刷新UI
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                print("[DownloadView] 强制刷新UI")
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    animateCards = true
+                }
             }
         }
-        .onReceive(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()) { _ in
-            // 强制刷新UI以显示最新的下载进度
-            refreshID = UUID()
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ForceRefreshUI"))) { _ in
+            // 接收强制刷新通知 - 真机适配
+            print("[DownloadView] 接收到强制刷新通知")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                print("[DownloadView] 真机适配强制刷新完成")
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    animateCards = true
+                }
+            }
         }
     }
     
@@ -1653,49 +1673,19 @@ struct DownloadCardView: SwiftUIView {
     }
 }
 
-// 开发者链接按钮
+// MARK: - 开发者链接按钮
 struct DeveloperLinkButton: SwiftUIView {
-    let title: String
-    let icon: String
-    let color: Color
-    let url: String
-    
-    @EnvironmentObject var themeManager: ThemeManager
-    
     var body: some SwiftUIView {
         Button(action: {
-            if let url = URL(string: url) {
+            if let url = URL(string: "https://github.com/pxx917144686") {
                 UIApplication.shared.open(url)
             }
         }) {
-            HStack(spacing: Spacing.md) {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(color)
-                    .frame(width: 24)
-                
-                Text(title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(themeManager.accentColor)
-                
-                Spacer()
-                
-                Image(systemName: "arrow.up.right")
-                    .font(.caption)
-                    .foregroundColor(Color.gray)
+            HStack {
+                Image(systemName: "link")
+                Text("开发者链接")
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.1))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-            )
+            .foregroundColor(.blue)
         }
-        .buttonStyle(PlainButtonStyle())
     }
 }

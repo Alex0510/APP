@@ -40,84 +40,144 @@ struct AddAccountView: View {
                 // 适配深色模式的背景
                 themeManager.backgroundColor
                     .ignoresSafeArea()
-                VStack(spacing: 30) {
-                    // 标题区域
-                    VStack(spacing: 10) {
-                        Image("AppLogo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 120, height: 120)
-                            .cornerRadius(12) // 添加圆角，模拟iOS应用图标样式
+                
+                VStack(spacing: 0) {
+                    // 顶部安全区域占位
+                    GeometryReader { geometry in
+                        Color.clear
+                            .frame(height: geometry.safeAreaInsets.top > 0 ? geometry.safeAreaInsets.top : 44)
                     }
-                    .padding(.top, 20)
-                    // 输入表单
-                    VStack(spacing: 20) {
-                        // Apple ID 输入框
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Apple ID")
-                                .font(.headline)
-                                .foregroundColor(themeManager.primaryTextColor)
-                            TextField("输入您的 Apple ID", text: $email)
-                                .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                        }
-                        // 密码输入框
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("密码")
-                                .font(.headline)
-                                .foregroundColor(themeManager.primaryTextColor)
-                            SecureField("输入您的密码", text: $password)
-                                .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
-                        }
-                        // 双重认证码输入框（条件显示）
-                        if showTwoFactorField {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("双重认证码")
-                                    .font(.headline)
+                    .frame(height: 44)
+                    
+                    // 主要内容区域 - 完美居中
+                    VStack(spacing: 0) {
+                        Spacer()
+                        
+                        // 标题区域 - 完全居中
+                        VStack(spacing: 20) {
+                            Image("AppLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 120)
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                            
+                            VStack(spacing: 8) {
+                                Text("Apple ID")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
                                     .foregroundColor(themeManager.primaryTextColor)
-                                TextField("输入6位验证码", text: $code)
-                                    .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
-                                    .keyboardType(.numberPad)
-                                    .onChange(of: code) { newValue in
-                                        // 限制输入长度为6位
-                                        if newValue.count > 6 {
-                                            code = String(newValue.prefix(6))
-                                        }
-                                    }
-                                Text("请查看您的受信任设备或短信获取验证码")
-                                    .font(.caption)
+                                
+                                Text("登录您的账户")
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-                    }
-                    .padding(.horizontal, 20)
-                    // 登录按钮
-                    Button(action: {
-                        Task {
-                            await authenticate()
-                        }
-                    }) {
-                        HStack {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
+                        
+                        Spacer()
+                        
+                        // 输入表单区域
+                        VStack(spacing: 24) {
+                            // Apple ID 输入框
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Apple ID")
+                                    .font(.headline)
+                                    .foregroundColor(themeManager.primaryTextColor)
+                                TextField("输入您的 Apple ID", text: $email)
+                                    .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
+                                    .keyboardType(.emailAddress)
+                                    .autocapitalization(.none)
+                                    .disableAutocorrection(true)
                             }
-                            Text(isLoading ? "验证中..." : "添加账户")
-                                .fontWeight(.semibold)
+                            
+                            // 密码输入框
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("密码")
+                                    .font(.headline)
+                                    .foregroundColor(themeManager.primaryTextColor)
+                                SecureField("输入您的密码", text: $password)
+                                    .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
+                            }
+                            
+                            // 双重认证码输入框（条件显示）
+                            if showTwoFactorField {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("双重认证码")
+                                        .font(.headline)
+                                        .foregroundColor(themeManager.primaryTextColor)
+                                    TextField("输入6位验证码", text: $code)
+                                        .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
+                                        .keyboardType(.numberPad)
+                                        .onChange(of: code) { newValue in
+                                            // 限制输入长度为6位
+                                            if newValue.count > 6 {
+                                                code = String(newValue.prefix(6))
+                                            }
+                                        }
+                                    Text("请查看您的受信任设备或短信获取验证码")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(themeManager.accentColor)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                        .padding(.horizontal, 24)
+                        
+                        Spacer()
+                        
+                        // 登录按钮区域
+                        VStack(spacing: 16) {
+                            Button(action: {
+                                Task {
+                                    await authenticate()
+                                }
+                            }) {
+                                HStack(spacing: 12) {
+                                    if isLoading {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .font(.title2)
+                                    }
+                                    Text(isLoading ? "验证中..." : "添加账户")
+                                        .fontWeight(.semibold)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [themeManager.accentColor, themeManager.accentColor.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                                .shadow(color: themeManager.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+                            }
+                            .disabled(isLoading || email.isEmpty || password.isEmpty)
+                            
+                            // 错误信息显示
+                            if !errorMessage.isEmpty {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red)
+                                    Text(errorMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 32)
                     }
-                    .disabled(isLoading || email.isEmpty || password.isEmpty)
-                    .padding(.horizontal, 20)
-                    Spacer()
                 }
             }
             .navigationTitle("")

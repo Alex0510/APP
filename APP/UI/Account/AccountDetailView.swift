@@ -9,6 +9,7 @@ struct AccountDetailView: View {
     let account: Account
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var appStore: AppStore
     @State private var showingDeleteAlert = false
     @State private var isPasswordVisible = false
     
@@ -130,6 +131,11 @@ struct AccountDetailView: View {
     }
     
     private func deleteAccount() {
+        print("[AccountDetailView] 删除账户: \(account.email)")
+        // 调用AppStore的删除方法
+        appStore.delete(id: account.id)
+        print("[AccountDetailView] 删除完成，当前账户数量: \(appStore.accounts.count)")
+        // 关闭详情页面
         presentationMode.wrappedValue.dismiss()
     }
 }

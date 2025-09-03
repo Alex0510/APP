@@ -9,67 +9,37 @@ import SwiftUI
 import UIKit
 #endif
 
-// 确保能访问设备适配器
-// 注意：DeviceAdapter和DeviceType定义在iOSCompatibilityHelper.swift中
-// 注意：ModernDarkColors定义在Colors.swift中
-
 struct MainView: View {
     @StateObject private var themeManager = ThemeManager.shared
-    @State private var selectedTab = 2 // 默认选中管理页面
+    @State private var selectedTab = 1 // 默认选中页面
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging = false
     @State private var liquidOffset: CGFloat = 0 // Liquid Glass 液体偏移
     @State private var scrollOffset: CGFloat = 0 // 滚动偏移，用于标签栏最小化
     @State private var isTabBarMinimized = false // 标签栏是否最小化
+    @State private var isInitialized = false // 初始化状态
     
     var body: some View {
         ZStack {
-            // 主内容区域
-            TabView(selection: $selectedTab) {
-                // 账户界面
-                AccountView()
-                    .tag(0)
-                // 搜索界面
-                SearchView()
-                    .tag(1)
-                // 管理界面
-                DownloadView()
-                    .tag(2)
+            // 主内容区域 - 使用更稳定的方式
+            Group {
+                switch selectedTab {
+                case 0:
+                    AccountView()
+                        .id("AccountView-\(isInitialized ? "ready" : "loading")")
+                case 1:
+                    SearchView()
+                        .id("SearchView-\(isInitialized ? "ready" : "loading")")
+                case 2:
+                    DownloadView()
+                        .id("DownloadView-\(isInitialized ? "ready" : "loading")")
+                default:
+                    SearchView()
+                        .id("SearchView-\(isInitialized ? "ready" : "loading")")
+                }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .accentColor(themeManager.accentColor)
             .environmentObject(themeManager)
             .environmentObject(AppStore.this)
-            // 添加滑动切换功能
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        isDragging = true
-                        dragOffset = value.translation.width
-                        // Liquid Glass 液体效果
-                        liquidOffset = value.translation.width * 0.3
-                    }
-                    .onEnded { value in
-                        isDragging = false
-                        let threshold: CGFloat = 50
-                        if value.translation.width > threshold && selectedTab > 0 {
-                            // 向右滑动，切换到上一个标签
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedTab -= 1
-                            }
-                        } else if value.translation.width < -threshold && selectedTab < 2 {
-                            // 向左滑动，切换到下一个标签
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                selectedTab += 1
-                            }
-                        }
-                        // 重置拖拽偏移和液体效果
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            dragOffset = 0
-                            liquidOffset = 0
-                        }
-                    }
-            )
             
             // 铺满底部栏的分段式设计
             VStack {
@@ -84,10 +54,37 @@ struct MainView: View {
                 )
                 .animation(.easeInOut(duration: 0.3), value: isTabBarMinimized)
             }
-            .ignoresSafeArea(.container, edges: .bottom) // 使用标准的ignoresSafeArea
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .background(themeManager.backgroundColor)
         .ignoresSafeArea()
+        .onAppear {
+            // 首次进入时的初始化
+            if !isInitialized {
+                print("[MainView] 首次初始化 - 真机适配开始")
+                
+                // 真机适配：使用固定延迟确保系统UI完全加载
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isInitialized = true
+                    print("[MainView] 真机适配初始化完成")
+                    
+                    // 强制刷新所有子视图
+                    DispatchQueue.main.async {
+                        print("[MainView] 强制刷新所有子视图")
+                        // 使用简单的状态更新触发刷新
+                        selectedTab = selectedTab
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // APP从后台恢复时的处理
+            print("[MainView] APP从后台恢复 - 强制刷新")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // 使用简单的状态更新触发刷新
+                selectedTab = selectedTab
+            }
+        }
     }
 }
 
@@ -105,17 +102,6 @@ struct ModernSegmentedTabBar: View {
         (title: "搜索", icon: "magnifyingglass", color: Color.green),
         (title: "管理", icon: "arrow.down.circle.fill", color: Color.orange)
     ]
-    
-    // 简化标签栏高度设置，避免设备类型检测问题
-    private var tabBarHeight: CGFloat {
-        #if canImport(UIKit)
-        // 根据安全区域动态调整高度
-        let safeAreaBottom = UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? 0
-        return 80 + safeAreaBottom
-        #else
-        return 80
-        #endif
-    }
     
     var body: some View {
         // 铺满底部栏的分段控制器容器
@@ -163,7 +149,7 @@ struct ModernSegmentedTabBar: View {
             y: -2
         )
         .frame(maxWidth: .infinity) // 铺满宽度
-        .frame(height: tabBarHeight) // 动态调整高度
+        .frame(height: 83) // 使用固定值：标签栏高度 + 安全区域
         .scaleEffect(isMinimized ? 0.95 : 1.0)
         .opacity(isMinimized ? 0.9 : 1.0)
         .clipped() // 确保内容不溢出
@@ -340,6 +326,5 @@ struct ModernSegmentedTabItem: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
-        .iOSCompatibility()
     }
 }
