@@ -17,6 +17,12 @@ jobs:
       - name: Compile
         run: make
 
+      - name: Rename IPA with version
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          mv APP.ipa App-v${VERSION}.ipa
+          echo "IPA_FILE=App-v${VERSION}.ipa" >> $GITHUB_ENV
+
       - name: Set tag name
         id: vars
         run: |
@@ -32,6 +38,6 @@ jobs:
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.RELEASE_NAME }}
-          files: APP.ipa
+          files: ${{ env.IPA_FILE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
