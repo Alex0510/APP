@@ -155,9 +155,9 @@ class IPAMetadataProcessor {
         #if canImport(ZipArchive)
         let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: extractedDir.path)
         guard success else {
-            throw IPAMetadataError.extractionFailed("SSZipArchive解压失败")
+            throw IPAMetadataError.extractionFailed("ZipArchive解压失败")
         }
-        print("🔧 [IPAMetadataProcessor] 使用SSZipArchive成功解压IPA文件")
+        print("🔧 [IPAMetadataProcessor] 使用ZipArchive成功解压IPA文件")
         #else
         // 如果没有ZipArchive，抛出错误
         throw IPAMetadataError.extractionFailed("ZipArchive库未找到，请正确配置依赖")
@@ -222,9 +222,9 @@ class IPAMetadataProcessor {
         #if canImport(ZipArchive)
         let success = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
         guard success else {
-            throw IPAMetadataError.packagingFailed("SSZipArchive重新打包失败")
+            throw IPAMetadataError.packagingFailed("ZipArchive重新打包失败")
         }
-        print("🔧 [IPAMetadataProcessor] 使用SSZipArchive成功重新打包IPA文件")
+        print("🔧 [IPAMetadataProcessor] 使用ZipArchive成功重新打包IPA文件")
         #else
         // 如果没有ZipArchive，抛出错误
         throw IPAMetadataError.packagingFailed("ZipArchive库未找到，请正确配置依赖")
@@ -243,9 +243,9 @@ class IPAMetadataProcessor {
         #if canImport(ZipArchive)
         let success = SSZipArchive.createZipFile(atPath: outputPath.path, withContentsOfDirectory: extractedDir.path)
         guard success else {
-            throw IPAMetadataError.packagingFailed("SSZipArchive重新打包失败")
+            throw IPAMetadataError.packagingFailed("ZipArchive重新打包失败")
         }
-        print("🔧 [IPAMetadataProcessor] 使用SSZipArchive成功重新打包IPA文件")
+        print("🔧 [IPAMetadataProcessor] 使用ZipArchive成功重新打包IPA文件")
         #else
         // 如果没有ZipArchive，抛出错误
         throw IPAMetadataError.packagingFailed("ZipArchive库未找到，请正确配置依赖")

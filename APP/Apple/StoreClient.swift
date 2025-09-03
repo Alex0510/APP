@@ -11,8 +11,7 @@ import Network
 import ZipArchive
 #endif
 
-// 类型别名，引用其他文件中定义的类型
-// 注意：这些类型在StoreRequest.swift中定义
+
 
 // MARK: - 本地账户定义
 // 用于 StoreClient 兼容性的本地账户定义
@@ -560,9 +559,9 @@ extension StoreClient {
         #if canImport(ZipArchive)
         let success = SSZipArchive.unzipFile(atPath: ipaPath.path, toDestination: extractedDir.path)
         guard success else {
-            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive解压失败"])
+            throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "ZipArchive解压失败"])
         }
-        print("🔧 [StoreClient] 使用SSZipArchive成功解压IPA文件")
+        print("🔧 [StoreClient] 使用ZipArchive成功解压IPA文件")
         #else
         // 如果没有ZipArchive，抛出错误
         throw NSError(domain: "IPAProcessing", code: 1, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
@@ -628,9 +627,9 @@ extension StoreClient {
         #if canImport(ZipArchive)
         let success = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: extractedDir.path)
         guard success else {
-            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "SSZipArchive重新打包失败"])
+            throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "ZipArchive重新打包失败"])
         }
-        print("🔧 [StoreClient] 使用SSZipArchive成功重新打包IPA文件")
+        print("🔧 [StoreClient] 使用ZipArchive成功重新打包IPA文件")
         #else
         // 如果没有ZipArchive，抛出错误
         throw NSError(domain: "IPAProcessing", code: 4, userInfo: [NSLocalizedDescriptionKey: "ZipArchive库未找到，请正确配置依赖"])
