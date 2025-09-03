@@ -20,8 +20,9 @@ jobs:
       - name: Rename IPA with version
         run: |
           VERSION=${{ github.event.inputs.version }}
-          mv APP.ipa App-v${VERSION}.ipa
-          echo "IPA_FILE=App-v${VERSION}.ipa" >> $GITHUB_ENV
+          IPA_NAME="App-v${VERSION}.ipa"
+          mv APP.ipa "$IPA_NAME"
+          echo "IPA_FILE=$IPA_NAME" >> $GITHUB_ENV
 
       - name: Set tag name
         id: vars
@@ -30,14 +31,12 @@ jobs:
           DATE=$(date +'%Y%m%d-%H%M%S')
           TAG="v${VERSION}-${DATE}"
           echo "TAG_NAME=$TAG" >> $GITHUB_ENV
-          echo "RELEASE_NAME=AppStore" >> $GITHUB_ENV
           echo "生成的 tag: $TAG"
 
       - name: Create Release and Upload IPA
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.RELEASE_NAME }}
           files: ${{ env.IPA_FILE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
