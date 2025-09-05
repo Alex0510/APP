@@ -1,5 +1,5 @@
 {
-  "originHash" : "a556461ef61c5626b92ff60129fb64ed6826c400faa0287e35ea61dcf7449058",
+  "originHash" : "328decb9f663aa1bdfb5eed0546e651d37bb1e7741724835629b7b762362a186",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "3498e60218e6003894ff95192d756e238c01f44e",
         "version" : "4.7.1"
+      }
+    },
+    {
+      "identity" : "openssl",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/krzyzanowskim/OpenSSL",
+      "state" : {
+        "revision" : "623c84da314e85363236507ca38a4bde65df21c3",
+        "version" : "3.3.3001"
       }
     },
     {
@@ -114,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-distributed-tracing.git",
       "state" : {
-        "revision" : "b78796709d243d5438b36e74ce3c5ec2d2ece4d8",
-        "version" : "1.2.1"
+        "revision" : "149fa4cc7d54c513288108142e7af9ceaf8def8f",
+        "version" : "1.2.2"
       }
     },
     {
@@ -186,8 +195,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-ssl.git",
       "state" : {
-        "revision" : "385f5bd783ffbfff46b246a7db7be8e4f04c53bd",
-        "version" : "2.33.0"
+        "revision" : "737e550e607d82bf15bdfddf158ec61652ce836f",
+        "version" : "2.34.0"
       }
     },
     {
@@ -260,6 +269,15 @@
       "state" : {
         "revision" : "df35718ea19a94e015b91dc4881dee028ce4cdba",
         "version" : "2.6.0"
+      }
+    },
+    {
+      "identity" : "zsign-package",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/khcrysalis/Zsign-Package.git",
+      "state" : {
+        "branch" : "package",
+        "revision" : "6ffe703df73ef9069adacdbb19d571f11a69a801"
       }
     }
   ],

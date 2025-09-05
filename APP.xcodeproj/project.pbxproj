@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 851A3A1E2E6A0AAD002BBBC8 /* Vapor */; };
+		85839E6D2E6AD31A0092526B /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85839E6C2E6AD31A0092526B /* ZsignSwift */; };
 		8597015F2E681B5E00AA64A6 /* ZipArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 8597015E2E681B5E00AA64A6 /* ZipArchive */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,7 @@
 			files = (
 				851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */,
 				8597015F2E681B5E00AA64A6 /* ZipArchive in Frameworks */,
+				85839E6D2E6AD31A0092526B /* ZsignSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				8597015E2E681B5E00AA64A6 /* ZipArchive */,
 				851A3A1E2E6A0AAD002BBBC8 /* Vapor */,
+				85839E6C2E6AD31A0092526B /* ZsignSwift */,
 			);
 			productName = APP;
 			productReference = 851FD95F2E578774002136BA /* APP.app */;
@@ -110,6 +113,7 @@
 			packageReferences = (
 				8597015D2E681B5E00AA64A6 /* XCRemoteSwiftPackageReference "ZipArchive" */,
 				851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */,
+				85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 851FD9602E578774002136BA /* Products */;
@@ -399,6 +403,14 @@
 				minimumVersion = 4.115.1;
 			};
 		};
+		85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/khcrysalis/Zsign-Package.git";
+			requirement = {
+				branch = package;
+				kind = branch;
+			};
+		};
 		8597015D2E681B5E00AA64A6 /* XCRemoteSwiftPackageReference "ZipArchive" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ZipArchive/ZipArchive.git";
@@ -414,6 +426,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */;
 			productName = Vapor;
+		};
+		85839E6C2E6AD31A0092526B /* ZsignSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */;
+			productName = ZsignSwift;
 		};
 		8597015E2E681B5E00AA64A6 /* ZipArchive */ = {
 			isa = XCSwiftPackageProductDependency;
