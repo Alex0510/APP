@@ -1,7 +1,5 @@
 //
 //  IPAZipProcessor.swift
-//  APP
-//
 //  Created by pxx917144686 on 2025/09/03.
 //
 import Foundation

@@ -15,7 +15,7 @@ class PurchaseManager {
     private init() {}
     /// 从 iTunes 商店购买应用
     /// - 参数:
-    ///   - appIdentifier: 应用标识符 (曲目 ID 或包 ID)
+    ///   - appIdentifier: 应用标识符 (ID 或包 ID)
     ///   - account: 用户账户信息
     ///   - countryCode: 商店区域 (默认值: "US")
     ///   - deviceFamily: 设备类型 (默认值: .phone)

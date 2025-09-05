@@ -1,5 +1,5 @@
 {
-  "originHash" : "8530b769baf1efb67e000e1ba8ef61c67e24c16f6db50c9454590a7e41d013c2",
+  "originHash" : "a556461ef61c5626b92ff60129fb64ed6826c400faa0287e35ea61dcf7449058",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -251,6 +251,15 @@
       "state" : {
         "revision" : "8666c92dbbb3c8eefc8008c9c8dcf50bfd302167",
         "version" : "2.16.1"
+      }
+    },
+    {
+      "identity" : "ziparchive",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ZipArchive/ZipArchive.git",
+      "state" : {
+        "revision" : "df35718ea19a94e015b91dc4881dee028ce4cdba",
+        "version" : "2.6.0"
       }
     }
   ],
