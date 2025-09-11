@@ -8,8 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 851A3A1E2E6A0AAD002BBBC8 /* Vapor */; };
-		85839E6D2E6AD31A0092526B /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85839E6C2E6AD31A0092526B /* ZsignSwift */; };
-		8597015F2E681B5E00AA64A6 /* ZipArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 8597015E2E681B5E00AA64A6 /* ZipArchive */; };
+		855F63F22E6DAA9E00F55CF7 /* NimbleExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */; };
+		855F63F42E6DAA9E00F55CF7 /* NimbleJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F32E6DAA9E00F55CF7 /* NimbleJSON */; };
+		855F63F62E6DAA9E00F55CF7 /* NimbleViews in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F52E6DAA9E00F55CF7 /* NimbleViews */; };
+		855F655C2E6E130A00F55CF7 /* AltSourceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 855F655B2E6E130A00F55CF7 /* AltSourceKit */; };
+		859966C62E6E24D000EE0107 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 859966C52E6E24D000EE0107 /* NukeUI */; };
+		85A1B2C52E6F123400D4E5F6 /* ZipArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 85A1B2C42E6F123400D4E5F6 /* ZipArchive */; };
+		85F735562E6DA98200C3D2C2 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85F735552E6DA98200C3D2C2 /* ZsignSwift */; };
+		85F735582E6DA98200C3D2C2 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85F735572E6DA98200C3D2C2 /* zsign */; };
+		85FCE3CD2E6B32F80069A30A /* (null) in Frameworks */ = {isa = PBXBuildFile; };
+		85FCEE8C2E6B36F80069A30A /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE8B2E6B36F80069A30A /* SWCompression */; };
+		85FCEE8F2E6B373E0069A30A /* ArArchiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE8E2E6B373E0069A30A /* ArArchiveKit */; };
+		85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE912E6B374E0069A30A /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,9 +39,19 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				859966C62E6E24D000EE0107 /* NukeUI in Frameworks */,
+				85F735562E6DA98200C3D2C2 /* ZsignSwift in Frameworks */,
+				855F655C2E6E130A00F55CF7 /* AltSourceKit in Frameworks */,
 				851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */,
-				8597015F2E681B5E00AA64A6 /* ZipArchive in Frameworks */,
-				85839E6D2E6AD31A0092526B /* ZsignSwift in Frameworks */,
+				855F63F22E6DAA9E00F55CF7 /* NimbleExtensions in Frameworks */,
+				85FCEE8C2E6B36F80069A30A /* SWCompression in Frameworks */,
+				855F63F62E6DAA9E00F55CF7 /* NimbleViews in Frameworks */,
+				85FCE3CD2E6B32F80069A30A /* (null) in Frameworks */,
+				85FCEE8F2E6B373E0069A30A /* ArArchiveKit in Frameworks */,
+				85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */,
+				855F63F42E6DAA9E00F55CF7 /* NimbleJSON in Frameworks */,
+				85F735582E6DA98200C3D2C2 /* zsign in Frameworks */,
+				85A1B2C52E6F123400D4E5F6 /* ZipArchive in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,9 +94,18 @@
 			);
 			name = APP;
 			packageProductDependencies = (
-				8597015E2E681B5E00AA64A6 /* ZipArchive */,
 				851A3A1E2E6A0AAD002BBBC8 /* Vapor */,
-				85839E6C2E6AD31A0092526B /* ZsignSwift */,
+				85FCEE8B2E6B36F80069A30A /* SWCompression */,
+				85FCEE8E2E6B373E0069A30A /* ArArchiveKit */,
+				85FCEE912E6B374E0069A30A /* ZIPFoundation */,
+				85F735552E6DA98200C3D2C2 /* ZsignSwift */,
+				85F735572E6DA98200C3D2C2 /* zsign */,
+				855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */,
+				855F63F32E6DAA9E00F55CF7 /* NimbleJSON */,
+				855F63F52E6DAA9E00F55CF7 /* NimbleViews */,
+				855F655B2E6E130A00F55CF7 /* AltSourceKit */,
+				859966C52E6E24D000EE0107 /* NukeUI */,
+				85A1B2C42E6F123400D4E5F6 /* ZipArchive */,
 			);
 			productName = APP;
 			productReference = 851FD95F2E578774002136BA /* APP.app */;
@@ -111,9 +140,15 @@
 			mainGroup = 851FD9562E578774002136BA;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				8597015D2E681B5E00AA64A6 /* XCRemoteSwiftPackageReference "ZipArchive" */,
 				851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */,
-				85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */,
+				85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */,
+				85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */,
+				85FCEE902E6B374E0069A30A /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+				85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */,
+				855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */,
+				855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */,
+				859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */,
+				85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 851FD9602E578774002136BA /* Products */;
@@ -190,6 +225,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
+					"IDEVICE=1",
 					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -198,7 +234,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -255,7 +291,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -271,40 +307,35 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = APP/main/APP.entitlements;
+				CODE_SIGN_ENTITLEMENTS = APP/Resources/APP.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TWLNU7NXWY;
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(inherited)";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionMinimumTLSVersion = TLSv1.0;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionMinimumTLSVersion = TLSv1.0;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSBonjourServices = "_http._tcp _https._tcp";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "此应用需要访问本地网络来提供IPA安装服务";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"IDEVICE=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/Supporting",
+					Files/idevice,
+				);
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MARKETING_VERSION = 1.1.8;
-				OTHER_LDFLAGS = "-larchive";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/Resources",
+					"$(PROJECT_DIR)/APP/Resources/idevice",
+				);
+				MARKETING_VERSION = 2.0.0;
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -312,10 +343,12 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/Feather-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -325,39 +358,35 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = APP/main/APP.entitlements;
+				CODE_SIGN_ENTITLEMENTS = APP/Resources/APP.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TWLNU7NXWY;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(inherited)";
-				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionMinimumTLSVersion = TLSv1.0;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_app_localhost_direct_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionAllowsArbitraryLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionAllowsInsecureHTTPLoads = YES;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionMinimumTLSVersion = TLSv1.0;
-				INFOPLIST_KEY_NSAppTransportSecurity_NSExceptionDomains_localhost_direct_NSExceptionRequiresForwardSecrecy = NO;
-				INFOPLIST_KEY_NSBonjourServices = "_http._tcp _https._tcp";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "此应用需要访问本地网络来提供IPA安装服务";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"SERVER=1",
+					"IDEVICE=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/Supporting",
+					Files/idevice,
+				);
+				INFOPLIST_FILE = Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MARKETING_VERSION = 1.1.8;
-				OTHER_LDFLAGS = "-larchive";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/Resources",
+					"$(PROJECT_DIR)/APP/Resources/idevice",
+				);
+				MARKETING_VERSION = 2.0.0;
+				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -365,9 +394,11 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "SERVER $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/Feather-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -403,20 +434,68 @@
 				minimumVersion = 4.115.1;
 			};
 		};
-		85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */ = {
+		855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/khcrysalis/Zsign-Package.git";
+			repositoryURL = "https://github.com/pxx917144686/NimbleKit.git";
 			requirement = {
-				branch = package;
+				branch = main;
 				kind = branch;
 			};
 		};
-		8597015D2E681B5E00AA64A6 /* XCRemoteSwiftPackageReference "ZipArchive" */ = {
+		855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pxx917144686/AltSourceKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/NukeUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.8.3;
+			};
+		};
+		85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ZipArchive/ZipArchive.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.6.0;
+				minimumVersion = 2.4.3;
+			};
+		};
+		85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pxx917144686/Zsign.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.8.6;
+			};
+		};
+		85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/LebJe/ArArchiveKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
+		85FCEE902E6B374E0069A30A /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.18;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -427,15 +506,60 @@
 			package = 851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */;
 			productName = Vapor;
 		};
-		85839E6C2E6AD31A0092526B /* ZsignSwift */ = {
+		855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 85839E6B2E6AD31A0092526B /* XCRemoteSwiftPackageReference "Zsign-Package" */;
+			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleExtensions;
+		};
+		855F63F32E6DAA9E00F55CF7 /* NimbleJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleJSON;
+		};
+		855F63F52E6DAA9E00F55CF7 /* NimbleViews */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleViews;
+		};
+		855F655B2E6E130A00F55CF7 /* AltSourceKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */;
+			productName = AltSourceKit;
+		};
+		859966C52E6E24D000EE0107 /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */;
+			productName = NukeUI;
+		};
+		85A1B2C42E6F123400D4E5F6 /* ZipArchive */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */;
+			productName = ZipArchive;
+		};
+		85F735552E6DA98200C3D2C2 /* ZsignSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */;
 			productName = ZsignSwift;
 		};
-		8597015E2E681B5E00AA64A6 /* ZipArchive */ = {
+		85F735572E6DA98200C3D2C2 /* zsign */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 8597015D2E681B5E00AA64A6 /* XCRemoteSwiftPackageReference "ZipArchive" */;
-			productName = ZipArchive;
+			package = 85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */;
+			productName = zsign;
+		};
+		85FCEE8B2E6B36F80069A30A /* SWCompression */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */;
+			productName = SWCompression;
+		};
+		85FCEE8E2E6B373E0069A30A /* ArArchiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */;
+			productName = ArArchiveKit;
+		};
+		85FCEE912E6B374E0069A30A /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85FCEE902E6B374E0069A30A /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
