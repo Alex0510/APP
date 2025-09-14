@@ -1,19 +1,10 @@
-//
-//  LibraryInfoView.swift
-//  Feather
-//
-//  Created by samara on 14.04.2025.
-//
-
 import SwiftUI
 import NimbleViews
 import Zsign
 
-// MARK: - View
 struct LibraryInfoView: View {
 	var app: AppInfoPresentable
 	
-	// MARK: Body
     var body: some View {
 		NBNavigationView(app.name ?? "", displayMode: .inline) {
 			List {
@@ -28,7 +19,7 @@ struct LibraryInfoView: View {
 				_executableSection(for: app)
 				
 				Section {
-					Button(.localized("打开应用文件"), systemImage: "folder") {
+					Button(.localized("在文件中打开"), systemImage: "folder") {
 						UIApplication.open(Storage.shared.getUuidDirectory(for: app)!.toSharedDocumentsURL()!)
 					}
 				}
@@ -40,7 +31,6 @@ struct LibraryInfoView: View {
     }
 }
 
-// MARK: - Extension: View
 extension LibraryInfoView {
 	@ViewBuilder
 	private func _infoSection(for app: AppInfoPresentable) -> some View {
@@ -77,7 +67,7 @@ extension LibraryInfoView {
 	@ViewBuilder
 	private func _bundleSection(for app: AppInfoPresentable) -> some View {
 		NBSection(.localized("包")) {
-			NavigationLink(.localized("备用图标")) {
+			NavigationLink(.localized("替代图标")) {
 				SigningAlternativeIconView(app: app, appIcon: .constant(nil), isModifing: .constant(false))
 			}
 			NavigationLink(.localized("框架和插件")) {
@@ -100,5 +90,6 @@ extension LibraryInfoView {
 		LabeledContent(title) {
 			Text(desc)
 		}
+		.copyableText(desc)
 	}
 }

@@ -22,7 +22,7 @@ struct VersionHistoryView: View {
                     AppVersionInfo(
                         version: version.version,
                         date: version.date?.date,
-                        description: version.localizedDescription ?? .localized("无发布说明")
+                        description: version.localizedDescription ?? .localized("No release notes available")
                     )
                     .padding(.horizontal)
                     .background(Color(.systemBackground))
@@ -41,7 +41,7 @@ struct VersionHistoryView: View {
                             Button {
                                 UIPasteboard.general.string = downloadURL.absoluteString
                             } label: {
-                                Label(.localized("复制下载链接"), systemImage: "doc.on.clipboard")
+                                Label(.localized("Copy Download URL"), systemImage: "doc.on.clipboard")
                             }
                         }
                     }

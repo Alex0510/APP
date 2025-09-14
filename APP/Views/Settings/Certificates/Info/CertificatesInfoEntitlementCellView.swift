@@ -1,19 +1,11 @@
-//
-//  CertificatesInfoEntitlementCellView.swift
-//  Feather
-//
-//  Created by samara on 27.04.2025.
-//
 
 import SwiftUI
 
-// MARK: - View
 struct CertificatesInfoEntitlementCellView: View {
 	let key: String
 	let value: Any
 	@State private var _isExpanded = false
 	
-	// MARK: Body
 	var body: some View {
 		if let dict = value as? [String: Any] {
 			_makeDisclosureGroup(items: dict.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 })
@@ -25,6 +17,7 @@ struct CertificatesInfoEntitlementCellView: View {
 				Spacer()
 				Text(_formatted(value))
 					.foregroundStyle(.secondary)
+					.copyableText(_formatted(value))
 			}
 		}
 	}

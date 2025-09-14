@@ -7,18 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 851A3A1E2E6A0AAD002BBBC8 /* Vapor */; };
-		855F63F22E6DAA9E00F55CF7 /* NimbleExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */; };
-		855F63F42E6DAA9E00F55CF7 /* NimbleJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F32E6DAA9E00F55CF7 /* NimbleJSON */; };
-		855F63F62E6DAA9E00F55CF7 /* NimbleViews in Frameworks */ = {isa = PBXBuildFile; productRef = 855F63F52E6DAA9E00F55CF7 /* NimbleViews */; };
-		855F655C2E6E130A00F55CF7 /* AltSourceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 855F655B2E6E130A00F55CF7 /* AltSourceKit */; };
-		859966C62E6E24D000EE0107 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 859966C52E6E24D000EE0107 /* NukeUI */; };
+		85635BDF2E749AA5001F69C5 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BDE2E749AA5001F69C5 /* OpenSSL */; };
+		85635BE22E749B02001F69C5 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BE12E749B02001F69C5 /* ZsignSwift */; };
+		85635BE42E749B02001F69C5 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BE32E749B02001F69C5 /* zsign */; };
+		8568C9F72E768A38003A3E08 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8568C9F62E768A38003A3E08 /* ZsignSwift */; };
+		8568C9F92E768A38003A3E08 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 8568C9F82E768A38003A3E08 /* zsign */; };
+		8568CB172E768AC1003A3E08 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB162E768AC1003A3E08 /* Nuke */; };
+		8568CB192E768AC1003A3E08 /* NukeExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB182E768AC1003A3E08 /* NukeExtensions */; };
+		8568CB1B2E768AC1003A3E08 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB1A2E768AC1003A3E08 /* NukeUI */; };
+		8568CB1D2E768AC1003A3E08 /* NukeVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB1C2E768AC1003A3E08 /* NukeVideo */; };
+		8568D3262E769115003A3E08 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = 8568D3252E769115003A3E08 /* OpenSSL */; };
+		859304CE2E76A99D00D0052E /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 859304CD2E76A99D00D0052E /* ZsignSwift */; };
+		859304D02E76A99D00D0052E /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 859304CF2E76A99D00D0052E /* zsign */; };
 		85A1B2C52E6F123400D4E5F6 /* ZipArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 85A1B2C42E6F123400D4E5F6 /* ZipArchive */; };
-		85F735562E6DA98200C3D2C2 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85F735552E6DA98200C3D2C2 /* ZsignSwift */; };
-		85F735582E6DA98200C3D2C2 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85F735572E6DA98200C3D2C2 /* zsign */; };
-		85FCE3CD2E6B32F80069A30A /* (null) in Frameworks */ = {isa = PBXBuildFile; };
-		85FCEE8C2E6B36F80069A30A /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE8B2E6B36F80069A30A /* SWCompression */; };
-		85FCEE8F2E6B373E0069A30A /* ArArchiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE8E2E6B373E0069A30A /* ArArchiveKit */; };
+		85EC5BF22E768811006D9773 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5BF12E768811006D9773 /* Vapor */; };
+		85EC5BF92E76882C006D9773 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5BF82E76882C006D9773 /* SWCompression */; };
+		85EC5D182E7688DB006D9773 /* NimbleExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D172E7688DB006D9773 /* NimbleExtensions */; };
+		85EC5D1A2E7688DB006D9773 /* NimbleJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D192E7688DB006D9773 /* NimbleJSON */; };
+		85EC5D1C2E7688DB006D9773 /* NimbleViews in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D1B2E7688DB006D9773 /* NimbleViews */; };
+		85EC5D1F2E7688F1006D9773 /* IDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D1E2E7688F1006D9773 /* IDevice */; };
+		85EC5D212E7688F1006D9773 /* IDeviceSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D202E7688F1006D9773 /* IDeviceSwift */; };
+		85EC5D232E7688F1006D9773 /* plist in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D222E7688F1006D9773 /* plist */; };
+		85EC5D262E76890C006D9773 /* ArArchiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D252E76890C006D9773 /* ArArchiveKit */; };
+		85EC5D292E76891C006D9773 /* AltSourceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D282E76891C006D9773 /* AltSourceKit */; };
+		85F76EDF2E749E770065ECAB /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85F76EDE2E749E770065ECAB /* ZsignSwift */; };
+		85F76EE12E749E770065ECAB /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85F76EE02E749E770065ECAB /* zsign */; };
 		85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE912E6B374E0069A30A /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
@@ -39,18 +52,31 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				859966C62E6E24D000EE0107 /* NukeUI in Frameworks */,
-				85F735562E6DA98200C3D2C2 /* ZsignSwift in Frameworks */,
-				855F655C2E6E130A00F55CF7 /* AltSourceKit in Frameworks */,
-				851A3A1F2E6A0AAD002BBBC8 /* Vapor in Frameworks */,
-				855F63F22E6DAA9E00F55CF7 /* NimbleExtensions in Frameworks */,
-				85FCEE8C2E6B36F80069A30A /* SWCompression in Frameworks */,
-				855F63F62E6DAA9E00F55CF7 /* NimbleViews in Frameworks */,
-				85FCE3CD2E6B32F80069A30A /* (null) in Frameworks */,
-				85FCEE8F2E6B373E0069A30A /* ArArchiveKit in Frameworks */,
+				8568C9F92E768A38003A3E08 /* zsign in Frameworks */,
+				85EC5D292E76891C006D9773 /* AltSourceKit in Frameworks */,
+				85EC5BF22E768811006D9773 /* Vapor in Frameworks */,
+				85EC5D232E7688F1006D9773 /* plist in Frameworks */,
+				859304D02E76A99D00D0052E /* zsign in Frameworks */,
+				85EC5D1C2E7688DB006D9773 /* NimbleViews in Frameworks */,
+				85635BE42E749B02001F69C5 /* zsign in Frameworks */,
+				85F76EDF2E749E770065ECAB /* ZsignSwift in Frameworks */,
+				85EC5D1F2E7688F1006D9773 /* IDevice in Frameworks */,
+				85EC5D262E76890C006D9773 /* ArArchiveKit in Frameworks */,
+				85EC5BF92E76882C006D9773 /* SWCompression in Frameworks */,
+				85635BDF2E749AA5001F69C5 /* OpenSSL in Frameworks */,
+				8568C9F72E768A38003A3E08 /* ZsignSwift in Frameworks */,
+				859304CE2E76A99D00D0052E /* ZsignSwift in Frameworks */,
+				85F76EE12E749E770065ECAB /* zsign in Frameworks */,
+				85EC5D182E7688DB006D9773 /* NimbleExtensions in Frameworks */,
 				85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */,
-				855F63F42E6DAA9E00F55CF7 /* NimbleJSON in Frameworks */,
-				85F735582E6DA98200C3D2C2 /* zsign in Frameworks */,
+				8568CB192E768AC1003A3E08 /* NukeExtensions in Frameworks */,
+				8568CB172E768AC1003A3E08 /* Nuke in Frameworks */,
+				85EC5D1A2E7688DB006D9773 /* NimbleJSON in Frameworks */,
+				8568D3262E769115003A3E08 /* OpenSSL in Frameworks */,
+				85635BE22E749B02001F69C5 /* ZsignSwift in Frameworks */,
+				8568CB1D2E768AC1003A3E08 /* NukeVideo in Frameworks */,
+				85EC5D212E7688F1006D9773 /* IDeviceSwift in Frameworks */,
+				8568CB1B2E768AC1003A3E08 /* NukeUI in Frameworks */,
 				85A1B2C52E6F123400D4E5F6 /* ZipArchive in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -62,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				851FD9612E578774002136BA /* APP */,
+				8568CB152E768AC1003A3E08 /* Frameworks */,
 				851FD9602E578774002136BA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -72,6 +99,13 @@
 				851FD95F2E578774002136BA /* APP.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8568CB152E768AC1003A3E08 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -94,18 +128,32 @@
 			);
 			name = APP;
 			packageProductDependencies = (
-				851A3A1E2E6A0AAD002BBBC8 /* Vapor */,
-				85FCEE8B2E6B36F80069A30A /* SWCompression */,
-				85FCEE8E2E6B373E0069A30A /* ArArchiveKit */,
 				85FCEE912E6B374E0069A30A /* ZIPFoundation */,
-				85F735552E6DA98200C3D2C2 /* ZsignSwift */,
-				85F735572E6DA98200C3D2C2 /* zsign */,
-				855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */,
-				855F63F32E6DAA9E00F55CF7 /* NimbleJSON */,
-				855F63F52E6DAA9E00F55CF7 /* NimbleViews */,
-				855F655B2E6E130A00F55CF7 /* AltSourceKit */,
-				859966C52E6E24D000EE0107 /* NukeUI */,
 				85A1B2C42E6F123400D4E5F6 /* ZipArchive */,
+				85635BDE2E749AA5001F69C5 /* OpenSSL */,
+				85635BE12E749B02001F69C5 /* ZsignSwift */,
+				85635BE32E749B02001F69C5 /* zsign */,
+				85F76EDE2E749E770065ECAB /* ZsignSwift */,
+				85F76EE02E749E770065ECAB /* zsign */,
+				85EC5BF12E768811006D9773 /* Vapor */,
+				85EC5BF82E76882C006D9773 /* SWCompression */,
+				85EC5D172E7688DB006D9773 /* NimbleExtensions */,
+				85EC5D192E7688DB006D9773 /* NimbleJSON */,
+				85EC5D1B2E7688DB006D9773 /* NimbleViews */,
+				85EC5D1E2E7688F1006D9773 /* IDevice */,
+				85EC5D202E7688F1006D9773 /* IDeviceSwift */,
+				85EC5D222E7688F1006D9773 /* plist */,
+				85EC5D252E76890C006D9773 /* ArArchiveKit */,
+				85EC5D282E76891C006D9773 /* AltSourceKit */,
+				8568C9F62E768A38003A3E08 /* ZsignSwift */,
+				8568C9F82E768A38003A3E08 /* zsign */,
+				8568CB162E768AC1003A3E08 /* Nuke */,
+				8568CB182E768AC1003A3E08 /* NukeExtensions */,
+				8568CB1A2E768AC1003A3E08 /* NukeUI */,
+				8568CB1C2E768AC1003A3E08 /* NukeVideo */,
+				8568D3252E769115003A3E08 /* OpenSSL */,
+				859304CD2E76A99D00D0052E /* ZsignSwift */,
+				859304CF2E76A99D00D0052E /* zsign */,
 			);
 			productName = APP;
 			productReference = 851FD95F2E578774002136BA /* APP.app */;
@@ -140,15 +188,17 @@
 			mainGroup = 851FD9562E578774002136BA;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */,
-				85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */,
-				85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */,
 				85FCEE902E6B374E0069A30A /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */,
-				855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */,
-				855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */,
-				859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */,
 				85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */,
+				85EC5BF02E768811006D9773 /* XCRemoteSwiftPackageReference "vapor" */,
+				85EC5BF72E76882C006D9773 /* XCRemoteSwiftPackageReference "SWCompression" */,
+				85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */,
+				85EC5D162E7688DB006D9773 /* XCRemoteSwiftPackageReference "NimbleKit" */,
+				85EC5D1D2E7688F1006D9773 /* XCRemoteSwiftPackageReference "IDeviceKit" */,
+				85EC5D242E76890C006D9773 /* XCRemoteSwiftPackageReference "ArArchiveKit" */,
+				85EC5D272E76891C006D9773 /* XCRemoteSwiftPackageReference "AltSourceKit" */,
+				8568D3242E769115003A3E08 /* XCRemoteSwiftPackageReference "OpenSSL" */,
+				859304CC2E76A99D00D0052E /* XCRemoteSwiftPackageReference "Zsign" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 851FD9602E578774002136BA /* Products */;
@@ -321,7 +371,6 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/APP/Supporting",
-					Files/idevice,
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -329,12 +378,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/APP/Resources",
-					"$(PROJECT_DIR)/APP/Resources/idevice",
-				);
-				MARKETING_VERSION = 2.0.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MARKETING_VERSION = 2.0.1;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -372,7 +417,6 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/APP/Supporting",
-					Files/idevice,
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -380,12 +424,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/APP/Resources",
-					"$(PROJECT_DIR)/APP/Resources/idevice",
-				);
-				MARKETING_VERSION = 2.0.0;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MARKETING_VERSION = 2.0.1;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -426,36 +466,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */ = {
+		8568D3242E769115003A3E08 /* XCRemoteSwiftPackageReference "OpenSSL" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/vapor/vapor.git";
+			repositoryURL = "https://github.com/krzyzanowskim/OpenSSL.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.115.1;
+				minimumVersion = 3.3.3001;
 			};
 		};
-		855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */ = {
+		859304CC2E76A99D00D0052E /* XCRemoteSwiftPackageReference "Zsign" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pxx917144686/NimbleKit.git";
+			repositoryURL = "https://github.com/pxx917144686/Zsign";
 			requirement = {
 				branch = main;
 				kind = branch;
-			};
-		};
-		855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pxx917144686/AltSourceKit.git";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kean/NukeUI.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.8.3;
 			};
 		};
 		85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */ = {
@@ -466,15 +490,15 @@
 				minimumVersion = 2.4.3;
 			};
 		};
-		85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */ = {
+		85EC5BF02E768811006D9773 /* XCRemoteSwiftPackageReference "vapor" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pxx917144686/Zsign.git";
+			repositoryURL = "https://github.com/vapor/vapor.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.117.0;
 			};
 		};
-		85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */ = {
+		85EC5BF72E76882C006D9773 /* XCRemoteSwiftPackageReference "SWCompression" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
 			requirement = {
@@ -482,12 +506,44 @@
 				minimumVersion = 4.8.6;
 			};
 		};
-		85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */ = {
+		85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.8.0;
+			};
+		};
+		85EC5D162E7688DB006D9773 /* XCRemoteSwiftPackageReference "NimbleKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pxx917144686/NimbleKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		85EC5D1D2E7688F1006D9773 /* XCRemoteSwiftPackageReference "IDeviceKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pxx917144686/IDeviceKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		85EC5D242E76890C006D9773 /* XCRemoteSwiftPackageReference "ArArchiveKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/LebJe/ArArchiveKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.3.0;
+			};
+		};
+		85EC5D272E76891C006D9773 /* XCRemoteSwiftPackageReference "AltSourceKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pxx917144686/AltSourceKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
 			};
 		};
 		85FCEE902E6B374E0069A30A /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
@@ -501,60 +557,123 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		851A3A1E2E6A0AAD002BBBC8 /* Vapor */ = {
+		85635BDE2E749AA5001F69C5 /* OpenSSL */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 851A3A1D2E6A0AAD002BBBC8 /* XCRemoteSwiftPackageReference "vapor" */;
-			productName = Vapor;
+			productName = OpenSSL;
 		};
-		855F63F12E6DAA9E00F55CF7 /* NimbleExtensions */ = {
+		85635BE12E749B02001F69C5 /* ZsignSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
-			productName = NimbleExtensions;
+			productName = ZsignSwift;
 		};
-		855F63F32E6DAA9E00F55CF7 /* NimbleJSON */ = {
+		85635BE32E749B02001F69C5 /* zsign */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
-			productName = NimbleJSON;
+			productName = zsign;
 		};
-		855F63F52E6DAA9E00F55CF7 /* NimbleViews */ = {
+		8568C9F62E768A38003A3E08 /* ZsignSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 855F63F02E6DAA9E00F55CF7 /* XCRemoteSwiftPackageReference "NimbleKit" */;
-			productName = NimbleViews;
+			productName = ZsignSwift;
 		};
-		855F655B2E6E130A00F55CF7 /* AltSourceKit */ = {
+		8568C9F82E768A38003A3E08 /* zsign */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 855F655A2E6E130A00F55CF7 /* XCRemoteSwiftPackageReference "AltSourceKit" */;
-			productName = AltSourceKit;
+			productName = zsign;
 		};
-		859966C52E6E24D000EE0107 /* NukeUI */ = {
+		8568CB162E768AC1003A3E08 /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 859966C42E6E24D000EE0107 /* XCRemoteSwiftPackageReference "NukeUI" */;
+			package = 85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		8568CB182E768AC1003A3E08 /* NukeExtensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeExtensions;
+		};
+		8568CB1A2E768AC1003A3E08 /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
+		};
+		8568CB1C2E768AC1003A3E08 /* NukeVideo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeVideo;
+		};
+		8568D3252E769115003A3E08 /* OpenSSL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8568D3242E769115003A3E08 /* XCRemoteSwiftPackageReference "OpenSSL" */;
+			productName = OpenSSL;
+		};
+		859304CD2E76A99D00D0052E /* ZsignSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 859304CC2E76A99D00D0052E /* XCRemoteSwiftPackageReference "Zsign" */;
+			productName = ZsignSwift;
+		};
+		859304CF2E76A99D00D0052E /* zsign */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 859304CC2E76A99D00D0052E /* XCRemoteSwiftPackageReference "Zsign" */;
+			productName = zsign;
 		};
 		85A1B2C42E6F123400D4E5F6 /* ZipArchive */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 85A1B2C32E6F123400D4E5F6 /* XCRemoteSwiftPackageReference "ZipArchive" */;
 			productName = ZipArchive;
 		};
-		85F735552E6DA98200C3D2C2 /* ZsignSwift */ = {
+		85EC5BF12E768811006D9773 /* Vapor */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */;
-			productName = ZsignSwift;
+			package = 85EC5BF02E768811006D9773 /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
 		};
-		85F735572E6DA98200C3D2C2 /* zsign */ = {
+		85EC5BF82E76882C006D9773 /* SWCompression */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 85F735542E6DA98200C3D2C2 /* XCRemoteSwiftPackageReference "Zsign" */;
-			productName = zsign;
-		};
-		85FCEE8B2E6B36F80069A30A /* SWCompression */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 85FCEE8A2E6B36F80069A30A /* XCRemoteSwiftPackageReference "SWCompression" */;
+			package = 85EC5BF72E76882C006D9773 /* XCRemoteSwiftPackageReference "SWCompression" */;
 			productName = SWCompression;
 		};
-		85FCEE8E2E6B373E0069A30A /* ArArchiveKit */ = {
+		85EC5D172E7688DB006D9773 /* NimbleExtensions */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 85FCEE8D2E6B373E0069A30A /* XCRemoteSwiftPackageReference "ArArchiveKit" */;
+			package = 85EC5D162E7688DB006D9773 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleExtensions;
+		};
+		85EC5D192E7688DB006D9773 /* NimbleJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D162E7688DB006D9773 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleJSON;
+		};
+		85EC5D1B2E7688DB006D9773 /* NimbleViews */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D162E7688DB006D9773 /* XCRemoteSwiftPackageReference "NimbleKit" */;
+			productName = NimbleViews;
+		};
+		85EC5D1E2E7688F1006D9773 /* IDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D1D2E7688F1006D9773 /* XCRemoteSwiftPackageReference "IDeviceKit" */;
+			productName = IDevice;
+		};
+		85EC5D202E7688F1006D9773 /* IDeviceSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D1D2E7688F1006D9773 /* XCRemoteSwiftPackageReference "IDeviceKit" */;
+			productName = IDeviceSwift;
+		};
+		85EC5D222E7688F1006D9773 /* plist */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D1D2E7688F1006D9773 /* XCRemoteSwiftPackageReference "IDeviceKit" */;
+			productName = plist;
+		};
+		85EC5D252E76890C006D9773 /* ArArchiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D242E76890C006D9773 /* XCRemoteSwiftPackageReference "ArArchiveKit" */;
 			productName = ArArchiveKit;
+		};
+		85EC5D282E76891C006D9773 /* AltSourceKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85EC5D272E76891C006D9773 /* XCRemoteSwiftPackageReference "AltSourceKit" */;
+			productName = AltSourceKit;
+		};
+		85F76EDE2E749E770065ECAB /* ZsignSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ZsignSwift;
+		};
+		85F76EE02E749E770065ECAB /* zsign */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = zsign;
 		};
 		85FCEE912E6B374E0069A30A /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;

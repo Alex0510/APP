@@ -17,18 +17,25 @@ struct ConfigurationView: View {
 	// MARK: Body
     var body: some View {
 		NBList(.localized("签名选项")) {
-			NavigationLink(.localized("显示名称"), destination: ConfigurationDictView(
-				title: .localized("显示名称"),
-					dataDict: $_optionsManager.options.displayNames
-				)
-			)
-			NavigationLink(.localized("标识符"), destination: ConfigurationDictView(
-					title: .localized("标识符"),
-					dataDict: $_optionsManager.options.identifiers
-				)
-			)
-			
-			SigningOptionsView(options: $_optionsManager.options)
+            Section {
+                NavigationLink(destination: ConfigurationDictView(
+                    title: .localized("显示名称"),
+                        dataDict: $_optionsManager.options.displayNames
+                    )
+                ) {
+                    Label(.localized("显示名称"), systemImage: "character.cursor.ibeam")
+                }
+                NavigationLink(destination: ConfigurationDictView(
+                        title: .localized("标识符"),
+                        dataDict: $_optionsManager.options.identifiers
+                    )
+                ) {
+                    Label(.localized("标识符"), systemImage: "person.text.rectangle")
+                }
+            }footer: {
+                Text(.localized("设置规则，在签名时自动替换Bundle ID/显示名称。"))
+            }
+            SigningOptionsView(options: $_optionsManager.options)
 		}
 		.toolbar {
 			NBToolbarMenu(
@@ -42,7 +49,7 @@ struct ConfigurationView: View {
 		.alert(_optionsManager.options.ppqString, isPresented: $isRandomAlertPresenting) {
 			_randomMenuAlert()
 		}
-		.onChange(of: _optionsManager.options) { _, _ in
+		.onChange(of: _optionsManager.options) { _ in
 			_optionsManager.saveOptions()
 		}
     }

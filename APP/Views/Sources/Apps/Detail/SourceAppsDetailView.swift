@@ -35,11 +35,13 @@ struct SourceAppsDetailView: View {
 			VStack(alignment: .leading, spacing: 10) {
 				HStack(spacing: 10) {
 					if let iconURL = app.iconURL {
-						LazyImage(source: iconURL) { state in
-							if let image = state.image {
+						LazyImage(url: iconURL) {
+							if let image = $0.image {
 								image
-									.frame(width: 111, height: 111)
-									.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 111, height: 111)
+                                    .clipShape(RoundedRectangle(cornerRadius: 22.5, style: .continuous))
 							} else {
 								standardIcon
 							}
@@ -53,7 +55,7 @@ struct SourceAppsDetailView: View {
 							.font(.title2)
 							.fontWeight(.semibold)
 							.foregroundColor(.primary)
-						Text(app.currentDescription ?? .localized("一个很棒的应用程序"))
+						Text(app.currentDescription ?? .localized("An awesome application"))
 							.font(.subheadline)
 							.foregroundColor(.secondary)
 						
@@ -70,7 +72,7 @@ struct SourceAppsDetailView: View {
 				Divider()
                 
                 if let screenshotURLs = app.screenshotURLs {
-                    NBSection(.localized("截图")) {
+                    NBSection(.localized("Screenshots")) {
                         _screenshots(screenshotURLs: screenshotURLs)
                     }
                     
@@ -81,7 +83,7 @@ struct SourceAppsDetailView: View {
 					let currentVer = app.currentVersion,
 					let whatsNewDesc = app.currentAppVersion?.localizedDescription
 				{
-					NBSection(.localized("新功能")) {
+					NBSection(.localized("What's New")) {
 						AppVersionInfo(
 							version: currentVer,
 							date: app.currentDate?.date,
@@ -90,10 +92,10 @@ struct SourceAppsDetailView: View {
                         if let versions = app.versions {
                             NavigationLink(
                                 destination: VersionHistoryView(app: app, versions: versions)
-                                    .navigationTitle(.localized("版本历史"))
+                                    .navigationTitle(.localized("Version History"))
                                     .navigationBarTitleDisplayMode(.large)
                             ) {
-                                Text(.localized("版本历史"))
+                                Text(.localized("Version History"))
                             }
                         }
 					}
@@ -102,7 +104,7 @@ struct SourceAppsDetailView: View {
 				}
 				
 				if let appDesc = app.localizedDescription {
-					NBSection(.localized("描述")) {
+					NBSection(.localized("Description")) {
 						VStack(alignment: .leading, spacing: 2) {
 							ExpandableText(text: appDesc, lineLimit: 3)
 						}
@@ -112,48 +114,48 @@ struct SourceAppsDetailView: View {
 					Divider()
 				}
                 
-                NBSection(.localized("信息")) {
+                NBSection(.localized("Information")) {
                     VStack(spacing: 12) {
                         if let sourceName = source.name {
-                            _infoRow(title: .localized("源"), value: sourceName)
+                            _infoRow(title: .localized("Source"), value: sourceName)
                         }
                         
-                        if let developer = app.developer, !developer.isEmpty {
-							_infoRow(title: .localized("开发者"), value: developer)
+						if let developer = app.developer {
+							_infoRow(title: .localized("Developer"), value: developer)
 						}
 						
 						if let size = app.size {
-							_infoRow(title: .localized("大小"), value: size.formattedByteCount)
+							_infoRow(title: .localized("Size"), value: size.formattedByteCount)
 						}
 						
-                        if let category = app.category, !category.isEmpty {
-                            _infoRow(title: .localized("类别"), value: category.capitalized)
+						if let category = app.category {
+                            _infoRow(title: .localized("Category"), value: category.capitalized)
 						}
 						
-                        if let version = app.currentVersion, !version.isEmpty {
-							_infoRow(title: .localized("版本"), value: version)
+						if let version = app.currentVersion {
+							_infoRow(title: .localized("Version"), value: version)
 						}
 						
-                        if let date = app.currentDate?.date {
-							_infoRow(title: .localized("更新时间"), value: DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none))
+						if let date = app.currentDate?.date {
+							_infoRow(title: .localized("Updated"), value: DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .none))
 						}
 						
 						if let bundleId = app.id {
-							_infoRow(title: .localized("标识符"), value: bundleId)
+							_infoRow(title: .localized("Identifier"), value: bundleId)
 						}
 					}
                 }
 				
 				if let appPermissions = app.appPermissions {
-					NBSection(.localized("权限")) {
+					NBSection(.localized("Permissions")) {
 						Group {
 							if let entitlements = appPermissions.entitlements {
 								NBTitleWithSubtitleView(
-									title: .localized("权限"),
+									title: .localized("Entitlements"),
 									subtitle: entitlements.map(\.name).joined(separator: "\n")
 								)
 							} else {
-								Text(.localized("未列出权限。"))
+								Text(.localized("No Entitlements listed."))
 									.font(.subheadline)
 									.foregroundStyle(.secondary)
 							}
@@ -165,7 +167,7 @@ struct SourceAppsDetailView: View {
 									)
 								}
 							} else {
-								Text(.localized("未列出隐私权限。"))
+								Text(.localized("No Privacy Permissions listed."))
 									.font(.subheadline)
 									.foregroundStyle(.secondary)
 							}
@@ -196,7 +198,7 @@ struct SourceAppsDetailView: View {
 			) {
 				let sharedString = """
 				\(app.currentName) - \(app.currentVersion ?? "0")
-				\(app.currentDescription ?? .localized("一个很棒的应用程序"))
+				\(app.currentDescription ?? .localized("An awesome application"))
 				---
 				\(source.website?.absoluteString ?? source.name ?? "")
 				"""
@@ -214,7 +216,11 @@ struct SourceAppsDetailView: View {
     }
 	
 	var standardIcon: some View {
-		Image("App_Unknown").appIconStyle(size: 111, isCircle: false)
+		Image("App_Unknown")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 111, height: 111)
+            .clipShape(RoundedRectangle(cornerRadius: 22.5, style: .continuous))
 	}
 	
 	var standardHeader: some View {
@@ -233,9 +239,10 @@ extension SourceAppsDetailView {
 	private func _header() -> some View {
 		ZStack {
 			if let iconURL = source.currentIconURL {
-				LazyImage(source: iconURL) { state in
-					if let image = state.image {
-						image
+				LazyImage(url: iconURL) {
+                    if let image = $0.image {
+                        image
+							.resizable()
 							.aspectRatio(contentMode: .fill)
 							.frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
 							.clipped()
@@ -303,25 +310,26 @@ extension SourceAppsDetailView {
 	private func _screenshots(screenshotURLs: [URL]) -> some View {
 		ScrollView(.horizontal, showsIndicators: false) {
 			HStack(spacing: 12) {
-				ForEach(Array(screenshotURLs.enumerated()), id: \.offset) { index, url in
-					LazyImage(source: url) { state in
-						if let image = state.image {
-							image
-								.aspectRatio(contentMode: .fit)
-								.frame(
-									maxWidth: UIScreen.main.bounds.width - 32,
-									maxHeight: 400
-								)
-								.clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-								.overlay {
-									RoundedRectangle(cornerRadius: 16, style: .continuous)
-										.strokeBorder(.gray.opacity(0.3), lineWidth: 1)
-								}
-								.onTapGesture {
-									_selectedScreenshotIndex = index
-									_isScreenshotPreviewPresented = true
-								}
-						}
+				ForEach(Array(screenshotURLs.enumerated()), id: \.element) { index, url in
+					LazyImage(url: url) {
+                        if let image = $0.image {
+                            image
+									.resizable()
+									.aspectRatio(contentMode: .fit)
+									.frame(
+										maxWidth: UIScreen.main.bounds.width - 32,
+										maxHeight: 400
+									)
+									.clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+									.overlay {
+										RoundedRectangle(cornerRadius: 16, style: .continuous)
+											.strokeBorder(.gray.opacity(0.3), lineWidth: 1)
+									}
+									.onTapGesture {
+										_selectedScreenshotIndex = index
+										_isScreenshotPreviewPresented = true
+									}
+							}
 					}
 				}
 			}

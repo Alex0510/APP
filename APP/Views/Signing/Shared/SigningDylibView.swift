@@ -1,15 +1,8 @@
-//
-//  SigningOptionsDylibSharedView.swift
-//  Feather
-//
-//  Created by samara on 19.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
 import ZsignSwift
 
-// MARK: - View
 struct SigningDylibView: View {
 	@State private var _dylibs: [String] = []
 	@State private var _hiddenDylibCount: Int = 0
@@ -31,7 +24,7 @@ struct SigningDylibView: View {
 			.disabled(options == nil)
 			
 			NBSection(.localized("隐藏")) {
-				Text(verbatim: .localized("%lld required system dylibs not shown", arguments: _hiddenDylibCount))
+				Text(verbatim: .localized("%lld个必需的系统动态库未显示。", arguments: _hiddenDylibCount))
 					.font(.footnote)
 					.foregroundColor(.disabled())
 			}
@@ -40,7 +33,6 @@ struct SigningDylibView: View {
 	}
 }
 
-// MARK: - Extension: View
 extension SigningDylibView {
 	private func _loadDylibs() {
 		guard let path = Storage.shared.getAppDirectory(for: app) else { return }

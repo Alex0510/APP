@@ -1,19 +1,9 @@
-//
-//  Server.swift
-//  feather
-//
-//  Created by samara on 22.08.2024.
-//  Copyright © 2024 Lakr Aream. All Rights Reserved.
-//  ORIGINALLY LICENSED UNDER GPL-3.0, MODIFIED FOR USE FOR FEATHER
-//
-
 import Foundation
 import Vapor
 import NIOSSL
 import NIOTLS
-import SwiftUICore
-
-// MARK: - Class
+import SwiftUI
+import IDeviceSwift
 class ServerInstaller: Identifiable, ObservableObject {
 	let id = UUID()
 	let port = Int.random(in: 4000...8000)
@@ -22,24 +12,27 @@ class ServerInstaller: Identifiable, ObservableObject {
 	var packageUrl: URL?
 	var app: AppInfoPresentable
 	@ObservedObject var viewModel: InstallerStatusViewModel
-	private let _server: Application
+	private var _server: Application?
 
-	init(app: AppInfoPresentable, viewModel: InstallerStatusViewModel) async throws {
+	init(app: AppInfoPresentable, viewModel: InstallerStatusViewModel) throws {
 		self.app = app
 		self.viewModel = viewModel
-		self._server = try await Self.setupApp(port: port)
-		
+		try _setup()
 		try _configureRoutes()
-		try _server.server.start()
+		try _server?.server.start()
 		_needsShutdown = true
 	}
 	
 	deinit {
 		_shutdownServer()
 	}
+	
+	private func _setup() throws {
+		self._server = try? setupApp(port: port)
+	}
 		
 	private func _configureRoutes() throws {
-		_server.get("*") { [weak self] req in
+		_server?.get("*") { [weak self] req in
 			guard let self else { return Response(status: .badGateway) }
 			switch req.url.path {
 			case plistEndpoint.path:
@@ -81,29 +74,21 @@ class ServerInstaller: Identifiable, ObservableObject {
 		guard _needsShutdown else { return }
 		
 		_needsShutdown = false
-		_server.server.shutdown()
-		_server.shutdown()
+		_server?.server.shutdown()
+		_server?.shutdown()
 	}
 	
-	private func _updateStatus(_ newStatus: InstallerStatus) {
+	private func _updateStatus(_ newStatus: InstallerStatusViewModel.InstallerStatus) {
 		DispatchQueue.main.async {
 			self.viewModel.status = newStatus
 		}
 	}
 		
-	static func getServerMethod() -> Int {
+	func getServerMethod() -> Int {
 		UserDefaults.standard.integer(forKey: "Feather.serverMethod")
 	}
 	
-	static func getIPFix() -> Bool {
+	func getIPFix() -> Bool {
 		UserDefaults.standard.bool(forKey: "Feather.ipFix")
-	}
-	
-	static func setServerMethod(_ method: Int) {
-		UserDefaults.standard.set(method, forKey: "Feather.serverMethod")
-	}
-	
-	static func setIPFix(_ enabled: Bool) {
-		UserDefaults.standard.set(enabled, forKey: "Feather.ipFix")
 	}
 }

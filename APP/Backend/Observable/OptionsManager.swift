@@ -1,14 +1,5 @@
-//
-//  OptionsManager.swift
-//  Feather
-//
-//  Created by samara on 15.04.2025.
-//
-
 import Foundation
 import UIKit
-
-// MARK: - Class
 class OptionsManager: ObservableObject {
 	static let shared = OptionsManager()
 	
@@ -16,8 +7,10 @@ class OptionsManager: ObservableObject {
 	private let _key = "signing_options"
 	
 	init() {
-		if let data = UserDefaults.standard.data(forKey: _key),
-		   let savedOptions = try? JSONDecoder().decode(Options.self, from: data) {
+		if
+			let data = UserDefaults.standard.data(forKey: _key),
+			let savedOptions = try? JSONDecoder().decode(Options.self, from: data)
+		{
 			self.options = savedOptions
 		} else {
 			self.options = Options.defaultOptions
@@ -25,7 +18,6 @@ class OptionsManager: ObservableObject {
 		}
 	}
 	
-	/// Saves options
 	func saveOptions() {
 		if let encoded = try? JSONEncoder().encode(options) {
 			UserDefaults.standard.set(encoded, forKey: _key)
@@ -33,85 +25,50 @@ class OptionsManager: ObservableObject {
 		}
 	}
 	
-	/// Resets options to default
 	func resetToDefaults() {
 		options = Options.defaultOptions
 		saveOptions()
 	}
 }
 
-// MARK: - Class Options
 struct Options: Codable, Equatable {
-	/// App name
 	var appName: String?
-	/// App version
 	var appVersion: String?
-	/// App bundle identifer
 	var appIdentifier: String?
-	/// App entitlements
 	var appEntitlementsFile: URL?
-	/// App apparence (i.e. Light/Dark/Default)
-	var appAppearance: String
-	/// App minimum iOS requirement (i.e. iOS 11.0)
-	var minimumAppRequirement: String
-	/// Random string appended to the app identifier
+	var appAppearance: AppAppearance
+	var minimumAppRequirement: MinimumAppRequirement
+	var signingOption: SigningOption
+	var injectPath: InjectPath
+	var injectFolder: InjectFolder
 	var ppqString: String
-	/// Basic protection against PPQ
 	var ppqProtection: Bool
-	/// (Better) protection against PPQ
 	var dynamicProtection: Bool
-	/// App identifiers list which matches and replaces
 	var identifiers: [String: String]
-	/// App name list which matches and replaces
 	var displayNames: [String: String]
-	/// Array of files (`.dylib`, `.deb` ) to extract and inject
 	var injectionFiles: [URL]
-	/// Mach-o load paths to remove (i.e. `@executable_path/demo1.dylib`)
 	var disInjectionFiles: [String]
-	/// App files to remove from (i.e. `Frameworks/CydiaSubstrate.framework`)
 	var removeFiles: [String]
-	/// If app should have filesharing forcefully enabled
 	var fileSharing: Bool
-	/// If app should have iTunes filesharing forcefully enabled
 	var itunesFileSharing: Bool
-	/// If app should have Pro Motion enabled (may not be needed)
 	var proMotion: Bool
-	/// If app should have Game Mode enabled
 	var gameMode: Bool
-	/// If app should use fullscreen (iPad mainly)
 	var ipadFullscreen: Bool
-	/// If app shouldn't have device restrictions
-	var removeSupportedDevices: Bool
-	/// If app shouldn't have URL Schemes
 	var removeURLScheme: Bool
-	/// If app should not include a `embedded.mobileprovision` (useful for JB detection)
 	var removeProvisioning: Bool
-	/// If app shouldn't include a "Watch Placeholder" (i.e. `Youtube Music` may include a useless app)
-	var removeWatchPlaceholder: Bool
-	/// If app should remove Watch App
-	var removeWatchApp: Bool
-	/// If app should remove Extensions
-	var removeExtensions: Bool
-	/// If app should remove PlugIns
-	var removePlugIns: Bool
-	/// Forcefully rename string files for App name
 	var changeLanguageFilesForCustomDisplayName: Bool
-	/// If app should be Adhoc signed instead of normally signed
-	var doAdhocSigning: Bool
-	/// If Ksign should remove the app after signed it in the Downloaded Apps options
-    var removeApp: Bool
-    /// If Ksign should only modify and no signing
-    var onlyModify: Bool
-	/// If Ksign copy things should start in the last used location instead of Documents dir
-	var useLastExportLocation: Bool?
-	/// If Ksign should use Zip or ZIPFoundation
-	var extractionLibrary: String?
-	// default
+	var experiment_supportLiquidGlass: Bool
+	var experiment_replaceSubstrateWithEllekit: Bool
+	var post_installAppAfterSigned: Bool
+	var post_deleteAppAfterSigned: Bool
 	static let defaultOptions = Options(
-		appAppearance: "Default",
-		minimumAppRequirement: "Default",
+		appAppearance: .default,
+		minimumAppRequirement: .default,
+		signingOption: .default,
+		injectPath: .executable_path,
+		injectFolder: .frameworks,
 		ppqString: randomString(),
-		ppqProtection: true,
+		ppqProtection: false,
 		dynamicProtection: false,
 		identifiers: [:],
 		displayNames: [:],
@@ -123,30 +80,83 @@ struct Options: Codable, Equatable {
 		proMotion: false,
 		gameMode: false,
 		ipadFullscreen: false,
-		removeSupportedDevices: true,
 		removeURLScheme: false,
-		removeProvisioning: true,
-		removeWatchPlaceholder: false,
-		removeWatchApp: false,
-		removeExtensions: false,
-		removePlugIns: false,
+		removeProvisioning: false,
 		changeLanguageFilesForCustomDisplayName: false,
-		doAdhocSigning: false,
-		removeApp: false,
-        onlyModify: false,
-		useLastExportLocation: false,
-		extractionLibrary: "Zip"
+		experiment_supportLiquidGlass: false,
+		experiment_replaceSubstrateWithEllekit: false,
+		post_installAppAfterSigned: false,
+		post_deleteAppAfterSigned: false
 	)
-	// extraction library values
-	static let extractionLibraryValues = ["Zip", "ZIPFoundation"]
-	// duplicate values are not recommended!
-	/// Default values for `appAppearance`
-	static let appAppearanceValues = ["Default", "Light", "Dark"]
-	/// Default values for `minimumAppRequirement`
-	static let appMinimumAppRequirementValues = ["Default", "16.0", "15.0", "14.0", "13.0", "12.0"]
-	/// Default random value for `ppqString`
+
+	enum AppAppearance: String, Codable, CaseIterable, LocalizedDescribable {
+		case `default`
+		case light = "Light"
+		case dark = "Dark"
+
+		var localizedDescription: String {
+			switch self {
+			case .default: .localized("默认")
+			case .light: .localized("浅色")
+			case .dark: .localized("深色")
+			}
+		}
+	}
+
+	enum MinimumAppRequirement: String, Codable, CaseIterable, LocalizedDescribable {
+		case `default`
+		case v16 = "16.0"
+		case v15 = "15.0"
+		case v14 = "14.0"
+		case v13 = "13.0"
+		case v12 = "12.0"
+
+		var localizedDescription: String {
+			switch self {
+			case .default: .localized("默认")
+			case .v16: "16.0"
+			case .v15: "15.0"
+			case .v14: "14.0"
+			case .v13: "13.0"
+			case .v12: "12.0"
+			}
+		}
+	}
+	
+	enum SigningOption: String, Codable, CaseIterable, LocalizedDescribable {
+		case `default`
+		case onlyModify
+
+		var localizedDescription: String {
+			switch self {
+			case .default: .localized("默认")
+			case .onlyModify: .localized("仅修改")
+			}
+		}
+	}
+	
+	enum InjectPath: String, Codable, CaseIterable, LocalizedDescribable {
+		case executable_path = "@executable_path"
+		case rpath = "@rpath"
+	}
+	
+	enum InjectFolder: String, Codable, CaseIterable, LocalizedDescribable {
+		case root = "/"
+		case frameworks = "/Frameworks/"
+	}
+	
 	static func randomString() -> String {
-		let letters = UUID().uuidString
-		return String((0..<6).compactMap { _ in letters.randomElement() })
+		String((0..<6).compactMap { _ in UUID().uuidString.randomElement() })
+	}
+}
+
+protocol LocalizedDescribable {
+	var localizedDescription: String { get }
+}
+
+extension LocalizedDescribable where Self: RawRepresentable, RawValue == String {
+	var localizedDescription: String {
+		let localized = NSLocalizedString(self.rawValue, comment: "")
+		return localized == self.rawValue ? self.rawValue : localized
 	}
 }

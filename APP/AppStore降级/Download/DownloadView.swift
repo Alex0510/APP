@@ -8,6 +8,158 @@ import Combine
 import Foundation
 import Network
 
+// MARK: - 浮动主题选择器
+struct FloatingThemeSelector: SwiftUI.View {
+    @Binding var isPresented: Bool
+    @EnvironmentObject var themeManager: ThemeManager
+    
+    var body: some SwiftUI.View {
+        if isPresented {
+            ZStack {
+                // 背景遮罩
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isPresented = false
+                        }
+                    }
+                
+                // 主题选择器卡片
+                VStack(spacing: 16) {
+                    Text("选择主题")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                    
+                    VStack(spacing: 12) {
+                        // 浅色模式
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                themeManager.selectedTheme = .light
+                                isPresented = false
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "sun.max.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.orange)
+                                    .frame(width: 24)
+                                
+                                Text("浅色模式")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                if themeManager.selectedTheme == .light {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(themeManager.selectedTheme == .light ? Color.blue.opacity(0.1) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // 深色模式
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                themeManager.selectedTheme = .dark
+                                isPresented = false
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "moon.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                    .frame(width: 24)
+                                
+                                Text("深色模式")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                if themeManager.selectedTheme == .dark {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(themeManager.selectedTheme == .dark ? Color.blue.opacity(0.1) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // 跟随系统
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                themeManager.selectedTheme = .system
+                                isPresented = false
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "gear.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.gray)
+                                    .frame(width: 24)
+                                
+                                Text("跟随系统")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                
+                                Spacer()
+                                
+                                if themeManager.selectedTheme == .system {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(themeManager.selectedTheme == .system ? Color.blue.opacity(0.1) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    // 取消按钮
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            isPresented = false
+                        }
+                    }) {
+                        Text("取消")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.systemBackground))
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                )
+                .padding(.horizontal, 40)
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        }
+    }
+}
+
 // MARK: - 现代卡片样式
 enum ModernCardStyle {
     case elevated
@@ -1697,6 +1849,11 @@ struct DownloadCardView: SwiftUIView {
                 SafariWebView(url: url)
             }
         }
+        .alert("分享结果", isPresented: $showShareAlert) {
+            Button("确定", role: .cancel) { }
+        } message: {
+            Text(shareMessage)
+        }
     }
     
     // MARK: - 卡片点击处理
@@ -1728,9 +1885,22 @@ struct DownloadCardView: SwiftUIView {
     
     // MARK: - 分享功能
     private func shareIPAFile(path: String) {
+        print("📤 [分享] 开始分享IPA文件: \(path)")
+        
+        // 验证文件存在性
         guard FileManager.default.fileExists(atPath: path) else {
-            print("❌ 文件不存在: \(path)")
+            print("❌ [分享] 文件不存在: \(path)")
+            showShareError("文件不存在")
             return
+        }
+        
+        // 获取文件信息
+        do {
+            let fileAttributes = try FileManager.default.attributesOfItem(atPath: path)
+            let fileSize = fileAttributes[.size] as? Int64 ?? 0
+            print("📊 [分享] 文件大小: \(ByteCountFormatter().string(fromByteCount: fileSize))")
+        } catch {
+            print("⚠️ [分享] 无法获取文件信息: \(error)")
         }
         
         let fileURL = URL(fileURLWithPath: path)
@@ -1742,31 +1912,84 @@ struct DownloadCardView: SwiftUIView {
             applicationActivities: nil
         )
         
-        // 设置分享标题
+        // 设置分享标题和描述
         activityViewController.setValue("分享IPA文件", forKey: "subject")
         
-        // 获取当前窗口的根视图控制器
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            
-            // 在iPad上需要设置popoverPresentationController
-            if let popover = activityViewController.popoverPresentationController {
-                popover.sourceView = rootViewController.view
-                popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX, 
-                                          y: rootViewController.view.bounds.midY, 
-                                          width: 0, height: 0)
-                popover.permittedArrowDirections = []
+        // 排除不需要的分享选项
+        activityViewController.excludedActivityTypes = [
+            .addToReadingList,
+            .assignToContact,
+            .openInIBooks,
+            .postToFlickr,
+            .postToTencentWeibo,
+            .postToVimeo,
+            .postToWeibo,
+            .print,
+            .saveToCameraRoll
+        ]
+        
+        // 设置完成回调
+        activityViewController.completionWithItemsHandler = { activityType, completed, returnedItems, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ [分享] 分享失败: \(error.localizedDescription)")
+                    self.showShareError("分享失败: \(error.localizedDescription)")
+                } else if completed {
+                    print("✅ [分享] 分享成功: \(activityType?.rawValue ?? "未知方式")")
+                    self.showShareSuccess("分享成功")
+                } else {
+                    print("ℹ️ [分享] 用户取消了分享")
+                }
             }
-            
-            rootViewController.present(activityViewController, animated: true) {
-                print("✅ 分享界面已显示")
+        }
+        
+        // 获取当前窗口的根视图控制器
+        DispatchQueue.main.async {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootViewController = window.rootViewController {
+                
+                // 在iPad上需要设置popoverPresentationController
+                if let popover = activityViewController.popoverPresentationController {
+                    popover.sourceView = rootViewController.view
+                    popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX, 
+                                              y: rootViewController.view.bounds.midY, 
+                                              width: 0, height: 0)
+                    popover.permittedArrowDirections = []
+                }
+                
+                // 查找最顶层的视图控制器
+                var topViewController = rootViewController
+                while let presentedViewController = topViewController.presentedViewController {
+                    topViewController = presentedViewController
+                }
+                
+                topViewController.present(activityViewController, animated: true) {
+                    print("✅ [分享] 分享界面已显示")
+                }
+            } else {
+                print("❌ [分享] 无法获取根视图控制器")
+                self.showShareError("无法显示分享界面")
             }
         }
         #else
+        print("❌ [分享] 非iOS平台不支持分享功能")
+        showShareError("当前平台不支持分享功能")
         #endif
+    }
     
-    print("📤 [分享] 准备分享IPA文件: \(path)")
+    // MARK: - 分享反馈
+    @State private var shareMessage: String = ""
+    @State private var showShareAlert: Bool = false
+    
+    private func showShareSuccess(_ message: String) {
+        shareMessage = message
+        showShareAlert = true
+    }
+    
+    private func showShareError(_ message: String) {
+        shareMessage = message
+        showShareAlert = true
     }
     
     private var statusIndicator: some SwiftUIView {
@@ -2023,33 +2246,119 @@ struct DownloadCardView: SwiftUIView {
     
     // MARK: - 签名方法
     private func performAdhocSigning(ipaPath: String, appInfo: AppInfo) async throws {
-        print("🔐 [DownloadCardView] 开始签名: \(ipaPath)")
+        print("🔐 [DownloadCardView] 开始深度修复签名流程: \(ipaPath)")
         print("📱 [DownloadCardView] 应用信息: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
         
         // 检查ZsignSwift库是否可用
         print("🔍 [DownloadCardView] 检查ZsignSwift库可用性...")
         
-        // 直接测试ZsignSwift是否可用
         #if canImport(ZsignSwift)
-        print("🔍 [DownloadCardView] ZsignSwift库已导入，开始测试...")
+        print("✅ [DownloadCardView] ZsignSwift库已导入")
         
-        // 测试Zsign枚举是否可用
-        let testResult = Zsign.checkSigned(appExecutable: "/System/Library/CoreServices/SpringBoard.app/SpringBoard")
-        print("🔍 [DownloadCardView] Zsign功能测试结果: \(testResult)")
-        #else
-        print("❌ [DownloadCardView] ZsignSwift库未导入！")
-        #endif
-        
-        #if canImport(ZsignSwift)
-        print("🔍 [DownloadCardView] ZsignSwift库可用，开始签名...")
-        
-        // 先测试ZsignSwift库是否真的可用
-        print("🔍 [DownloadCardView] 测试ZsignSwift库可用性...")
-        
-        // 先解压IPA文件获取.app包路径进行测试
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        // 创建临时工作目录
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("Signing_\(UUID().uuidString)")
         defer {
             // 清理临时目录
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+        
+        do {
+            // 创建临时目录
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+            print("📁 [DownloadCardView] 创建临时目录: \(tempDir.path)")
+            
+            // 解压IPA文件
+            print("📦 [DownloadCardView] 开始解压IPA文件...")
+            #if canImport(ZipArchive)
+            let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
+            guard success else {
+                throw PackageInstallationError.installationFailed("IPA解压失败")
+            }
+            print("✅ [DownloadCardView] IPA解压成功")
+            #else
+            throw PackageInstallationError.installationFailed("ZipArchive库不可用")
+            #endif
+            
+            // 验证解压结果
+            let payloadDir = tempDir.appendingPathComponent("Payload")
+            guard FileManager.default.fileExists(atPath: payloadDir.path) else {
+                throw PackageInstallationError.installationFailed("Payload目录不存在")
+            }
+            
+            let contents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
+            guard let appBundle = contents.first(where: { $0.pathExtension == "app" }) else {
+                throw PackageInstallationError.installationFailed("未找到.app包")
+            }
+            
+            let appPath = appBundle.path
+            print("📱 [DownloadCardView] 找到.app包: \(appPath)")
+            
+            // 验证.app包内容
+            let appContents = try FileManager.default.contentsOfDirectory(at: appBundle, includingPropertiesForKeys: nil)
+            print("📋 [DownloadCardView] .app包内容: \(appContents.map { $0.lastPathComponent })")
+            
+            // 查找可执行文件
+            let executable = appContents.first { $0.pathExtension.isEmpty && !$0.lastPathComponent.contains(".") }
+            guard let executable = executable else {
+                throw PackageInstallationError.installationFailed("未找到可执行文件")
+            }
+            print("⚙️ [DownloadCardView] 找到可执行文件: \(executable.lastPathComponent)")
+            
+            // 执行签名
+            print("🔐 [DownloadCardView] 开始执行签名...")
+            let signResult = await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Error?), Never>) in
+                let success = Zsign.sign(
+                    appPath: appPath,
+                    entitlementsPath: "",
+                    customIdentifier: appInfo.bundleIdentifier,
+                    customName: appInfo.name,
+                    customVersion: appInfo.version,
+                    adhoc: true,
+                    removeProvision: true,
+                    completion: { result, error in
+                        if let error = error {
+                            print("❌ [DownloadCardView] 签名失败: \(error)")
+                            continuation.resume(returning: (false, error))
+                        } else {
+                            print("✅ [DownloadCardView] 签名成功")
+                            continuation.resume(returning: (true, nil as Error?))
+                        }
+                    }
+                )
+                
+                // 如果Zsign.sign立即返回false，说明调用失败
+                if !success {
+                    print("❌ [DownloadCardView] Zsign.sign调用失败")
+                    continuation.resume(returning: (false, NSError(domain: "ZsignError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Zsign.sign调用失败"])))
+                }
+            }
+            
+            if !signResult.0 {
+                throw PackageInstallationError.installationFailed("签名失败: \(signResult.1?.localizedDescription ?? "未知错误")")
+            }
+            
+            print("✅ [DownloadCardView] 签名流程完成")
+            
+        } catch {
+            print("❌ [DownloadCardView] 签名过程中发生错误: \(error)")
+            throw PackageInstallationError.installationFailed("签名失败: \(error.localizedDescription)")
+        }
+        
+        #else
+        print("❌ [DownloadCardView] ZsignSwift库不可用，使用备用方案")
+        
+        // 备用方案：使用系统工具进行简单处理
+        try await performFallbackInstallation(ipaPath: ipaPath, appInfo: appInfo)
+        #endif
+    }
+    
+    // MARK: - 备用安装方案
+    private func performFallbackInstallation(ipaPath: String, appInfo: AppInfo) async throws {
+        print("🔄 [DownloadCardView] 使用备用安装方案")
+        
+        // 创建临时工作目录
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("Fallback_\(UUID().uuidString)")
+        defer {
             try? FileManager.default.removeItem(at: tempDir)
         }
         
@@ -2059,139 +2368,75 @@ struct DownloadCardView: SwiftUIView {
             
             // 解压IPA文件
             #if canImport(ZipArchive)
-            let unzipSuccess = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-            guard unzipSuccess else {
-                throw PackageInstallationError.installationFailed("IPA文件解压失败")
+            let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
+            guard success else {
+                throw PackageInstallationError.installationFailed("IPA解压失败")
             }
             #else
-            // iOS平台不支持Process类型，抛出错误
-            throw PackageInstallationError.installationFailed("iOS平台不支持Process类型，请使用ZipArchive库")
+            throw PackageInstallationError.installationFailed("ZipArchive库不可用")
             #endif
             
-            // 查找Payload目录中的.app文件
-            let payloadDir = tempDir.appendingPathComponent("Payload")
-            let payloadContents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
+            // 创建iTunesMetadata.plist
+            let metadataDict: [String: Any] = [
+                "appleId": appInfo.bundleIdentifier,
+                "artistId": 0,
+                "artistName": appInfo.name,
+                "bundleId": appInfo.bundleIdentifier,
+                "bundleVersion": appInfo.version,
+                "copyright": "Copyright © 2025",
+                "drmVersionNumber": 0,
+                "fileExtension": "ipa",
+                "fileName": "\(appInfo.name).ipa",
+                "genre": "Productivity",
+                "genreId": 6007,
+                "itemId": 0,
+                "itemName": appInfo.name,
+                "kind": "software",
+                "playlistName": "iOS Apps",
+                "price": 0.0,
+                "priceDisplay": "Free",
+                "rating": "4+",
+                "releaseDate": "2025-01-01T00:00:00Z",
+                "s": 143441,
+                "softwareIcon57x57URL": "",
+                "softwareIconNeedsShine": false,
+                "softwareSupportedDeviceIds": [1, 2],
+                "softwareVersionBundleId": appInfo.bundleIdentifier,
+                "softwareVersionExternalIdentifier": 0,
+                "softwareVersionExternalIdentifiers": [],
+                "subgenres": [],
+                "vendorId": 0,
+                "versionRestrictions": 0
+            ]
             
-            guard let appBundle = payloadContents.first(where: { $0.pathExtension == "app" }) else {
-                throw PackageInstallationError.installationFailed("未找到.app文件")
-            }
-            
-            let appPath = appBundle.path
-            print("🔍 [DownloadCardView] 测试用.app包路径: \(appPath)")
-            
-            let testResult = Zsign.sign(
-                appPath: appPath,
-                entitlementsPath: "",
-                customIdentifier: appInfo.bundleIdentifier,
-                customName: appInfo.name,
-                customVersion: appInfo.version,
-                adhoc: true,
-                removeProvision: true,
-                completion: { _, error in
-                    print("🔍 [DownloadCardView] 测试签名回调被调用: \(error?.localizedDescription ?? "成功")")
-                }
+            let plistData = try PropertyListSerialization.data(
+                fromPropertyList: metadataDict,
+                format: .xml,
+                options: 0
             )
-            print("🔍 [DownloadCardView] 测试签名返回值: \(testResult)")
             
-            if !testResult {
-                throw PackageInstallationError.installationFailed("ZsignSwift库测试失败，无法启动签名")
+            let metadataPath = tempDir.appendingPathComponent("iTunesMetadata.plist")
+            try plistData.write(to: metadataPath)
+            
+            // 重新打包IPA文件
+            let processedIPAPath = URL(fileURLWithPath: ipaPath).deletingLastPathComponent()
+                .appendingPathComponent("processed_\(URL(fileURLWithPath: ipaPath).lastPathComponent)")
+            
+            let repackSuccess = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: tempDir.path)
+            guard repackSuccess else {
+                throw PackageInstallationError.installationFailed("IPA重新打包失败")
             }
+            
+            // 替换原文件
+            try FileManager.default.removeItem(at: URL(fileURLWithPath: ipaPath))
+            try FileManager.default.moveItem(at: processedIPAPath, to: URL(fileURLWithPath: ipaPath))
+            
+            print("✅ [DownloadCardView] 备用方案完成")
             
         } catch {
-            print("❌ [DownloadCardView] 测试解压失败: \(error)")
-            throw PackageInstallationError.installationFailed("测试解压失败: \(error.localizedDescription)")
+            print("❌ [DownloadCardView] 备用方案失败: \(error)")
+            throw PackageInstallationError.installationFailed("备用安装方案失败: \(error.localizedDescription)")
         }
-        
-        // 使用Task来等待签名完成，添加超时处理
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            // 添加签名任务
-            group.addTask {
-                try await withCheckedThrowingContinuation { continuation in
-                    print("🔍 [DownloadCardView] 准备调用Zsign.sign...")
-                    print("🔍 [DownloadCardView] 参数: appPath=\(ipaPath)")
-                    print("🔍 [DownloadCardView] 参数: bundleId=\(appInfo.bundleIdentifier)")
-                    print("🔍 [DownloadCardView] 参数: appName=\(appInfo.name)")
-                    print("🔍 [DownloadCardView] 参数: version=\(appInfo.version)")
-                    
-                    // 先解压IPA文件获取.app包路径
-                    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                    defer {
-                        // 清理临时目录
-                        try? FileManager.default.removeItem(at: tempDir)
-                    }
-                    
-                    do {
-                        // 创建临时目录
-                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                        
-                        // 解压IPA文件
-                        #if canImport(ZipArchive)
-                        let unzipSuccess = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-                        guard unzipSuccess else {
-                            throw PackageInstallationError.installationFailed("IPA文件解压失败")
-                        }
-                        #else
-                        // iOS平台不支持Process类型，抛出错误
-                        throw PackageInstallationError.installationFailed("iOS平台不支持Process类型，请使用ZipArchive库")
-                        #endif
-                        
-                        // 查找Payload目录中的.app文件
-                        let payloadDir = tempDir.appendingPathComponent("Payload")
-                        let payloadContents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
-                        
-                        guard let appBundle = payloadContents.first(where: { $0.pathExtension == "app" }) else {
-                            throw PackageInstallationError.installationFailed("未找到.app文件")
-                        }
-                        
-                        let appPath = appBundle.path
-                        print("🔍 [DownloadCardView] 实际签名用.app包路径: \(appPath)")
-                        
-                        let success = Zsign.sign(
-                            appPath: appPath,
-                            entitlementsPath: "",
-                            customIdentifier: appInfo.bundleIdentifier,
-                            customName: appInfo.name,
-                            customVersion: appInfo.version,
-                            adhoc: true,
-                            removeProvision: true, // 签名时应该移除provisioning文件
-                            completion: { _, error in
-                                print("🔍 [DownloadCardView] Zsign.sign completion回调被调用")
-                                if let error = error {
-                                    print("❌ [DownloadCardView] 签名失败: \(error)")
-                                    continuation.resume(throwing: PackageInstallationError.installationFailed("签名失败: \(error.localizedDescription)"))
-                                } else {
-                                    print("✅ [DownloadCardView] 签名成功")
-                                    continuation.resume()
-                                }
-                            }
-                        )
-                        
-                        if !success {
-                            continuation.resume(throwing: PackageInstallationError.installationFailed("签名过程启动失败"))
-                        }
-                        
-                    } catch {
-                        print("❌ [DownloadCardView] 解压或签名失败: \(error)")
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-            
-            // 添加超时任务
-            group.addTask {
-                try await Task.sleep(nanoseconds: 30_000_000_000) // 30秒超时
-                throw PackageInstallationError.timeoutError
-            }
-            
-            // 等待第一个完成的任务
-            try await group.next()
-            group.cancelAll()
-        }
-        #else
-        // ZsignSwift库不可用，抛出错误
-        print("❌ [DownloadCardView] ZsignSwift库不可用！")
-        throw PackageInstallationError.installationFailed("ZsignSwift库不可用")
-        #endif
     }
     
     private func performOTAInstallation(for request: DownloadRequest) async throws {

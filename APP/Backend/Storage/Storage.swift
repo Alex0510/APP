@@ -1,13 +1,5 @@
-//
-//  Persistence.swift
-//  Feather
-//
-//  Created by samara on 10.04.2025.
-//
-
 import CoreData
 
-// MARK: - Class
 final class Storage: ObservableObject {
 	static let shared = Storage()
 	let container: NSPersistentContainer
@@ -23,7 +15,7 @@ final class Storage: ObservableObject {
 		
 		container.loadPersistentStores(completionHandler: { (storeDescription, error) in
 			if let error = error as NSError? {
-				fatalError("未解决的错误 \(error), \(error.userInfo)")
+				fatalError("Unresolved error \(error), \(error.userInfo)")
 			}
 		})
 		
@@ -35,19 +27,20 @@ final class Storage: ObservableObject {
 	}
 	
 	func saveContext() {
-        DispatchQueue.main.async {
-            if self.context.hasChanges {
-                try? self.context.save()
-            }
-        }
+		DispatchQueue.main.async {
+			if self.context.hasChanges {
+				try? self.context.save()
+			}
+		}
 	}
 	
 	func clearContext<T: NSManagedObject>(request: NSFetchRequest<T>) {
 		let deleteRequest = NSBatchDeleteRequest(fetchRequest: (request as? NSFetchRequest<NSFetchRequestResult>)!)
-		do {
-			_ = try context.execute(deleteRequest)
-		} catch {
-			print("clear: \(error.localizedDescription)")
-		}
+		_ = try? context.execute(deleteRequest)
+	}
+	
+	func countContent<T: NSManagedObject>(for type: T.Type) -> String {
+		let request = T.fetchRequest()
+		return "\((try? context.count(for: request)) ?? 0)"
 	}
 }

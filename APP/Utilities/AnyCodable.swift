@@ -1,10 +1,3 @@
-//
-//  AnyCodable.swift
-//  Feather
-//
-//  Created by samara on 27.04.2025.
-//
-
 import Foundation
 
 struct AnyCodable: Codable {
@@ -34,7 +27,7 @@ struct AnyCodable: Codable {
 		} else if let dictionary = try? container.decode([String: AnyCodable].self) {
 			self.value = dictionary.mapValues { $0.value }
 		} else {
-			throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable cannot decode value")
+			throw DecodingError.dataCorruptedError(in: container, debugDescription: "AnyCodable无法解码值")
 		}
 	}
 	
@@ -59,7 +52,7 @@ struct AnyCodable: Codable {
 		case let dictionary as [String: Any]:
 			try container.encode(dictionary.mapValues { AnyCodable($0) })
 		default:
-			throw EncodingError.invalidValue(self.value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable cannot encode value"))
+			throw EncodingError.invalidValue(self.value, EncodingError.Context(codingPath: container.codingPath, debugDescription: "AnyCodable无法编码值"))
 		}
 	}
 }

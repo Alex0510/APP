@@ -16,18 +16,18 @@ struct SigningEntitlementsView: View {
 	
 	// MARK: Body
 	var body: some View {
-		NBList(.localized("权限")) {
+		NBList(.localized("Entitlements")) {
 			if let ent = bindingValue {
 				Text(ent.lastPathComponent)
 					.swipeActions() {
-						Button(.localized("删除")) {
+						Button(.localized("Delete")) {
 							FileManager.default.deleteStored(ent) { _ in
 								bindingValue = nil
 							}
 						}
 					}
 			} else {
-				Button(.localized("选择权限文件")) {
+				Button(.localized("Select entitlements file")) {
 					_isAddingPresenting = true
 				}
 			}
@@ -43,6 +43,7 @@ struct SigningEntitlementsView: View {
 					}
 				}
 			)
+			.ignoresSafeArea()
 		}
 	}
 }

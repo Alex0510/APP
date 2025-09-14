@@ -1,15 +1,10 @@
-//
-//  FR.swift
-//  Feather
-//
-//  Created by samara on 22.04.2025.
-//
-
 import Foundation.NSURL
 import UIKit.UIImage
 import Zsign
 import NimbleJSON
 import AltSourceKit
+import IDeviceSwift
+import OSLog
 
 enum FR {
 	static func handlePackageFile(
@@ -17,21 +12,28 @@ enum FR {
 		download: Download? = nil,
 		completion: @escaping (Error?) -> Void
 	) {
+		Logger.misc.info("FR.handlePackageFile 调用: \(ipa.path)")
 		Task.detached {
 			let handler = AppFileHandler(file: ipa, download: download)
 			
 			do {
+				Logger.misc.info("开始IPA处理流程")
 				try await handler.copy()
+				Logger.misc.info("复制完成")
 				try await handler.extract()
+				Logger.misc.info("解压完成")
 				try await handler.move()
+				Logger.misc.info("移动完成")
 				try await handler.addToDatabase()
-                
-                                try? await handler.clean()
+				Logger.misc.info("添加到数据库完成")
+				try? await handler.clean()
+				Logger.misc.info("IPA处理成功完成")
 				await MainActor.run {
 					completion(nil)
 				}
 			} catch {
-				try await handler.clean()
+				Logger.misc.error("IPA处理失败: \(error.localizedDescription)")
+				try? await handler.clean()
 				await MainActor.run {
 					completion(error)
 				}
@@ -48,16 +50,13 @@ enum FR {
 	) {
 		Task.detached {
 			let handler = SigningHandler(app: app, options: options)
-			if !options.onlyModify {
-				handler.appCertificate = certificate
-			}
+			handler.appCertificate = certificate
 			handler.appIcon = icon
 			
 			do {
 				try await handler.copy()
 				try await handler.modify()
-                try? await handler.clean()
-				
+				try? await handler.clean()
 				await MainActor.run {
 					completion(nil)
 				}
@@ -74,7 +73,7 @@ enum FR {
 		p12URL: URL,
 		provisionURL: URL,
 		p12Password: String,
-		certificateName: String,
+		certificateName: String = "",
 		completion: @escaping (Error?) -> Void
 	) {
 		Task.detached {
@@ -87,39 +86,6 @@ enum FR {
 			
 			do {
 				try await handler.copy()
-				try await handler.addToDatabase()
-				await MainActor.run {
-					completion(nil)
-				}
-			} catch {
-				await MainActor.run {
-					completion(error)
-				}
-			}
-		}
-	}
-	
-	// New method for handling certificate data in memory
-	static func handleCertificateData(
-		p12Data: Data,
-		provisionData: Data,
-		p12Password: String,
-		certificateName: String,
-		completion: @escaping (Error?) -> Void
-	) {
-		Task.detached {
-			let handler = CertificateMemoryHandler(
-				p12Data: p12Data,
-				provisionData: provisionData,
-				password: p12Password,
-				nickname: certificateName.isEmpty ? nil : certificateName
-			)
-			
-			do {
-				guard handler.validate() else {
-					throw CertificateHandlerError.invalidCertificate
-				}
-				
 				try await handler.addToDatabase()
 				await MainActor.run {
 					completion(nil)
@@ -150,45 +116,17 @@ enum FR {
 		return true
 	}
 	
-	static func checkPasswordForCertificateData(
-		p12Data: Data,
-		provisionData: Data,
-		password: String
-	) -> Bool {
-		let tempDir = FileManager.default.temporaryDirectory
-		let tempP12 = tempDir.appendingPathComponent("temp_cert.p12")
-		let tempProvision = tempDir.appendingPathComponent("temp_provision.mobileprovision")
-		
-		defer {
-			try? FileManager.default.removeItem(at: tempP12)
-			try? FileManager.default.removeItem(at: tempProvision)
-		}
-		
-		do {
-			try p12Data.write(to: tempP12)
-			try provisionData.write(to: tempProvision)
-			
-			return checkPasswordForCertificate(for: tempP12, with: password, using: tempProvision)
-		} catch {
-			print("创建密码检查临时文件时出错: \(error)")
-			return false
-		}
-	}
-	
-	#if IDEVICE
 	static func movePairing(_ url: URL) {
 		let fileManager = FileManager.default
 		let dest = URL.documentsDirectory.appendingPathComponent("pairingFile.plist")
-
+		
 		try? fileManager.removeFileIfNeeded(at: dest)
 		
 		try? fileManager.copyItem(at: url, to: dest)
 		
 		HeartbeatManager.shared.start(true)
 	}
-	#endif
 	
-	#if SERVER
 	static func downloadSSLCertificates(
 		from urlString: String,
 		completion: @escaping (Bool) -> Void
@@ -196,20 +134,13 @@ enum FR {
 		let generator = UINotificationFeedbackGenerator()
 		generator.prepare()
 		
-		NBFetchService().fetch(from: urlString) { (result: Result<ServerPackModel, Error>) in
+		NBFetchService().fetch(from: urlString) { (result: Result<ServerView.ServerPackModel, Error>) in
 			switch result {
 			case .success(let pack):
 				do {
-					let serverDir = URL.documentsDirectory.appendingPathComponent("App").appendingPathComponent("Server")
-					let pemURL = serverDir.appendingPathComponent("server.pem")
-					let crtURL = serverDir.appendingPathComponent("server.crt")
-					let commonNameURL = serverDir.appendingPathComponent("commonName.txt")
-					
-					try FileManager.default.createDirectoryIfNeeded(at: serverDir)
-					try pack.key.write(to: pemURL, atomically: true, encoding: .utf8)
-					try pack.cert.write(to: crtURL, atomically: true, encoding: .utf8)
-					try pack.info.domains.commonName.write(to: commonNameURL, atomically: true, encoding: .utf8)
-					
+					try FileManager.forceWrite(content: pack.key, to: "server.pem")
+					try FileManager.forceWrite(content: pack.cert, to: "server.crt")
+					try FileManager.forceWrite(content: pack.info.domains.commonName, to: "commonName.txt")
 					generator.notificationOccurred(.success)
 					completion(true)
 				} catch {
@@ -220,7 +151,6 @@ enum FR {
 			}
 		}
 	}
-	#endif
 	
 	static func handleSource(
 		_ urlString: String,
@@ -228,7 +158,7 @@ enum FR {
 	) {
 		guard let url = URL(string: urlString) else { return }
 		
-		NBFetchService().fetch(from: url) { (result: Result<ASRepository, Error>) in
+		NBFetchService().fetch<ASRepository>(from: url) { (result: Result<ASRepository, Error>) in
 			switch result {
 			case .success(let data):
 				let id = data.id ?? url.absoluteString
@@ -239,18 +169,74 @@ enum FR {
 					}
 				} else {
 					DispatchQueue.main.async {
-						UIAlertController.showAlertWithOk(title: "错误", message: "仓库已添加。")
+						UIAlertController.showAlertWithOk(title: .localized("错误"), message: .localized("仓库已添加。"))
 					}
 				}
 			case .failure(let error):
 				DispatchQueue.main.async {
-					UIAlertController.showAlertWithOk(title: "错误", message: error.localizedDescription)
+					UIAlertController.showAlertWithOk(title: .localized("错误"), message: error.localizedDescription)
 				}
 			}
 		}
 	}
-}
-
-private enum CertificateHandlerError: Error {
-	case invalidCertificate
+	
+	static func exportCertificateAndOpenUrl(using template: String) {
+		func performExport(for certificate: CertificatePair) {
+			guard
+				let certificateKeyFile = Storage.shared.getFile(.certificate, from: certificate),
+				let certificateKeyFileData = try? Data(contentsOf: certificateKeyFile)
+			else {
+				return
+			}
+			
+			let base64encodedCert = certificateKeyFileData.base64EncodedString()
+			
+			var allowedQueryParamAndKey = NSCharacterSet.urlQueryAllowed
+			allowedQueryParamAndKey.remove(charactersIn: ";/?:@&=+$, ")
+			
+			guard let encodedCert = base64encodedCert.addingPercentEncoding(withAllowedCharacters: allowedQueryParamAndKey) else {
+				return
+			}
+			
+			let urlStr = template
+				.replacingOccurrences(of: "$(BASE64_CERT)", with: encodedCert)
+				.replacingOccurrences(of: "$(PASSWORD)", with: certificate.password ?? "")
+			
+			guard let callbackUrl = URL(string: urlStr) else {
+				return
+			}
+			
+			UIApplication.shared.open(callbackUrl)
+		}
+		
+		let certificates = Storage.shared.getAllCertificates()
+		guard !certificates.isEmpty else { return }
+		
+		DispatchQueue.main.async {
+			var selectionActions: [UIAlertAction] = []
+			
+			for cert in certificates {
+				var title: String
+				let decoded = Storage.shared.getProvisionFileDecoded(for: cert)
+				
+				title = cert.nickname ?? decoded?.Name ?? .localized("未知")
+				
+				if let getTaskAllow = decoded?.Entitlements?["get-task-allow"]?.value as? Bool, getTaskAllow == true {
+					title = "🐞 \(title)"
+				}
+				
+				let selectAction = UIAlertAction(title: title, style: .default) { _ in
+					performExport(for: cert)
+				}
+				selectionActions.append(selectAction)
+			}
+			
+			UIAlertController.showAlertWithCancel(
+				title: .localized("导出证书"),
+				message: .localized("您想要将证书导出到外部应用吗？该应用将能够使用您的证书对应用进行签名。"),
+				style: .alert,
+				actions: selectionActions
+			)
+		}
+	}
 }

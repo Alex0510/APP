@@ -1,10 +1,3 @@
-//
-//  SwiftAR.swift
-//  SwiftAR
-//
-//  Created by nekohaxx on 8/18/24.
-//
-
 import Foundation
 
 class AR: NSObject {
@@ -17,7 +10,7 @@ class AR: NSObject {
 	
 	func extract() async throws -> [ARFileModel] {
 		if [UInt8](_data.subdata(in: Range(0...7))) != [0x21, 0x3c, 0x61, 0x72, 0x63, 0x68, 0x3e, 0x0a] {
-			throw ARError.badArchive("无效的魔数")
+			throw ARError.badArchive("无效的数字")
 		}
 		
 		let data = _data.subdata(in: 8..<_data.endIndex)

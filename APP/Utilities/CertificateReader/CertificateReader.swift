@@ -1,11 +1,5 @@
-//
-//  CertificateReader.swift
-//  Feather
-//
-//  Created by samara on 16.04.2025.
-//
-
 import UIKit
+import OSLog
 
 class CertificateReader: NSObject {
 	let file: URL?
@@ -22,28 +16,19 @@ class CertificateReader: NSObject {
 		
 		do {
 			let fileData = try Data(contentsOf: file)
-			return Self.parseData(fileData)
-		} catch {
-			print("Error reading certificate file: \(error.localizedDescription)")
-			return nil
-		}
-	}
-	
-	// Static method to parse certificate data directly
-	static func parseData(_ data: Data) -> Certificate? {
-		do {
-			guard let xmlRange = data.range(of: Data("<?xml".utf8)) else {
-				print("XML start not found")
+			
+			guard let xmlRange = fileData.range(of: Data("<?xml".utf8)) else {
+				Logger.misc.error("未找到XML开始标记")
 				return nil
 			}
 			
-			let xmlData = data.subdata(in: xmlRange.lowerBound..<data.endIndex)
+			let xmlData = fileData.subdata(in: xmlRange.lowerBound..<fileData.endIndex)
 			
 			let decoder = PropertyListDecoder()
-			let certificate = try decoder.decode(Certificate.self, from: xmlData)
-			return certificate
+			let data = try decoder.decode(Certificate.self, from: xmlData)
+			return data
 		} catch {
-			print("Error extracting certificate: \(error.localizedDescription)")
+			Logger.misc.error("提取证书时出错: \(error.localizedDescription)")
 			return nil
 		}
 	}

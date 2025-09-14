@@ -1,21 +1,15 @@
-//
-//  CertificatesInfoView.swift
-//  Feather
-//
-//  Created by samara on 20.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
+import ZsignSwift
+// 使用内部扩展代替NimbleExtensions
 
-// MARK: - View
 struct CertificatesInfoView: View {
 	@Environment(\.dismiss) var dismiss
 	@State var data: Certificate?
 	
 	var cert: CertificatePair
 	
-	// MARK: Body
     var body: some View {
 		NBNavigationView(cert.nickname ?? "", displayMode: .inline) {
 			Form {
@@ -34,11 +28,10 @@ struct CertificatesInfoView: View {
 				}
 				
 				Section {
-					Button(.localized("导出证书"), systemImage: "square.and.arrow.up") {
-						exportCertificate(cert)
+					Button(.localized("在文件中打开"), systemImage: "folder") {
+						UIApplication.open(Storage.shared.getUuidDirectory(for: cert)!.toSharedDocumentsURL()!)
 					}
 				}
-				
 			}
 			.toolbar {
 				NBToolbarButton(role: .close)
@@ -50,7 +43,6 @@ struct CertificatesInfoView: View {
     }
 }
 
-// MARK: - Extension: View
 extension CertificatesInfoView {
 	@ViewBuilder
 	private func _infoSection(data: Certificate) -> some View {
@@ -63,11 +55,11 @@ extension CertificatesInfoView {
 		Section {
 			_info(.localized("过期时间"), description: data.ExpirationDate.expirationInfo().formatted)
 				.foregroundStyle(data.ExpirationDate.expirationInfo().color)
-            
-            _info(.localized("已撤销"), description: cert.revoked ? "是" : "否")
-            
+			
+			_info(.localized("已撤销"), description: cert.revoked ? "✓" : "✗")
+			
 			if let ppq = data.PPQCheck {
-				_info("PPQCheck", description: ppq ? "Yes" : "No")
+				_info(.localized("PPQ检查"), description: ppq ? "✓" : "✗")
 			}
 		}
 	}
@@ -109,6 +101,7 @@ extension CertificatesInfoView {
 		LabeledContent(title) {
 			Text(description)
 		}
+		.copyableText(description)
 	}
 	
 	@ViewBuilder
@@ -117,53 +110,8 @@ extension CertificatesInfoView {
 			ForEach(keys, id: \.self) { key in
 				Text(key)
 					.foregroundStyle(.secondary)
+					.copyableText(key)
 			}
 		}
 	}
-}
-
-// MARK: - Extension: Certificate Export
-extension CertificatesInfoView {
-	private func exportCertificate(_ cert: CertificatePair) {
-		guard let uuid = cert.uuid else { return }
-		
-		guard let certData = Storage.shared.getCertificateDataForExport(from: cert),
-			  let jsonData = try? JSONSerialization.data(withJSONObject: certData) else {
-			return
-		}
-		
-		guard let finalData = CertificateEncryption.encryptKsignData(jsonData) else {
-			print("Error encrypting certificate data")
-			return
-		}
-		
-		let sanitizedName = (cert.nickname ?? "Certificate")
-			.replacingOccurrences(of: "/", with: "-")
-			.replacingOccurrences(of: ":", with: "-")
-			.replacingOccurrences(of: "\\", with: "-")
-		
-		let tempDir = FileManager.default.temporaryDirectory
-		let fileName = "\(sanitizedName).ksign"
-		let fileURL = tempDir.appendingPathComponent(fileName)
-		
-		do {
-			try finalData.write(to: fileURL)
-			
-			let activityVC = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-			
-			if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-			   let rootViewController = windowScene.windows.first?.rootViewController {
-				
-				if let presentedVC = rootViewController.presentedViewController {
-					presentedVC.present(activityVC, animated: true)
-				} else {
-					rootViewController.present(activityVC, animated: true)
-				}
-			}
-		} catch {
-			print("Error exporting certificate: \(error)")
-		}
-	}
-	
-
 }

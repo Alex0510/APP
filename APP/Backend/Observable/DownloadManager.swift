@@ -1,24 +1,13 @@
-//
-//  enum.swift
-//  Feather
-//
-//  Created by samara on 3.05.2025.
-//
-
 import Foundation
 import Combine
 import UIKit.UIImpactFeedbackGenerator
-import SwiftUI // For ByteCountFormatter
-
-// Import the error handlers module
-@_exported import class UIKit.UIImpactFeedbackGenerator
+import OSLog
 
 class Download: Identifiable, @unchecked Sendable {
 	@Published var progress: Double = 0.0
 	@Published var bytesDownloaded: Int64 = 0
 	@Published var totalBytes: Int64 = 0
 	@Published var unpackageProgress: Double = 0.0
-	@Published var status: DownloadStatus = .waiting
 	
 	var overallProgress: Double {
 		onlyArchiving
@@ -28,7 +17,6 @@ class Download: Identifiable, @unchecked Sendable {
 	
     var task: URLSessionDownloadTask?
     var resumeData: Data?
-    var localURL: URL?
 	
 	let id: String
 	let url: URL
@@ -127,53 +115,28 @@ class DownloadManager: NSObject, ObservableObject {
 	func getDownloadTask(by task: URLSessionDownloadTask) -> Download? {
 		return downloads.first(where: { $0.task == task })
 	}
-	
-	func handlePachageFile(
-		url: URL,
-		dl: Download?,
-		completion: @escaping (Error?) -> Void
-	) {
-		FR.handlePackageFile(url, download: dl) { (packageError: Error?) in
-			if let error = packageError {
-				let generator = UINotificationFeedbackGenerator()
-				generator.notificationOccurred(.error)
-				print("Package handling error: \(error.localizedDescription)")
-				let nsError = error as NSError
-				if nsError.domain == NSPOSIXErrorDomain && nsError.code == 28 {
-					print("No space left on device")
-				} else if nsError.domain == NSCocoaErrorDomain {
-					print("Cocoa error: \(nsError.localizedDescription)")
-				}
-				let errorString = String(describing: packageError)
-				if errorString.contains("notEnoughDiskSpace") {
-					print("Not enough disk space for extraction")
-				} else if errorString.contains("payloadNotFound") {
-					print("Payload folder not found in archive")
-				}
-			}
-			DispatchQueue.main.async {
-				if let dl = dl, let index = DownloadManager.shared.getDownloadIndex(by: dl.id) {
-					DownloadManager.shared.downloads.remove(at: index)
-				}
-				completion(packageError)
-			}
-		}
-	}
-
-	func handlePachageFile(url: URL, dl: Download?) async throws {
-		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-			handlePachageFile(url: url, dl: dl, completion: { (err: Error?) in
-				if let error = err {
-					continuation.resume(throwing: error)
-				} else {
-					continuation.resume()
-				}
-			})
-		}
-	}
 }
 
 extension DownloadManager: URLSessionDownloadDelegate {
+	
+	func handlePachageFile(url: URL, dl: Download) throws {
+		Logger.misc.info("DownloadManager.handlePachageFile 调用: \(url.path)")
+		FR.handlePackageFile(url, download: dl) { err in
+			if let err = err {
+				Logger.misc.error("DownloadManager IPA处理失败: \(err.localizedDescription)")
+				let generator = UINotificationFeedbackGenerator()
+				generator.notificationOccurred(.error)
+			} else {
+				Logger.misc.info("DownloadManager IPA处理成功完成")
+			}
+			
+			DispatchQueue.main.async {
+				if let index = DownloadManager.shared.getDownloadIndex(by: dl.id) {
+					DownloadManager.shared.downloads.remove(at: index)
+				}
+			}
+		}
+	}
 	
 	func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
 		guard let download = getDownloadTask(by: downloadTask) else { return }
@@ -183,17 +146,16 @@ extension DownloadManager: URLSessionDownloadDelegate {
 		
 		do {
 			try FileManager.default.createDirectoryIfNeeded(at: customTempDir)
+			
 			let suggestedFileName = downloadTask.response?.suggestedFilename ?? download.fileName
 			let destinationURL = customTempDir.appendingPathComponent(suggestedFileName)
+			
 			try FileManager.default.removeFileIfNeeded(at: destinationURL)
 			try FileManager.default.moveItem(at: location, to: destinationURL)
-			self.handlePachageFile(url: destinationURL, dl: download) { err in
-				if let error = err {
-					print("Error handling downloaded file: \(error.localizedDescription)")
-				}
-			}
+			
+			try handlePachageFile(url: destinationURL, dl: download)
 		} catch {
-			print("Error handling downloaded file: \(error.localizedDescription)")
+			print("处理下载文件时出错: \(error.localizedDescription)")
 		}
 	}
     

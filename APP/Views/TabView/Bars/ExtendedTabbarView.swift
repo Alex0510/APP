@@ -1,10 +1,3 @@
-//
-//  TabbarController.swift
-//  feather
-//
-//  Created by samara on 5/17/24.
-//  Copyright (c) 2024 Samara M (khcrysalis)
-//
 
 import SwiftUI
 import NukeUI
@@ -41,7 +34,7 @@ struct ExtendedTabbarView: View {
 				.hidden(horizontalSizeClass == .compact)
 			}
 			
-			TabSection("源") {
+			TabSection("来源") {
 				Tab(.localized("所有仓库"), systemImage: "globe.desk") {
 					NavigationStack {
 						SourceAppsView(object: Array(_sources), viewModel: viewModel)
@@ -57,14 +50,14 @@ struct ExtendedTabbarView: View {
 						_icon(source.name ?? .localized("未知"), iconUrl: source.iconURL)
 					}
 					.swipeActions {
-						Button(String.localized("删除"), systemImage: "trash", role: .destructive) {
+						Button(.localized("删除"), systemImage: "trash", role: .destructive) {
 							Storage.shared.deleteSource(for: source)
 						}
 					}
 				}
 			}
 			.sectionActions {
-				Button(.localized("添加源"), systemImage: "plus") {
+				Button(.localized("添加来源"), systemImage: "plus") {
 					_isAddingPresenting = true
 				}
 			}
@@ -85,14 +78,17 @@ struct ExtendedTabbarView: View {
 			Text(title)
 		} icon: {
 			if let iconURL = iconUrl {
-				LazyImage(source: iconURL) { state in
+				LazyImage(url: iconURL) { state in
 					if let image = state.image {
 						image
+							.resizable()
+							.aspectRatio(contentMode: .fit)
+							.frame(width: 14, height: 14)
+							.clipShape(Circle())
 					} else {
 						standardIcon
 					}
 				}
-				.processors([.resize(width: 14), .circle()])
 			} else {
 				standardIcon
 			}

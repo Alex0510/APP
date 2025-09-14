@@ -1,25 +1,17 @@
-//
-//  SigningFrameworksView.swift
-//  Feather
-//
-//  Created by samara on 20.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct SigningFrameworksView: View {
 	@State private var _frameworks: [String] = []
 	@State private var _plugins: [String] = []
 	
 	private let _frameworksPath: String = .localized("框架")
-    private let _pluginsPath: String = .localized("插件")
+	private let _pluginsPath: String = .localized("插件")
 	
 	var app: AppInfoPresentable
 	@Binding var options: Options?
 	
-	// MARK: Body
 	var body: some View {
 		NBList(.localized("框架和插件")) {
 			Group {
@@ -46,6 +38,15 @@ struct SigningFrameworksView: View {
 						}
 					}
 				}
+				
+				if
+					_frameworks.isEmpty,
+					_plugins.isEmpty
+				{
+					Text(.localized("未找到框架或插件。"))
+						.font(.footnote)
+						.foregroundColor(.disabled())
+				}
 			}
 			.disabled(options == nil)
 		}
@@ -53,7 +54,6 @@ struct SigningFrameworksView: View {
 	}
 }
 
-// MARK: - Extension: View
 extension SigningFrameworksView {
 	private func _listFrameworksAndPlugins() {
 		guard let path = Storage.shared.getAppDirectory(for: app) else { return }

@@ -1,20 +1,11 @@
-//
-//  Server+Compute.swift
-//  feather
-//
-//  Created by samara on 22.08.2024.
-//  Copyright © 2024 Lakr Aream. All Rights Reserved.
-//  ORIGINALLY LICENSED UNDER GPL-3.0, MODIFIED FOR USE FOR FEATHER
-//
-
 import Foundation
 import UIKit.UIGraphicsImageRenderer
 
 extension ServerInstaller {
 	var plistEndpoint: URL {
 		var comps = URLComponents()
-		comps.scheme = ServerInstaller.getServerMethod() == 1 ? "http" : "https"
-		comps.host = Self.sni
+		comps.scheme = self.getServerMethod() == 1 ? "http" : "https"
+		comps.host = sni()
 		comps.path = "/\(id).plist"
 		comps.port = port
 		return comps.url!
@@ -22,8 +13,8 @@ extension ServerInstaller {
 
 	var payloadEndpoint: URL {
 		var comps = URLComponents()
-		comps.scheme = ServerInstaller.getServerMethod() == 1 ? "http" : "https"
-		comps.host = Self.sni
+		comps.scheme = self.getServerMethod() == 1 ? "http" : "https"
+		comps.host = sni()
 		comps.path = "/\(id).ipa"
 		comps.port = port
 		return comps.url!
@@ -31,8 +22,8 @@ extension ServerInstaller {
 	
 	var pageEndpoint: URL {
 		var comps = URLComponents()
-		comps.scheme = ServerInstaller.getServerMethod() == 1 ? "http" : "https"
-		comps.host = Self.sni
+		comps.scheme = self.getServerMethod() == 1 ? "http" : "https"
+		comps.host = sni()
 		comps.path = "/install"
 		comps.port = port
 		return comps.url!
@@ -61,7 +52,7 @@ extension ServerInstaller {
 	var displayImageSmallEndpoint: URL {
 		var comps = URLComponents()
 		comps.scheme = "https"
-		comps.host = Self.sni
+		comps.host = sni()
 		comps.path = "/app57x57.png"
 		comps.port = port
 		return comps.url!
@@ -70,7 +61,7 @@ extension ServerInstaller {
 	var displayImageLargeEndpoint: URL {
 		var comps = URLComponents()
 		comps.scheme = "https"
-		comps.host = Self.sni
+		comps.host = sni()
 		comps.path = "/app512x512.png"
 		comps.port = port
 		return comps.url!
@@ -87,7 +78,7 @@ extension ServerInstaller {
 	private func _createIcon(_ r: CGFloat) -> Data {
 		let renderer = UIGraphicsImageRenderer(size: .init(width: r, height: r))
 		let image = renderer.image { ctx in
-			UIColor.accent.setFill()
+			UIColor.tintColor.setFill()
 			ctx.fill(.init(x: 0, y: 0, width: r, height: r))
 		}
 		return image.pngData()!
@@ -110,7 +101,11 @@ extension ServerInstaller {
 				],
 				[
 					"kind": "display-image",
-					"url": "https://raw.githubusercontent.com/Nyasami/Ksign/refs/heads/main/Ksign/Resources/Assets.xcassets/AppIcons/AppIcon.appiconset/Ksign-default.png",
+					"url": displayImageSmallEndpoint.absoluteString,
+				],
+				[
+					"kind": "full-size-image",
+					"url": displayImageLargeEndpoint.absoluteString,
 				],
 			],
 			"metadata": [

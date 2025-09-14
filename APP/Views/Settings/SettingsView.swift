@@ -1,86 +1,82 @@
-//
-//  SettingsView.swift
-//  Feather
-//
-//  Created by samara on 10.04.2025.
-//
-
 import SwiftUI
 import NimbleViews
+import UIKit
+import Darwin
+import IDeviceSwift
 
-// MARK: - View
 struct SettingsView: View {
-	// MARK: Body
+    private let _githubUrl = "https://github.com/pxx917144686/APP"
+    @State private var currentIcon = UIApplication.shared.alternateIconName
+    
     var body: some View {
-		NBNavigationView("设置") {
-			Form {
-				Section {
-					NavigationLink(destination: AppearanceView()) {
-                        Label(.localized("外观"), systemImage: "paintbrush")
-                    }
-				}
-				
-				NBSection(.localized("功能")) {
-					NavigationLink(destination: CertificatesView()) {
-                        Label(.localized("证书"), systemImage: "signature")
-                    }
-					NavigationLink(destination: ConfigurationView()) {
-                        Label(.localized("签名选项"), systemImage: "gear")
-                    }
-					NavigationLink(destination: ArchiveView()) {
-                        Label(.localized("归档和提取"), systemImage: "archivebox")
-                    }
-					#if SERVER
-					NavigationLink(destination: ServerView()) {
-                        Label(.localized("服务器和SSL"), systemImage: "server.rack")
-                    }
-					#elseif IDEVICE
-					NavigationLink(destination: TunnelView()) {
-                        Label(.localized("VPN和配对"), systemImage: "network")
-                    }
-					#endif
-				}
-				
-				_directories()
+        NavigationStack {
+            Form {
+                
+                _feedback()
+                
+                appearanceSection
+                
+                signingSection
+                
+                resetSection
             }
         }
     }
 }
 
-// MARK: - View extension
-extension SettingsView {	
-	@ViewBuilder
-	private func _directories() -> some View {
-		NBSection(.localized("其他")) {
-			Button(.localized("打开文档"), systemImage: "folder") {
-				UIApplication.open(URL.documentsDirectory.toSharedDocumentsURL()!)
-			}
-			Button(.localized("打开归档"), systemImage: "folder") {
-				UIApplication.open(FileManager.default.archives.toSharedDocumentsURL()!)
-			}
-			Button(.localized("清除截图"), systemImage: "trash") {
-				_clearScreenshots()
-			}
-			.foregroundColor(.red)
-		} footer: {
-			Text(.localized("这里是一些快捷链接，用于快速访问应用的文档目录和归档目录。"))
-		}
-	}
-	
-	private func _clearScreenshots() {
-		let screenshotsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Screenshots")
-		
-		guard let screenshotsURL = screenshotsPath, FileManager.default.fileExists(atPath: screenshotsURL.path) else {
-			return
-		}
-		
-		do {
-			let contents = try FileManager.default.contentsOfDirectory(at: screenshotsURL, includingPropertiesForKeys: nil)
-			for fileURL in contents {
-				try FileManager.default.removeItem(at: fileURL)
-			}
-		} catch {
-			print("Error clearing screenshots: \(error.localizedDescription)")
-		}
-	}
+extension SettingsView {
+    
+    private var appearanceSection: some View {
+        Section {
+            NavigationLink(destination: AppearanceView()) {
+                Label(.localized("外观"), systemImage: "paintbrush")
+            }
+            NavigationLink(destination: AppIconView(currentIcon: $currentIcon)) {
+                Label(.localized("图标"), systemImage: "app.badge")
+            }
+        }
+    }
+    
+    private var signingSection: some View {
+        Section {
+            NavigationLink(destination: CertificatesView()) {
+                Label(.localized("证书"), systemImage: "checkmark.seal")
+            }
+            NavigationLink(destination: ConfigurationView()) {
+                Label(.localized("签名选项"), systemImage: "signature")
+            }
+            NavigationLink(destination: ArchiveView()) {
+                Label(.localized("归档与压缩"), systemImage: "archivebox")
+            }
+            NavigationLink(destination: InstallationView()) {
+                Label(.localized("安装"), systemImage: "arrow.down.circle")
+            }
+        } footer: {
+            Text(.localized("安装方式、压缩,自定义修改。"))
+        }
+    }
+    
+    private var resetSection: some View {
+        Section {
+            NavigationLink(destination: ResetView()) {
+                Label(.localized("重置"), systemImage: "trash")
+            }
+        } footer: {
+            Text(.localized("重置应用的源、证书、应用程序和设置。"))
+        }
+    }
+
+    @ViewBuilder
+    private func _feedback() -> some View {
+        Section {
+            Button(.localized("提交反馈"), systemImage: "safari") {
+                UIApplication.open("\(_githubUrl)/issues")
+            }
+            Button(.localized("👉看看源代码"), systemImage: "safari") {
+                UIApplication.open(_githubUrl)
+            }
+        } footer: {
+            Text(.localized("有任何问题，或建议，请随时提交。"))
+        }
+    }
 }

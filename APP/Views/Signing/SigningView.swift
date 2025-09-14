@@ -1,22 +1,9 @@
-//
-//  SigningView.swift
-//  Feather
-//
-//  Created by samara on 14.04.2025.
-//
 
 import SwiftUI
 import PhotosUI
 import NimbleViews
-import CoreData
 
-// Protocol for signing views with additional flags
-protocol SigningWithFlagsView {
-	var signAndInstall: Bool { get }
-}
-
-// MARK: - View
-struct SigningView: View, SigningWithFlagsView {
+struct SigningView: View {
 	@Environment(\.dismiss) var dismiss
 	@StateObject private var _optionsManager = OptionsManager.shared
 	
@@ -29,10 +16,6 @@ struct SigningView: View, SigningWithFlagsView {
 	@State private var _selectedPhoto: PhotosPickerItem? = nil
 	@State var appIcon: UIImage?
 	
-	// For Sign & Install feature
-	var signAndInstall: Bool = false
-	
-	// MARK: Fetch
 	@FetchRequest(
 		entity: CertificatePair.entity(),
 		sortDescriptors: [NSSortDescriptor(keyPath: \CertificatePair.date, ascending: false)],
@@ -46,31 +29,17 @@ struct SigningView: View, SigningWithFlagsView {
 	
 	var app: AppInfoPresentable
 	
-	init(app: AppInfoPresentable, signAndInstall: Bool = false) {
+	init(app: AppInfoPresentable) {
 		self.app = app
-		self.signAndInstall = signAndInstall
 		let storedCert = UserDefaults.standard.integer(forKey: "feather.selectedCert")
 		__temporaryCertificate = State(initialValue: storedCert)
 	}
 		
-	// MARK: Body
     var body: some View {
 		NBNavigationView(app.name ?? .localized("未知"), displayMode: .inline) {
-			Form {
-				_customizationOptions(for: app)
-				_cert()
-				_customizationProperties(for: app)
-			}
-			.safeAreaInset(edge: .bottom) {
-				Button() {
-					_start()
-				} label: {
-					NBSheetButton(title: .localized("开始签名"))
-				}
-			}
+			mainContent
 			.toolbar {
 				NBToolbarButton(role: .dismiss)
-				
 				NBToolbarButton(
 					.localized("重置"),
 					style: .text,
@@ -89,9 +58,10 @@ struct SigningView: View, SigningWithFlagsView {
 						self.appIcon = UIImage.fromFile(selectedFileURL)?.resizeToSquare()
 					}
 				)
+				.ignoresSafeArea()
 			}
 			.photosPicker(isPresented: $_isImagePickerPresenting, selection: $_selectedPhoto)
-			.onChange(of: _selectedPhoto) { _, newValue in
+			.onChange(of: _selectedPhoto) { newValue in
 				guard let newValue else { return }
 				
 				Task {
@@ -130,23 +100,60 @@ struct SigningView: View, SigningWithFlagsView {
 			}
 		}
     }
+
+    private var mainContent: some View {
+        Form {
+            _customizationOptions(for: app)
+            _cert()
+            _customizationProperties(for: app)
+            
+            Rectangle()
+                .foregroundStyle(.clear)
+                .frame(height: 30)
+                .listRowBackground(EmptyView())
+        }
+        .overlay {
+            VStack(spacing: 0) {
+                Spacer()
+                NBVariableBlurView()
+                    .frame(height: UIDevice.current.userInterfaceIdiom == .pad ? 60 : 80)
+                    .rotationEffect(.degrees(180))
+                    .overlay {
+                        Button {
+                            _start()
+                        } label: {
+                            Text(.localized("开始签名"))
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(15)
+                                .padding(.horizontal)
+                        }
+                        .buttonStyle(.plain)
+                        .offset(y: UIDevice.current.userInterfaceIdiom == .pad ? -20 : -40)
+                    }
+            }
+            .ignoresSafeArea(edges: .bottom)
+        }
+    }
 }
 
-// MARK: - Extension: View
 extension SigningView {
 	@ViewBuilder
 	private func _customizationOptions(for app: AppInfoPresentable) -> some View {
 		NBSection(.localized("自定义")) {
 			Menu {
-				Button(.localized("选择替代图标")) { _isAltPickerPresenting = true }
-				Button(.localized("从文件选择")) { _isFilePickerPresenting = true }
-				Button(.localized("从相册选择")) { _isImagePickerPresenting = true }
+				Button(.localized("选择替代图标"), systemImage: "app.dashed") { _isAltPickerPresenting = true }
+				Button(.localized("从文件选择"), systemImage: "folder") { _isFilePickerPresenting = true }
+				Button(.localized("从照片选择"), systemImage: "photo") { _isImagePickerPresenting = true }
 			} label: {
 				if let icon = appIcon {
 					Image(uiImage: icon)
-						.appIconStyle(size: 55)
+						.appIconStyle()
 				} else {
-					FRAppIconView(app: app, size: 55)
+					FRAppIconView(app: app, size: 56)
 				}
 			}
 			
@@ -185,6 +192,10 @@ extension SigningView {
 						cert: cert
 					)
 				}
+			} else {
+				Text(.localized("无证书"))
+					.font(.footnote)
+					.foregroundColor(.disabled())
 			}
 		}
 	}
@@ -200,27 +211,27 @@ extension SigningView {
 					)
 				}
 				
-				NavigationLink(String.localized("框架和插件")) {
+				NavigationLink(.localized("框架和插件")) {
 					SigningFrameworksView(
 						app: app,
 						options: $_temporaryOptions.optional()
 					)
 				}
 				#if NIGHTLY || DEBUG
-				NavigationLink(String.localized("权限")) {
+				NavigationLink(.localized("权限") + " (测试版)") {
 					SigningEntitlementsView(
 						bindingValue: $_temporaryOptions.appEntitlementsFile
 					)
 				}
 				#endif
-				NavigationLink(String.localized("插件")) {
+				NavigationLink(.localized("调整")) {
 					SigningTweaksView(
 						options: $_temporaryOptions
 					)
 				}
 			}
 			
-			NavigationLink(String.localized("属性")) {
+			NavigationLink(.localized("属性")) {
 				Form { SigningOptionsView(
 					options: $_temporaryOptions,
 					temporaryOptions: _optionsManager.options
@@ -242,10 +253,11 @@ extension SigningView {
 	}
 }
 
-// MARK: - Extension: View (import)
 extension SigningView {
 	private func _start() {
-		guard _selectedCert() != nil || _temporaryOptions.doAdhocSigning || _temporaryOptions.onlyModify else {
+		guard
+			_selectedCert() != nil || _temporaryOptions.signingOption != .default
+		else {
 			UIAlertController.showAlertWithOk(
 				title: .localized("无证书"),
 				message: .localized("请前往设置并导入有效证书"),
@@ -258,73 +270,33 @@ extension SigningView {
 		generator.impactOccurred()
 		_isSigning = true
 		
-		// Save the identifiers for later reference (use modified ones if available)
-		let originalUUID = app.uuid
-		let finalIdentifier = _temporaryOptions.appIdentifier ?? app.identifier
-		let finalName = _temporaryOptions.appName ?? app.name
-		
 		FR.signPackageFile(
 			app,
 			using: _temporaryOptions,
 			icon: appIcon,
 			certificate: _selectedCert()
-		) { [self] error in
+		) { error in
 			if let error {
 				let ok = UIAlertAction(title: .localized("关闭"), style: .cancel) { _ in
 					dismiss()
 				}
 				
 				UIAlertController.showAlert(
-					title: .localized("签名"),
+					title: "错误",
 					message: error.localizedDescription,
 					actions: [ok]
 				)
 			} else {
-				// Remove app after signed option thing
-				if _temporaryOptions.removeApp && !app.isSigned {
+				if
+					_temporaryOptions.post_deleteAppAfterSigned,
+					!app.isSigned
+				{
 					Storage.shared.deleteApp(for: app)
 				}
-				// Check if we need to install the app after signing
-				if signAndInstall {
-					// Find the signed app that matches our signed app
-					let context = Storage.shared.context
-					
-					// Try to find by UUID first (most reliable if it's preserved)
-					var signedApp: Signed? = nil
-					
-					if let uuid = originalUUID {
-						let fetchRequest = NSFetchRequest<Signed>(entityName: "Signed")
-						fetchRequest.predicate = NSPredicate(format: "uuid == %@", uuid)
-						signedApp = try? context.fetch(fetchRequest).first
-					}
-					
-					// If UUID search failed, try by the final (modified) app identifier and name
-					if signedApp == nil, let identifier = finalIdentifier, let name = finalName {
-						let fetchRequest = NSFetchRequest<Signed>(entityName: "Signed")
-						fetchRequest.predicate = NSPredicate(format: "identifier == %@ AND name == %@", identifier, name)
-						fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Signed.date, ascending: false)]
-						signedApp = try? context.fetch(fetchRequest).first
-					}
-					
-					// As a last resort, just get the most recently signed app
-					if signedApp == nil {
-						let fetchRequest = NSFetchRequest<Signed>(entityName: "Signed")
-						fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \Signed.date, ascending: false)]
-						fetchRequest.fetchLimit = 1
-						signedApp = try? context.fetch(fetchRequest).first
-					}
-					
-					// If we found a signed app, show the installation dialog
-					if let signedApp = signedApp {
-						let installApp = AnyApp(base: signedApp)
-						
-						// Use a slight delay to ensure the UI has time to update
-						DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-							NotificationCenter.default.post(
-								name: NSNotification.Name("feather.installApp"),
-								object: installApp
-							)
-						}
+				
+				if _temporaryOptions.post_installAppAfterSigned {
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+						NotificationCenter.default.post(name: Notification.Name("Feather.installApp"), object: nil)
 					}
 				}
 				dismiss()

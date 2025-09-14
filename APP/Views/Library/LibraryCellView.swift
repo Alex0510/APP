@@ -1,39 +1,46 @@
-//
-//  LibraryAppIconView.swift
-//  Feather
-//
-//  Created by samara on 11.04.2025.
-//
 
 import SwiftUI
 import NimbleExtensions
 import NimbleViews
 
-// MARK: - View
 struct LibraryCellView: View {
-	@AppStorage("Feather.libraryCellAppearance") private var _libraryCellAppearance: Int = 0
+	@Environment(\.horizontalSizeClass) private var horizontalSizeClass
+	@Environment(\.editMode) private var editMode
 
 	var certInfo: Date.ExpirationInfo? {
 		Storage.shared.getCertificate(from: app)?.expiration?.expirationInfo()
+	}
+	
+	var certRevoked: Bool {
+		Storage.shared.getCertificate(from: app)?.revoked == true
 	}
 	
 	var app: AppInfoPresentable
 	@Binding var selectedInfoAppPresenting: AnyApp?
 	@Binding var selectedSigningAppPresenting: AnyApp?
 	@Binding var selectedInstallAppPresenting: AnyApp?
-	@Binding var isEditMode: Bool
-	@Binding var selectedApps: Set<String>
-	@State private var _showActionSheet = false
-	@State private var _showDylibsView = false
+	@Binding var selectedAppUUIDs: Set<String>
 	
 	private var _isSelected: Bool {
-		selectedApps.contains(app.uuid ?? "")
+		guard let uuid = app.uuid else { return false }
+		return selectedAppUUIDs.contains(uuid)
 	}
 	
-	// MARK: Body
+	private func _toggleSelection() {
+		guard let uuid = app.uuid else { return }
+		if selectedAppUUIDs.contains(uuid) {
+			selectedAppUUIDs.remove(uuid)
+		} else {
+			selectedAppUUIDs.insert(uuid)
+		}
+	}
+	
 	var body: some View {
-		HStack(spacing: 9) {
-			if isEditMode {
+		let isRegular = horizontalSizeClass != .compact
+		let isEditing = editMode?.wrappedValue == .active
+		
+		HStack(spacing: 18) {
+			if isEditing {
 				Button {
 					_toggleSelection()
 				} label: {
@@ -52,55 +59,30 @@ struct LibraryCellView: View {
 				linelimit: 0
 			)
 			
-			Spacer()
-			
-			if !isEditMode {
-				if app.isSigned, let certInfo = certInfo {
-					HStack(spacing: 4) {
-						Image(systemName: "clock")
-							.font(.system(size: 11))
-	                    Text(certInfo.formatted)
-							.font(.system(size: 12))
-							.fontWeight(.semibold)
-					}
-					.foregroundColor(.white)
-					.padding(.horizontal, 10)
-					.padding(.vertical, 5)
-					.background(certInfo.color)
-					.clipShape(Capsule())
-					.padding(.trailing, 4)
-				}
-				
-				Image(systemName: "chevron.right")
-					.foregroundColor(.secondary)
-					.font(.footnote)
+			if !isEditing {
+				_buttonActions(for: app)
 			}
 		}
-		.scaleEffect(_isSelected ? 0.98 : 1.0)
+		.padding(isRegular ? 12 : 0)
+		.background(
+			isRegular
+			? RoundedRectangle(cornerRadius: 18, style: .continuous)
+				.fill(_isSelected && isEditing ? Color.accentColor.opacity(0.1) : Color(.quaternarySystemFill))
+			: nil
+		)
 		.contentShape(Rectangle())
 		.onTapGesture {
-			if isEditMode {
+			if isEditing {
 				_toggleSelection()
-			} else {
-				_showActionSheet = true
-			}
-		}
-		.confirmationDialog(
-			app.name ?? .localized("未知"),
-			isPresented: $_showActionSheet,
-			titleVisibility: .visible
-		) {
-			if !isEditMode {
-				_actionSheetButtons(for: app)
 			}
 		}
 		.swipeActions {
-			if !isEditMode {
+			if !isEditing {
 				_actions(for: app)
 			}
 		}
 		.contextMenu {
-			if !isEditMode {
+			if !isEditing {
 				_contextActions(for: app)
 				Divider()
 				_contextActionsExtra(for: app)
@@ -108,41 +90,18 @@ struct LibraryCellView: View {
 				_actions(for: app)
 			}
 		}
-		.sheet(isPresented: $_showDylibsView) {
-			if let appDir = Storage.shared.getAppDirectory(for: app) {
-				DylibsView(appPath: appDir, appName: app.name ?? .localized("框架和动态库"))
-			}
-		}
 	}
 	
 	private var _desc: String {
-		if
-			let version = app.version,
-			let id = app.identifier
-		{
+		if let version = app.version, let id = app.identifier {
 			return "\(version) • \(id)"
 		} else {
 			return .localized("未知")
 		}
 	}
-	
-	private func _toggleSelection() {
-		guard let uuid = app.uuid else { return }
-		
-		let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-		impactFeedback.impactOccurred()
-		
-		withAnimation(.spring(response: 0.4, dampingFraction: 0.8, blendDuration: 0)) {
-			if _isSelected {
-				selectedApps.remove(uuid)
-			} else {
-				selectedApps.insert(uuid)
-			}
-		}
-	}
 }
 
-// MARK: - Extension: View
+
 extension LibraryCellView {
 	@ViewBuilder
 	private func _actions(for app: AppInfoPresentable) -> some View {
@@ -179,53 +138,9 @@ extension LibraryCellView {
 			Button(.localized("安装"), systemImage: "square.and.arrow.down") {
 				selectedInstallAppPresenting = AnyApp(base: app)
 			}
-		}
-	}
-	
-	@ViewBuilder
-	private func _actionSheetButtons(for app: AppInfoPresentable) -> some View {
-		if app.isSigned {
-			Button(.localized("安装")) {
-				selectedInstallAppPresenting = AnyApp(base: app)
-			}
-			
-			if let id = app.identifier {
-				Button(.localized("打开")) {
-					UIApplication.openApp(with: id)
-				}
-			}
-			
-			Button(.localized("重新签名")) {
+			Button(.localized("签名"), systemImage: "signature") {
 				selectedSigningAppPresenting = AnyApp(base: app)
 			}
-			
-			Button(.localized("导出")) {
-				selectedInstallAppPresenting = AnyApp(base: app, archive: true)
-			}
-		} else {
-			Button(.localized("签名并安装")) {
-				selectedSigningAppPresenting = AnyApp(base: app, signAndInstall: true)
-			}
-			
-			Button(.localized("签名")) {
-				selectedSigningAppPresenting = AnyApp(base: app)
-			}
-			
-			Button(.localized("导出")) {
-				selectedInstallAppPresenting = AnyApp(base: app, archive: true)
-			}
-		}
-		
-		Button(.localized("显示动态库")) {
-			_showDylibsView = true
-		}
-		
-		Button(.localized("获取信息")) {
-			selectedInfoAppPresenting = AnyApp(base: app)
-		}
-		
-		Button(.localized("删除"), role: .destructive) {
-			Storage.shared.deleteApp(for: app)
 		}
 	}
 	
@@ -238,7 +153,7 @@ extension LibraryCellView {
 				} label: {
 					FRExpirationPillView(
 						title: .localized("安装"),
-						showOverlay: _libraryCellAppearance == 0,
+						revoked: certRevoked,
 						expiration: certInfo
 					)
 				}
@@ -248,7 +163,7 @@ extension LibraryCellView {
 				} label: {
 					FRExpirationPillView(
 						title: .localized("签名"),
-						showOverlay: true,
+						revoked: false,
 						expiration: nil
 					)
 				}

@@ -1,14 +1,7 @@
-//
-//  SigningAppAlternativeIconView.swift
-//  Feather
-//
-//  Created by samara on 18.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct SigningAlternativeIconView: View {
 	@Environment(\.dismiss) var dismiss
 	
@@ -18,17 +11,24 @@ struct SigningAlternativeIconView: View {
 	@Binding var appIcon: UIImage?
 	@Binding var isModifing: Bool
 	
-	// MARK: Body
 	var body: some View {
 		NBNavigationView(.localized("替代图标"), displayMode: .inline) {
-			List(_alternateIcons, id: \.name) { icon in
-				Button {
-					appIcon = _iconUrl(icon.path)
-					dismiss()
-				} label: {
-					_icon(icon)
+			List {
+				if !_alternateIcons.isEmpty {
+					ForEach(_alternateIcons, id: \.name) { icon in
+						Button {
+							appIcon = _iconUrl(icon.path)
+							dismiss()
+						} label: {
+							_icon(icon)
+						}
+						.disabled(!isModifing)
+					}
+				} else {
+					Text(.localized("未找到图标。"))
+						.font(.footnote)
+						.foregroundColor(.disabled())
 				}
-				.disabled(!isModifing)
 			}
 			.onAppear(perform: _loadAlternateIcons)
 			.toolbar {
@@ -40,7 +40,6 @@ struct SigningAlternativeIconView: View {
 	}
 }
 
-// MARK: - Extension: View
 extension SigningAlternativeIconView {
 	@ViewBuilder
 	private func _icon(_ icon: (name: String, path: String)) -> some View {

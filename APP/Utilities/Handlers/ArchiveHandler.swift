@@ -1,14 +1,8 @@
-//
-//  ArchiveHandler.swift
-//  Feather
-//
-//  Created by samara on 22.04.2025.
-//
-
 import Foundation
 import UIKit.UIApplication
-import ZipArchive
-import SwiftUICore
+import ZIPFoundation
+import SwiftUI
+import IDeviceSwift
 
 final class ArchiveHandler: NSObject {
 	@ObservedObject var viewModel: InstallerStatusViewModel
@@ -52,14 +46,16 @@ final class ArchiveHandler: NSObject {
 			let zipUrl = self._uniqueWorkDir.appendingPathComponent("Archive.zip")
 			let ipaUrl = self._uniqueWorkDir.appendingPathComponent("Archive.ipa")
 			
-			// 使用ZipArchive创建ZIP文件
-			let success = SSZipArchive.createZipFile(atPath: zipUrl.path, withContentsOfDirectory: payloadUrl.path)
-			if !success {
-				throw ArchiveError.compressionFailed
-			}
+			let progress = Progress(totalUnitCount: 100)
+			try self._fileManager.zipItem(
+				at: payloadUrl,
+				to: zipUrl,
+				compressionMethod: .deflate,
+				progress: progress
+			)
 			
 			Task { @MainActor in
-				self.viewModel.packageProgress = 1.0
+				self.viewModel.packageProgress = progress.fractionCompleted
 			}
 			
 			try FileManager.default.moveItem(at: zipUrl, to: ipaUrl)
@@ -87,16 +83,5 @@ final class ArchiveHandler: NSObject {
 	
 	static func getCompressionLevel() -> Int {
 		UserDefaults.standard.integer(forKey: "Feather.compressionLevel")
-	}
-}
-
-enum ArchiveError: Error, LocalizedError {
-	case compressionFailed
-	
-	var errorDescription: String? {
-		switch self {
-		case .compressionFailed:
-			return "压缩归档失败"
-		}
 	}
 }

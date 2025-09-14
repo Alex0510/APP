@@ -40,7 +40,7 @@ extension ScreenshotPreviewView {
     @ViewBuilder
     private func _headerView() -> some View {
         HStack {
-            Button(.localized("关闭"), role: .cancel) { dismiss() }
+            Button(.localized("Close"), role: .cancel) { dismiss() }
             
             Spacer()
             
@@ -59,20 +59,21 @@ extension ScreenshotPreviewView {
     @ViewBuilder
     private func _imageScrollView() -> some View {
         TabView(selection: $currentIndex) {
-            ForEach(screenshotURLs.indices, id: \.self) { index in
-                LazyImage(source: screenshotURLs[index]) { state in
-                    if let image = state.image {
-                        image
-                            .aspectRatio(contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                                    .strokeBorder(.gray.opacity(0.3), lineWidth: 1)
-                            }
-                    }
-                }
-                .tag(index)
-                .padding(.horizontal)
+              ForEach(Array(screenshotURLs.enumerated()), id: \.element) { index, url in
+                 LazyImage(url: url) {
+                     if let image = $0.image {
+                         image
+                             .resizable()
+                             .aspectRatio(contentMode: .fit)
+                             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                             .overlay {
+                                 RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                     .strokeBorder(.gray.opacity(0.3), lineWidth: 1)
+                             }
+                     }
+                 }
+                  .tag(index)
+                  .padding(.horizontal)
             }
         }
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))

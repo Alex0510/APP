@@ -1,18 +1,10 @@
-//
-//  CertificatesInfoEntitlementView.swift
-//  Feather
-//
-//  Created by samara on 27.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
 
-// MARK: - View
 struct CertificatesInfoEntitlementView: View {
 	let entitlements: [String: AnyCodable]
 	
-	// MARK: Body
 	var body: some View {
 		NBList(.localized("权限")) {
 			ForEach(entitlements.keys.sorted(), id: \.self) { key in

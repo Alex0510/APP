@@ -1,69 +1,74 @@
-//
-//  DylibHandler.swift
-//  feather
-//
-//  Created by samara on 8/17/24.
-//  Copyright (c) 2024 Samara M (khcrysalis)
-//
-
 import Foundation
 import ZsignSwift
+import OSLog
 
 class TweakHandler {
 	private let _fileManager = FileManager.default
 	private var _urlsToInject: [URL] = []
 	private var _directoriesToCheck: [URL] = []
 
-	private var _urls: [URL]
 	private let _app: URL
+	private var _options: Options
+	private var _urls: [URL]
 
-	init(app: URL, with urls: [URL]) {
+	init(
+		app: URL,
+		options: Options = OptionsManager.shared.options
+	) {
 		self._app = app
-		self._urls = urls
-		
+		self._options = options
+		self._urls = options.injectionFiles
+	}
+	
+	private func _checkEllekit() async throws {
+		let frameworksPath = _app.appendingPathComponent("Frameworks").appendingPathComponent("CydiaSubstrate.framework")
+
+		func addEllekit() async throws {
+			if let ellekitURL = Bundle.main.url(forResource: "ellekit", withExtension: "deb") {
+				self._urls.insert(ellekitURL, at: 0)
+			} else {
+				Logger.misc.info("在应用包中未找到ellekit.deb")
+			}
+			
+			try _fileManager.createDirectoryIfNeeded(at: _app.appendingPathComponent("Frameworks"))
+		}
+		if _fileManager.fileExists(atPath: frameworksPath.path) {
+			if _options.experiment_replaceSubstrateWithEllekit {
+				Logger.misc.info("尝试用ElleKit替换Substrate")
+				try _fileManager.removeFileIfNeeded(at: frameworksPath)
+				try await addEllekit()
+			} else {
+				return
+			}
+		} else {
+			guard !_urls.isEmpty else { return }
+			try await addEllekit()
+		}
 	}
 
 	public func getInputFiles() async throws {
-		print("调试: getInputFiles 被调用，URL数量: \(_urls.count)")
-		print("调试: 应用路径: \(_app.path)")
+		Logger.misc.info("尝试注入")
 		
-		// Create Frameworks directory if it doesn't exist
-		let frameworksDir = _app.appendingPathComponent("Frameworks")
-		try _fileManager.createDirectoryIfNeeded(at: frameworksDir)
-		
-		
-		// If we still have no URLs, just return - we've at least tried to replace the framework
-		if _urls.isEmpty {
-			print("调试: 没有URL需要处理，提前返回")
-			return
+		if !_options.experiment_replaceSubstrateWithEllekit {
+			guard !_urls.isEmpty else { return }
 		}
+
+		try await _checkEllekit()
 
 		let baseTmpDir = _fileManager.temporaryDirectory.appendingPathComponent("FeatherTweak_\(UUID().uuidString)")
 		try _fileManager.createDirectoryIfNeeded(at: baseTmpDir)
 		
-		// check for appropriate files, if theres debs
-		// it will extract then add a url, if theres no url, i.e.
-		// you haven't added a deb, it will skip
 		for url in _urls {
 			switch url.pathExtension.lowercased() {
 			case "dylib":
 				try await _handleDylib(at: url)
 			case "deb":
 				try await _handleDeb(at: url, baseTmpDir: baseTmpDir)
-			case "framework":
-				let destinationURL = _app.appendingPathComponent("Frameworks").appendingPathComponent(url.lastPathComponent)
-				
-				// Copy instead of move to preserve the original framework file
-				if !_fileManager.fileExists(atPath: destinationURL.path) {
-					try _fileManager.copyItem(at: url, to: destinationURL)
-				}
-				try await _handleDylib(framework: destinationURL)
 			default:
-				print("不支持的文件类型: \(url.lastPathComponent)，跳过。")
+				Logger.misc.warning("不支持的文件类型: \(url.lastPathComponent)，跳过。")
 			}
 		}
 		
-		// check contents of data.tar's extracted from debs
 		if !_directoriesToCheck.isEmpty {
 			try await _handleDirectories(at: _directoriesToCheck)
 			if !_urlsToInject.isEmpty {
@@ -72,7 +77,6 @@ class TweakHandler {
 		}
 	}
 	
-	// finally, handle extracted contents
 	private func _handleExtractedDirectoryContents(at urls: [URL]) async throws {
 		for url in urls {
 			switch url.pathExtension.lowercased() {
@@ -80,134 +84,82 @@ class TweakHandler {
 				try await _handleDylib(at: url)
 			case "framework":
 				let destinationURL = _app.appendingPathComponent("Frameworks").appendingPathComponent(url.lastPathComponent)
-				
-				// Use copyItem instead of moveFileIfNeeded to preserve the original file
-				if !_fileManager.fileExists(atPath: destinationURL.path) {
-					try _fileManager.copyItem(at: url, to: destinationURL)
-				}
+				try _fileManager.moveFileIfNeeded(from: url, to: destinationURL)
 				try await _handleDylib(framework: destinationURL)
 			case "bundle":
 				let destinationURL = _app.appendingPathComponent(url.lastPathComponent)
-				
-				// Use copyItem instead of moveFileIfNeeded to preserve the original file
-				if !_fileManager.fileExists(atPath: destinationURL.path) {
-					try _fileManager.copyItem(at: url, to: destinationURL)
-				}
+				try _fileManager.moveFileIfNeeded(from: url, to: destinationURL)
 			default:
-				print("不支持的文件类型: \(url.lastPathComponent)，跳过。")
+				Logger.misc.warning("不支持的文件类型: \(url.lastPathComponent)，跳过。")
 			}
 		}
 	}
 	
-	// Inject imported dylib file
 	private func _handleDylib(at url: URL) async throws {
-		let destinationURL = _app.appendingPathComponent("Frameworks").appendingPathComponent(url.lastPathComponent)
+		var destinationURL = _app
+		var injectFolder = _options.injectFolder
 		
-		// Use copyItem instead of moveFileIfNeeded to preserve the original file
-		if !_fileManager.fileExists(atPath: destinationURL.path) {
-			// Create a copy using file data to avoid permission issues
-			if url.startAccessingSecurityScopedResource() {
-				defer { url.stopAccessingSecurityScopedResource() }
-				
-				// For dylibs, which are single files, use data reading
-				do {
-					let fileData = try Data(contentsOf: url)
-					try fileData.write(to: destinationURL)
-				} catch {
-					// Fallback to direct copy if reading fails
-					try _fileManager.copyItem(at: url, to: destinationURL)
-				}
-			} else {
-				// Standard copy for non-secured files
-				try _fileManager.copyItem(at: url, to: destinationURL)
-			}
+		if _options.injectFolder == .frameworks {
+			destinationURL = destinationURL.appendingPathComponent("Frameworks")
 		}
+		
+		if
+			_options.injectPath == .rpath && _options.injectFolder == .frameworks
+		{
+			injectFolder = .root
+		}
+		
+		destinationURL = destinationURL.appendingPathComponent(url.lastPathComponent)
+		
+		
+		try _fileManager.moveFileIfNeeded(from: url, to: destinationURL)
 		
 		guard let appexe = Bundle(url: _app)?.executableURL else {
 			return
 		}
 		
-		// change paths because some tweaks hardlink, which is not ideal.
-		// this is not a good solution, at most this would work for basic tweaks
-		// we recommend you use newer theos to compile, and make sure it works
-		// using the ellekit framework
 		_ = Zsign.changeDylibPath(
 			appExecutable: destinationURL.path,
 			for: "/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
 			with: "@rpath/CydiaSubstrate.framework/CydiaSubstrate"
 		)
-		// inject if there's a valid app main executable
 		_ = Zsign.injectDyLib(
 			appExecutable: appexe.path,
-			with: "@executable_path/Frameworks/\(destinationURL.lastPathComponent)"
+			with: "\(_options.injectPath.rawValue)\(injectFolder.rawValue)\(destinationURL.lastPathComponent)"
 		)
 	}
 	
-	// Inject imported framework dir
 	private func _handleDylib(framework: URL) async throws {
 		guard
 			let fexe = Bundle(url: framework)?.executableURL,
 			let appexe = Bundle(url: _app)?.executableURL
 		else {
-			print("错误: 在框架或应用包中找不到可执行文件")
 			return
 		}
 		
-		print("处理框架: \(framework.lastPathComponent)")
-		print("框架可执行文件: \(fexe.lastPathComponent)")
-		print("应用可执行文件: \(appexe.lastPathComponent)")
-		
-		// Special handling for CydiaSubstrate.framework
-		if framework.lastPathComponent == "CydiaSubstrate.framework" {
-			print("CydiaSubstrate.framework 的特殊处理")
-			
-			// For CydiaSubstrate.framework, we don't need to modify its paths
-			// since we've already bundled it correctly
-			
-			// Just inject it into the app executable
-			let injectResult = Zsign.injectDyLib(
-				appExecutable: appexe.path,
-				with: "@rpath/CydiaSubstrate.framework/CydiaSubstrate"
-			)
-			print("CydiaSubstrate.framework 注入结果: \(injectResult)")
-			
-			return
-		}
-		
-		// For other frameworks, continue with the normal process
-		
-		// change paths because some tweaks hardlink, which is not ideal.
-		// this is not a good solution, at most this would work for basic tweaks
-		// I recommend you use newer theos to compile, and make sure it works
-		// using the ellekit framework
-		let pathChangeResult = Zsign.changeDylibPath(
+		_ = Zsign.changeDylibPath(
 			appExecutable: fexe.path,
 			for: "/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
 			with: "@rpath/CydiaSubstrate.framework/CydiaSubstrate"
 		)
-		print("\(fexe.lastPathComponent) 路径更改结果: \(pathChangeResult)")
-		
-		// inject if there's a valid app main executable
-		let injectResult = Zsign.injectDyLib(
+		_ = Zsign.injectDyLib(
 			appExecutable: appexe.path,
 			with: "@executable_path/Frameworks/\(framework.lastPathComponent)/\(fexe.lastPathComponent)"
 		)
-		print("\(framework.lastPathComponent) 注入结果: \(injectResult)")
 	}
 	
-	// Extracy imported deb file
 	private func _handleDeb(at url: URL, baseTmpDir: URL) async throws {
 		let uniqueSubDir = baseTmpDir.appendingPathComponent(UUID().uuidString)
 		try _fileManager.createDirectoryIfNeeded(at: uniqueSubDir)
-		
-		// I don't particularly like this code
-		// but it somehow works well enough,
-		// do note large lzma's are slow as hell
 		
 		let handler = AR(with: url)
 		let arFiles = try await handler.extract()
 		
 		for arFile in arFiles {
+			if arFile.name == "debian-binary" {
+				continue
+			}
+			
 			let outputPath = uniqueSubDir.appendingPathComponent(arFile.name)
 			try arFile.content.write(to: outputPath)
 			
@@ -220,7 +172,6 @@ class TweakHandler {
 		}
 	}
 	
-	// Read extracted deb file, locate all neccessary contents to copy over to the .app
 	private func _handleDirectories(at urls: [URL]) async throws {
 		enum DirectoryType: String {
 			case frameworks = "Frameworks"
@@ -240,7 +191,7 @@ class TweakHandler {
 					let directoryURL = baseURL.appendingPathComponent(path)
 					
 					guard _fileManager.fileExists(atPath: directoryURL.path) else {
-						print("目录不存在: \(directoryURL.path)。跳过。")
+						Logger.misc.warning("目录不存在: \(directoryURL.path)。跳过。")
 						continue
 					}
 					
@@ -262,7 +213,6 @@ class TweakHandler {
 	}
 }
 
-// MARK: - Find correct files in debs
 extension TweakHandler {
 	private func _searchForBundles(in directory: URL) async throws {
 		let fileManager = FileManager.default

@@ -1,16 +1,8 @@
-//
-//  Storage+Sources.swift
-//  Feather
-//
-//  Created by samara on 12.04.2025.
-//
-
 import CoreData
 import AltSourceKit
-
-// MARK: - Class extension: Sources
+import OSLog
+import UIKit.UIImpactFeedbackGenerator
 extension Storage {
-	/// Retrieve sources in an array, we don't normally need this in swiftUI but we have it for the copy sources action
 	func getSources() -> [AltSource] {
 		let request: NSFetchRequest<AltSource> = AltSource.fetchRequest()
 		return (try? context.fetch(request)) ?? []
@@ -18,18 +10,19 @@ extension Storage {
 	
 	func addSource(
 		_ url: URL,
-		name: String? = "Unknown",
+		name: String? = "未知",
 		identifier: String,
 		iconURL: URL? = nil,
 		deferSave: Bool = false,
-		isBuiltIn: Bool = false,
 		completion: @escaping (Error?) -> Void
 	) {
 		if sourceExists(identifier) {
 			completion(nil)
-			print("ignoring \(identifier)")
+			Logger.misc.debug("忽略 \(identifier)")
 			return
 		}
+		
+		let generator = UIImpactFeedbackGenerator(style: .light)
 		
 		let new = AltSource(context: context)
 		new.name = name
@@ -37,11 +30,11 @@ extension Storage {
 		new.identifier = identifier
 		new.sourceURL = url
 		new.iconURL = iconURL
-		new.setValue(isBuiltIn, forKey: "isBuiltIn")
 		
 		do {
 			if !deferSave {
 				try context.save()
+				generator.impactOccurred()
 			}
 			completion(nil)
 		} catch {
@@ -54,7 +47,6 @@ extension Storage {
 		repository: ASRepository,
 		id: String = "",
 		deferSave: Bool = false,
-		isBuiltIn: Bool = false,
 		completion: @escaping (Error?) -> Void
 	) {
 		addSource(
@@ -65,7 +57,6 @@ extension Storage {
 						: (repository.id ?? url.absoluteString),
 			iconURL: repository.currentIconURL,
 			deferSave: deferSave,
-			isBuiltIn: isBuiltIn,
 			completion: completion
 		)
 	}
@@ -74,6 +65,8 @@ extension Storage {
 		repos: [URL: ASRepository],
 		completion: @escaping (Error?) -> Void
 	) {
+		let generator = UIImpactFeedbackGenerator(style: .light)
+		
 		for (url, repo) in repos {
 			addSource(
 				url,
@@ -87,28 +80,9 @@ extension Storage {
 			)
 		}
 		
-        saveContext()
-        completion(nil)
-	}
-
-
-	func addBuiltInSources() {
-		let builtInSourceURLs = [
-            "https://raw.githubusercontent.com/Nyasami/Ksign/refs/heads/main/repo.json",
-            "https://ipa.io.vn/repo",
-            "https://community-apps.sidestore.io/sidecommunity.json",
-            "https://xitrix.github.io/iTorrent/AltStore.json",
-			"https://repository.apptesters.org",
-            "https://raw.githubusercontent.com/LiveContainer/LiveContainer/refs/heads/main/apps.json",
-			"https://ipa.cypwn.xyz/cypwn.json",
-			"https://raw.githubusercontent.com/whoeevee/EeveeSpotify/swift/repo.json",
-			"https://repo.ethsign.fyi",
-            "https://alt.crystall1ne.dev"
-		]
-		
-		for urlString in builtInSourceURLs {
-			FR.handleSource(urlString) { }
-		}
+		saveContext()
+		generator.impactOccurred()
+		completion(nil)
 	}
 
 	func deleteSource(for source: AltSource) {
@@ -124,7 +98,7 @@ extension Storage {
 			let count = try context.count(for: fetchRequest)
 			return count > 0
 		} catch {
-			print("Error checking if repository exists: \(error)")
+			Logger.misc.error("检查仓库是否存在时出错: \(error)")
 			return false
 		}
 	}

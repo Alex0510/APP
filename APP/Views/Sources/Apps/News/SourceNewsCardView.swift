@@ -8,52 +8,60 @@
 import SwiftUI
 import AltSourceKit
 import NukeUI
+import NimbleViews
 
+// MARK: - View
 struct SourceNewsCardView: View {
 	var new: ASRepository.News
 	
+	// MARK: Body
 	var body: some View {
-		ZStack(alignment: .bottomLeading) {
-			let placeholderView = {
-				Color.gray.opacity(0.2)
-			}()
-			
-			if let iconURL = new.imageURL {
-				LazyImage(source: iconURL) { state in
-					if let image = state.image {
-						image
-							.frame(width: 250, height: 150)
-							.clipped()
-					} else {
-						placeholderView
-					}
-				}
-			} else {
-				placeholderView
+		VStack(alignment: .leading, spacing: 12) {
+			ZStack(alignment: .bottomLeading) {
+                LazyImage(url: new.imageURL) {
+                    if let image = $0.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 180)
+                            .clipped()
+                            .allowsHitTesting(false)
+                    } else {
+                        Color(.secondarySystemBackground)
+                            .frame(height: 180)
+                    }
+                }
+				
+				LinearGradient(
+					gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+					startPoint: .bottom,
+					endPoint: .top
+				)
+				.frame(height: 70)
+				.frame(maxWidth: .infinity, alignment: .bottom)
+				.overlay(
+					NBVariableBlurView()
+						.rotationEffect(.degrees(180))
+						.frame(height: 50)
+						.frame(maxHeight: .infinity, alignment: .bottom)
+				)
+				.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+				
+				Text(new.title)
+					.font(.headline)
+					.foregroundColor(.white)
+					.lineLimit(2)
+					.multilineTextAlignment(.leading)
+					.padding()
 			}
-			
-			LinearGradient(
-				gradient: Gradient(colors: [.black.opacity(0.6), .clear]),
-				startPoint: .bottom,
-				endPoint: .top
-			)
-			.frame(height: 70)
-			.frame(maxWidth: .infinity, alignment: .bottom)
+			.frame(width: 250, height: 150)
+			.background(new.tintColor ?? Color.secondary)
 			.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-			
-			Text(new.title)
-				.font(.headline)
-				.foregroundColor(.white)
-				.lineLimit(2)
-				.padding()
+			.overlay(
+				RoundedRectangle(cornerRadius: 12, style: .continuous)
+					.strokeBorder(Color.gray.opacity(0.2), lineWidth: 1)
+			)
 		}
-		.frame(width: 250, height: 150)
-		.background(new.tintColor ?? Color.secondary)
-		.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-		.overlay(
-			RoundedRectangle(cornerRadius: 12, style: .continuous)
-				.strokeBorder(Color.gray.opacity(0.2), lineWidth: 1)
-		)
 	}
 }
 

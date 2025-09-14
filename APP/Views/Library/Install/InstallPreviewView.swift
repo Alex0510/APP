@@ -1,86 +1,59 @@
-//
-//  InstallPreview.swift
-//  Feather
-//
-//  Created by samara on 22.04.2025.
-//
 
 import SwiftUI
 import NimbleViews
+import IDeviceSwift
 
-// MARK: - View
 struct InstallPreviewView: View {
 	@Environment(\.dismiss) var dismiss
-	
+
 	@AppStorage("Feather.useShareSheetForArchiving") private var _useShareSheet: Bool = false
-	
-	#if SERVER
+	@AppStorage("Feather.installationMethod") private var _installationMethod: Int = 0
 	@AppStorage("Feather.serverMethod") private var _serverMethod: Int = 0
 	@State private var _isWebviewPresenting = false
-	@State private var installer: ServerInstaller?
-	#endif
-
+	
 	var app: AppInfoPresentable
 	@StateObject var viewModel: InstallerStatusViewModel
+	@StateObject var installer: ServerInstaller
+	
 	@State var isSharing: Bool
-
+	
 	init(app: AppInfoPresentable, isSharing: Bool = false) {
 		self.app = app
 		self.isSharing = isSharing
-		let viewModel = InstallerStatusViewModel()
+		let viewModel = InstallerStatusViewModel(isIdevice: UserDefaults.standard.integer(forKey: "Feather.installationMethod") == 1)
 		self._viewModel = StateObject(wrappedValue: viewModel)
+		self._installer = StateObject(wrappedValue: try! ServerInstaller(app: app, viewModel: viewModel))
 	}
 	
-	// MARK: Body
 	var body: some View {
 		ZStack {
 			InstallProgressView(app: app, viewModel: viewModel)
 			_status()
+			_button()
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 		.background(Color(UIColor.secondarySystemBackground))
 		.cornerRadius(12)
 		.padding()
-		#if SERVER
 		.sheet(isPresented: $_isWebviewPresenting) {
-			if let installer = installer {
-				SafariRepresentableView(url: installer.pageEndpoint).ignoresSafeArea()
-			}
+			SafariRepresentableView(url: installer.pageEndpoint).ignoresSafeArea()
 		}
 		.onReceive(viewModel.$status) { newStatus in
-			#if DEBUG
-			print(newStatus)
-			#endif
-			if case .ready = newStatus {
-				if _serverMethod == 0 {
-					if let installer = installer {
+			if _installationMethod == 0 {
+				if case .ready = newStatus {
+					if _serverMethod == 0 {
 						UIApplication.shared.open(URL(string: installer.iTunesLink)!)
+					} else if _serverMethod == 1 {
+						_isWebviewPresenting = true
 					}
-				} else if _serverMethod == 1 {
-					_isWebviewPresenting = true
+				}
+				
+				if case .sendingPayload = newStatus, _serverMethod == 1 {
+					_isWebviewPresenting = false
 				}
 			}
-			
-			if case .sendingPayload = newStatus, _serverMethod == 1 {
-				_isWebviewPresenting = false
-			}
 		}
-		#endif
-		.onAppear {
-			#if SERVER
-			Task {
-				do {
-					let serverInstaller = try await ServerInstaller(app: app, viewModel: viewModel)
-					await MainActor.run {
-						self.installer = serverInstaller
-					}
-				} catch {
-					print("Failed to initialize ServerInstaller: \(error)")
-				}
-			}
-			#endif
-			_install()
-		}
+		.onAppear(perform: _install)
 	}
 	
 	@ViewBuilder
@@ -92,7 +65,32 @@ struct InstallPreviewView: View {
 			.animation(.smooth, value: viewModel.statusImage)
 	}
 	
+	@ViewBuilder
+	private func _button() -> some View {
+		ZStack {
+			if viewModel.isCompleted {
+				Button {
+					UIApplication.openApp(with: app.identifier ?? "")
+				} label: {
+					NBButton("打开", systemImage: "", style: .text)
+				}
+				.padding()
+				.transition(.opacity)
+			}
+		}
+		.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+		.animation(.easeInOut(duration: 0.3), value: viewModel.isCompleted)
+	}
+	
 	private func _install() {
+		guard isSharing || app.identifier != Bundle.main.bundleIdentifier! || _installationMethod == 1 else {
+			UIAlertController.showAlertWithOk(
+				title: .localized("安装"),
+				message: .localized("无法覆盖安装 '%@'，有问题,联系pxx917144686。", arguments: Bundle.main.name ?? "未知")
+			)
+			return
+		}
+		
 		Task.detached {
 			do {
 				let handler = await ArchiveHandler(app: app, viewModel: viewModel)
@@ -101,17 +99,15 @@ struct InstallPreviewView: View {
 				let packageUrl = try await handler.archive()
 				
 				if await !isSharing {
-					#if SERVER
-					await MainActor.run {
-						if let installer = installer {
+					if await _installationMethod == 0 {
+						await MainActor.run {
 							installer.packageUrl = packageUrl
+							viewModel.status = .ready
 						}
-						viewModel.status = .ready
+					} else if await _installationMethod == 1 {
+						let handler = await InstallationProxy(viewModel: viewModel)
+						try await handler.install(at: packageUrl, suspend: app.identifier == Bundle.main.bundleIdentifier!)
 					}
-					#elseif IDEVICE
-					let handler = await ConduitInstaller(viewModel: viewModel)
-					try await handler.install(at: packageUrl)
-					#endif
 				} else {
 					let package = try await handler.moveToArchive(packageUrl, shouldOpen: !_useShareSheet)
 					
@@ -132,11 +128,9 @@ struct InstallPreviewView: View {
 				await MainActor.run {
 					UIAlertController.showAlertWithOk(
 						title: .localized("安装"),
-						message: error.localizedDescription,
+						message: String(describing: error),
 						action: {
-							#if IDEVICE
 							HeartbeatManager.shared.start(true)
-							#endif
 							dismiss()
 						}
 					)

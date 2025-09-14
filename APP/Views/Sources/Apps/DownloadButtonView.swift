@@ -37,14 +37,14 @@ struct DownloadButtonView: View {
 						downloadManager.cancelDownload(currentDownload)
 					}
 				}
-				.compatTransition()
+				.transition(.opacity)
 			} else {
 				Button {
 					if let url = app.currentDownloadUrl {
 						_ = downloadManager.startDownload(from: url, id: app.currentUniqueId)
 					}
 				} label: {
-					Text(.localized("获取"))
+					Text(.localized("Get"))
 						.lineLimit(0)
 						.font(.headline.bold())
 						.foregroundStyle(Color.accentColor)
@@ -54,12 +54,12 @@ struct DownloadButtonView: View {
 						.clipShape(Capsule())
 				}
 				.buttonStyle(.borderless)
-				.compatTransition()
+				.transition(.opacity)
 			}
 		}
 		.onAppear(perform: setupObserver)
 		.onDisappear { cancellable?.cancel() }
-		.onChange(of: downloadManager.downloads.description) { _, _ in
+		.onChange(of: downloadManager.downloads.description) { _ in
 			setupObserver()
 		}
 		.animation(.easeInOut(duration: 0.3), value: downloadManager.getDownload(by: app.currentUniqueId) != nil)

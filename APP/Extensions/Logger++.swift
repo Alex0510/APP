@@ -1,10 +1,3 @@
-//
-//  Logger++.swift
-//  Feather
-//
-//  Created by samara on 24.05.2025.
-//
-
 import OSLog
 
 extension Logger {

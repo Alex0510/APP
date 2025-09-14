@@ -66,7 +66,7 @@ struct AddAccountView: View {
                                 Text("Apple ID")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                    .foregroundColor(themeManager.primaryTextColor)
+                                    .foregroundColor(.primary)
                                 
                                 Text("登录您的账户")
                                     .font(.subheadline)
@@ -82,7 +82,7 @@ struct AddAccountView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Apple ID")
                                     .font(.headline)
-                                    .foregroundColor(themeManager.primaryTextColor)
+                                    .foregroundColor(.primary)
                                 TextField("输入您的 Apple ID", text: $email)
                                     .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
                                     .keyboardType(.emailAddress)
@@ -94,7 +94,7 @@ struct AddAccountView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("密码")
                                     .font(.headline)
-                                    .foregroundColor(themeManager.primaryTextColor)
+                                    .foregroundColor(.primary)
                                 SecureField("输入您的密码", text: $password)
                                     .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
                             }
@@ -104,7 +104,7 @@ struct AddAccountView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("双重认证码")
                                         .font(.headline)
-                                        .foregroundColor(themeManager.primaryTextColor)
+                                        .foregroundColor(.primary)
                                     TextField("输入6位验证码", text: $code)
                                         .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
                                         .keyboardType(.numberPad)
@@ -187,7 +187,7 @@ struct AddAccountView: View {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundColor(themeManager.primaryTextColor)
+                    .foregroundColor(.primary)
                 }
             }
             .onAppear {
