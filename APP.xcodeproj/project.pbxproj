@@ -7,11 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		85635BDF2E749AA5001F69C5 /* OpenSSL in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BDE2E749AA5001F69C5 /* OpenSSL */; };
-		85635BE22E749B02001F69C5 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BE12E749B02001F69C5 /* ZsignSwift */; };
-		85635BE42E749B02001F69C5 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85635BE32E749B02001F69C5 /* zsign */; };
-		8568C9F72E768A38003A3E08 /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8568C9F62E768A38003A3E08 /* ZsignSwift */; };
-		8568C9F92E768A38003A3E08 /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 8568C9F82E768A38003A3E08 /* zsign */; };
 		8568CB172E768AC1003A3E08 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB162E768AC1003A3E08 /* Nuke */; };
 		8568CB192E768AC1003A3E08 /* NukeExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB182E768AC1003A3E08 /* NukeExtensions */; };
 		8568CB1B2E768AC1003A3E08 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8568CB1A2E768AC1003A3E08 /* NukeUI */; };
@@ -20,6 +15,11 @@
 		859304CE2E76A99D00D0052E /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 859304CD2E76A99D00D0052E /* ZsignSwift */; };
 		859304D02E76A99D00D0052E /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 859304CF2E76A99D00D0052E /* zsign */; };
 		85A1B2C52E6F123400D4E5F6 /* ZipArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 85A1B2C42E6F123400D4E5F6 /* ZipArchive */; };
+		85B1AA9C2F00000000D00003 /* libiosexec.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = 85B1AAA02F00000000D00007 /* libiosexec.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		85B1AA9D2F00000000D00004 /* libintl.8.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = 85B1AAA12F00000000D00008 /* libintl.8.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		85B1AA9E2F00000000D00005 /* libxar.1.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = 85B1AAA22F00000000D00009 /* libxar.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		85B1AA9F2F00000000D00006 /* libcrypto.3.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = 85B1AAA32F00000000D0000A /* libcrypto.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		85B1AAC12F00000000D0000D /* libiosexec.1.dylib in Copy libiosexec to App Root */ = {isa = PBXBuildFile; fileRef = 85B1AAA02F00000000D00007 /* libiosexec.1.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		85EC5BF22E768811006D9773 /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5BF12E768811006D9773 /* Vapor */; };
 		85EC5BF92E76882C006D9773 /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5BF82E76882C006D9773 /* SWCompression */; };
 		85EC5D182E7688DB006D9773 /* NimbleExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D172E7688DB006D9773 /* NimbleExtensions */; };
@@ -30,13 +30,43 @@
 		85EC5D232E7688F1006D9773 /* plist in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D222E7688F1006D9773 /* plist */; };
 		85EC5D262E76890C006D9773 /* ArArchiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D252E76890C006D9773 /* ArArchiveKit */; };
 		85EC5D292E76891C006D9773 /* AltSourceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 85EC5D282E76891C006D9773 /* AltSourceKit */; };
-		85F76EDF2E749E770065ECAB /* ZsignSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 85F76EDE2E749E770065ECAB /* ZsignSwift */; };
-		85F76EE12E749E770065ECAB /* zsign in Frameworks */ = {isa = PBXBuildFile; productRef = 85F76EE02E749E770065ECAB /* zsign */; };
 		85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 85FCEE912E6B374E0069A30A /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		85B1AA9B2F00000000D00002 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				85B1AA9C2F00000000D00003 /* libiosexec.1.dylib in Copy Files */,
+				85B1AA9D2F00000000D00004 /* libintl.8.dylib in Copy Files */,
+				85B1AA9E2F00000000D00005 /* libxar.1.dylib in Copy Files */,
+				85B1AA9F2F00000000D00006 /* libcrypto.3.dylib in Copy Files */,
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85B1AAC02F00000000D0000C /* Copy libiosexec to App Root */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 1;
+			files = (
+				85B1AAC12F00000000D0000D /* libiosexec.1.dylib in Copy libiosexec to App Root */,
+			);
+			name = "Copy libiosexec to App Root";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		851FD95F2E578774002136BA /* APP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = APP.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		85B1AAA02F00000000D00007 /* libiosexec.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiosexec.1.dylib; path = "APP/动态库注入/Tools/libiosexec.1.dylib"; sourceTree = SOURCE_ROOT; };
+		85B1AAA12F00000000D00008 /* libintl.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libintl.8.dylib; path = "APP/动态库注入/Tools/libintl.8.dylib"; sourceTree = SOURCE_ROOT; };
+		85B1AAA22F00000000D00009 /* libxar.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libxar.1.dylib; path = "APP/动态库注入/Tools/libxar.1.dylib"; sourceTree = SOURCE_ROOT; };
+		85B1AAA32F00000000D0000A /* libcrypto.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.3.dylib; path = "APP/动态库注入/Tools/libcrypto.3.dylib"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,28 +82,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8568C9F92E768A38003A3E08 /* zsign in Frameworks */,
 				85EC5D292E76891C006D9773 /* AltSourceKit in Frameworks */,
 				85EC5BF22E768811006D9773 /* Vapor in Frameworks */,
 				85EC5D232E7688F1006D9773 /* plist in Frameworks */,
 				859304D02E76A99D00D0052E /* zsign in Frameworks */,
 				85EC5D1C2E7688DB006D9773 /* NimbleViews in Frameworks */,
-				85635BE42E749B02001F69C5 /* zsign in Frameworks */,
-				85F76EDF2E749E770065ECAB /* ZsignSwift in Frameworks */,
 				85EC5D1F2E7688F1006D9773 /* IDevice in Frameworks */,
 				85EC5D262E76890C006D9773 /* ArArchiveKit in Frameworks */,
 				85EC5BF92E76882C006D9773 /* SWCompression in Frameworks */,
-				85635BDF2E749AA5001F69C5 /* OpenSSL in Frameworks */,
-				8568C9F72E768A38003A3E08 /* ZsignSwift in Frameworks */,
 				859304CE2E76A99D00D0052E /* ZsignSwift in Frameworks */,
-				85F76EE12E749E770065ECAB /* zsign in Frameworks */,
 				85EC5D182E7688DB006D9773 /* NimbleExtensions in Frameworks */,
 				85FCEE922E6B374E0069A30A /* ZIPFoundation in Frameworks */,
 				8568CB192E768AC1003A3E08 /* NukeExtensions in Frameworks */,
 				8568CB172E768AC1003A3E08 /* Nuke in Frameworks */,
 				85EC5D1A2E7688DB006D9773 /* NimbleJSON in Frameworks */,
 				8568D3262E769115003A3E08 /* OpenSSL in Frameworks */,
-				85635BE22E749B02001F69C5 /* ZsignSwift in Frameworks */,
 				8568CB1D2E768AC1003A3E08 /* NukeVideo in Frameworks */,
 				85EC5D212E7688F1006D9773 /* IDeviceSwift in Frameworks */,
 				8568CB1B2E768AC1003A3E08 /* NukeUI in Frameworks */,
@@ -90,6 +113,7 @@
 				851FD9612E578774002136BA /* APP */,
 				8568CB152E768AC1003A3E08 /* Frameworks */,
 				851FD9602E578774002136BA /* Products */,
+				85403E322E7811C600DBEDBF /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -99,6 +123,17 @@
 				851FD95F2E578774002136BA /* APP.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		85403E322E7811C600DBEDBF /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				85B1AAA02F00000000D00007 /* libiosexec.1.dylib */,
+				85B1AAA12F00000000D00008 /* libintl.8.dylib */,
+				85B1AAA22F00000000D00009 /* libxar.1.dylib */,
+				85B1AAA32F00000000D0000A /* libcrypto.3.dylib */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		8568CB152E768AC1003A3E08 /* Frameworks */ = {
@@ -118,6 +153,9 @@
 				851FD95B2E578774002136BA /* Sources */,
 				851FD95C2E578774002136BA /* Frameworks */,
 				851FD95D2E578774002136BA /* Resources */,
+				85B1AA9A2F0000000D00001 /* Copy Tools dylibs into Frameworks */,
+				85B1AA9B2F00000000D00002 /* Copy Files */,
+				85B1AAC02F00000000D0000C /* Copy libiosexec to App Root */,
 			);
 			buildRules = (
 			);
@@ -130,11 +168,6 @@
 			packageProductDependencies = (
 				85FCEE912E6B374E0069A30A /* ZIPFoundation */,
 				85A1B2C42E6F123400D4E5F6 /* ZipArchive */,
-				85635BDE2E749AA5001F69C5 /* OpenSSL */,
-				85635BE12E749B02001F69C5 /* ZsignSwift */,
-				85635BE32E749B02001F69C5 /* zsign */,
-				85F76EDE2E749E770065ECAB /* ZsignSwift */,
-				85F76EE02E749E770065ECAB /* zsign */,
 				85EC5BF12E768811006D9773 /* Vapor */,
 				85EC5BF82E76882C006D9773 /* SWCompression */,
 				85EC5D172E7688DB006D9773 /* NimbleExtensions */,
@@ -145,8 +178,6 @@
 				85EC5D222E7688F1006D9773 /* plist */,
 				85EC5D252E76890C006D9773 /* ArArchiveKit */,
 				85EC5D282E76891C006D9773 /* AltSourceKit */,
-				8568C9F62E768A38003A3E08 /* ZsignSwift */,
-				8568C9F82E768A38003A3E08 /* zsign */,
 				8568CB162E768AC1003A3E08 /* Nuke */,
 				8568CB182E768AC1003A3E08 /* NukeExtensions */,
 				8568CB1A2E768AC1003A3E08 /* NukeUI */,
@@ -219,6 +250,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		85B1AA9A2F0000000D00001 /* Copy Tools dylibs into Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Tools dylibs into Frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "exit 0\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		851FD95B2E578774002136BA /* Sources */ = {
@@ -371,26 +423,36 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/APP/Supporting",
+					Files,
+					"$(PROJECT_DIR)/APP/动态库注入",
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					"@executable_path/Tools",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MARKETING_VERSION = 2.0.1;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/动态库注入/Tools",
+					"$(PROJECT_DIR)/APP/Resources",
+					"$(PROJECT_DIR)/APP",
+					"$(PROJECT_DIR)/APP/ElleKit",
+				);
+				MARKETING_VERSION = 2.1.0;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRIP_BITCODE_FROM_COPIED_FILES = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/Feather-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/APP-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -417,26 +479,36 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/APP/Supporting",
+					Files,
+					"$(PROJECT_DIR)/APP/动态库注入",
 				);
 				INFOPLIST_FILE = Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
+					"@executable_path/Tools",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MARKETING_VERSION = 2.0.1;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/APP/动态库注入/Tools",
+					"$(PROJECT_DIR)/APP/Resources",
+					"$(PROJECT_DIR)/APP",
+					"$(PROJECT_DIR)/APP/ElleKit",
+				);
+				MARKETING_VERSION = 2.1.0;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRIP_BITCODE_FROM_COPIED_FILES = NO;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "SERVER $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/Feather-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "APP/Supporting Files/APP-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -551,32 +623,12 @@
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.9.18;
+				minimumVersion = 0.9.19;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		85635BDE2E749AA5001F69C5 /* OpenSSL */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = OpenSSL;
-		};
-		85635BE12E749B02001F69C5 /* ZsignSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ZsignSwift;
-		};
-		85635BE32E749B02001F69C5 /* zsign */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = zsign;
-		};
-		8568C9F62E768A38003A3E08 /* ZsignSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ZsignSwift;
-		};
-		8568C9F82E768A38003A3E08 /* zsign */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = zsign;
-		};
 		8568CB162E768AC1003A3E08 /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 85EC5D152E7688C1006D9773 /* XCRemoteSwiftPackageReference "Nuke" */;
@@ -666,14 +718,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 85EC5D272E76891C006D9773 /* XCRemoteSwiftPackageReference "AltSourceKit" */;
 			productName = AltSourceKit;
-		};
-		85F76EDE2E749E770065ECAB /* ZsignSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ZsignSwift;
-		};
-		85F76EE02E749E770065ECAB /* zsign */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = zsign;
 		};
 		85FCEE912E6B374E0069A30A /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;

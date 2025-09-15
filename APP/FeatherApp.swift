@@ -155,10 +155,21 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 		_ application: UIApplication,
 		didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
 	) -> Bool {
+		_setupLibraryPaths()
 		_createPipeline()
 		_createDocumentsDirectories()
 		ResetView.clearWorkCache()
 		return true
+	}
+	
+	private func _setupLibraryPaths() {
+		// 设置库文件路径，让APP能够找到Tools文件夹中的动态库
+		if let toolsPath = Bundle.main.path(forResource: "Tools", ofType: nil, inDirectory: "动态库注入") {
+			setenv("DYLD_LIBRARY_PATH", toolsPath, 1)
+			print("设置库文件路径: \(toolsPath)")
+		} else {
+			print("警告: 无法找到Tools文件夹")
+		}
 	}
 	
 	private func _createPipeline() {

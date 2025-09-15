@@ -1,40 +1,13 @@
 #import "MachOUtils.h"
+#import <sys/stat.h>
+#import <sys/mman.h>
+#import <fcntl.h>
+#import <unistd.h>
+#import <errno.h>
+#import <string.h>
 
 #define SDK_VERSION_26_0_0 0x1A0000
-NSString *LCPatchMachOFixupARM64eSlice(const char *path) {
-	int fd = open(path, O_RDWR, 0600);
-	if(fd < 0) {
-		return [NSString stringWithFormat:@"打开失败 %s: %s", path, strerror(errno)];
-	}
-	struct stat s = {0};
-	fstat(fd, &s);
-	void *map = mmap(NULL, s.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	if(map == MAP_FAILED) {
-		close(fd);
-		return [NSString stringWithFormat:@"映射失败 %s: %s", path, strerror(errno)];
-	}
-	
-	uint32_t magic = *(uint32_t *)map;
-	if(magic == FAT_CIGAM) {
-		// Find arm64e slice without CPU_SUBTYPE_LIB64
-		struct fat_header *header = (struct fat_header *)map;
-		struct fat_arch *arch = (struct fat_arch *)(map + sizeof(struct fat_header));
-		for(int i = 0; i < OSSwapInt32(header->nfat_arch); i++) {
-			if(OSSwapInt32(arch->cputype) == CPU_TYPE_ARM64 && OSSwapInt32(arch->cpusubtype) == CPU_SUBTYPE_ARM64E) {
-				struct mach_header_64 *header = (struct mach_header_64 *)(map + OSSwapInt32(arch->offset));
-				header->cpusubtype |= CPU_SUBTYPE_LIB64;
-				arch->cpusubtype = htonl(header->cpusubtype);
-				break;
-			}
-			arch = (struct fat_arch *)((void *)arch + sizeof(struct fat_arch));
-		}
-	}
-	
-	msync(map, s.st_size, MS_SYNC);
-	munmap(map, s.st_size);
-	close(fd);
-	return nil;
-}
+// LCPatchMachOFixupARM64eSlice function moved to LCMachOUtils.m to avoid duplicate symbols
 
 static NSString *PatchMachOAtOffset(void *mapped, size_t fileSize, off_t offset, uint32_t index) {
 	uint8_t *base = (uint8_t *)mapped + offset;
