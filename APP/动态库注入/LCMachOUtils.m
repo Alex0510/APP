@@ -83,11 +83,18 @@ int LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInj
     }
 
     // Patch __PAGEZERO to map just a single zero page, fixing "out of address space"
-    struct segment_command_64 *seg = (struct segment_command_64 *)imageHeaderPtr;
-    assert(seg->cmd == LC_SEGMENT_64 || seg->cmd == LC_ID_DYLIB);
-    if (seg->cmd == LC_SEGMENT_64 && seg->vmaddr == 0) {
-        seg->vmaddr = 0x100000000 - 0x4000;
-        seg->vmsize = 0x4000;
+    // 某些目标的首个 load_command 并非 LC_SEGMENT_64，这里改为遍历查找第一个段命令
+    struct load_command *pagezeroCmdIter = (struct load_command *)imageHeaderPtr;
+    for (uint32_t i = 0; i < header->ncmds; i++) {
+        if (pagezeroCmdIter->cmd == LC_SEGMENT_64) {
+            struct segment_command_64 *seg64 = (struct segment_command_64 *)pagezeroCmdIter;
+            if (seg64->vmaddr == 0) {
+                seg64->vmaddr = 0x100000000 - 0x4000;
+                seg64->vmsize = 0x4000;
+            }
+            break;
+        }
+        pagezeroCmdIter = (struct load_command *)((uint8_t *)pagezeroCmdIter + pagezeroCmdIter->cmdsize);
     }
 
     BOOL hasDylibCommand = NO;

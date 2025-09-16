@@ -10,8 +10,8 @@ extension ServerInstaller {
 		return env
 	}()
 	
-	func setupApp(port: Int) throws -> Application {
-		let app = Application(Self.env)
+	func setupApp(port: Int) async throws -> Application {
+		let app = try await Application.make(Self.env)
 		app.threadPool = .init(numberOfThreads: 1)
 		
 		if getServerMethod() != 1 {

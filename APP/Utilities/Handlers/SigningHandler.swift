@@ -378,13 +378,13 @@ extension SigningHandler {
 		for fileURL in machoFiles {
 			switch fileURL.pathExtension {
 			case "dylib":
-				LCPatchMachOFixupARM64eSlice(fileURL.path)
+				_ = LCPatchMachOFixupARM64eSlice(fileURL.path)
 			case "framework":
 				if
 					let bundle = Bundle(url: fileURL),
 					let execURL = bundle.executableURL
 				{
-					LCPatchMachOFixupARM64eSlice(execURL.path)
+					_ = LCPatchMachOFixupARM64eSlice(execURL.path)
 				}
 			default:
 				continue

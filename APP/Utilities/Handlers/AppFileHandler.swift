@@ -28,27 +28,35 @@ final class AppFileHandler: NSObject, @unchecked Sendable {
         Logger.misc.debug("已导入: \(self._ipa.lastPathComponent) ID: \(self._uuid)")
     }
     
-    func copy() async throws {
-        try _fileManager.createDirectoryIfNeeded(at: _uniqueWorkDir)
-        
-        let destinationURL = _uniqueWorkDir.appendingPathComponent(_ipa.lastPathComponent)
+    // 避免与 NSObject.copy 冲突，使用 performCopy
+    func performCopy() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                do {
+                    try self._fileManager.createDirectoryIfNeeded(at: self._uniqueWorkDir)
+                    
+                    let destinationURL = self._uniqueWorkDir.appendingPathComponent(self._ipa.lastPathComponent)
 
-        try _fileManager.removeFileIfNeeded(at: destinationURL)
-        
-        try _fileManager.copyItem(at: _ipa, to: destinationURL)
-        _ipa = destinationURL
-        Logger.misc.info("[\(self._uuid)] 文件已复制到: \(self._ipa.path)")
+                    try self._fileManager.removeFileIfNeeded(at: destinationURL)
+                    
+                    try self._fileManager.copyItem(at: self._ipa, to: destinationURL)
+                    self._ipa = destinationURL
+                    Logger.misc.info("[\(self._uuid)] 文件已复制到: \(self._ipa.path)")
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
     
     func extract() async throws {
-        let download = self._download
-        
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .utility).async {
                 do {
                     let progress = Progress(totalUnitCount: 100)
                     
-                    if let download = download {
+                    if self._download != nil {
                         progress.addObserver(
                             self,
                             forKeyPath: #keyPath(Progress.fractionCompleted),
@@ -63,7 +71,7 @@ final class AppFileHandler: NSObject, @unchecked Sendable {
                         progress: progress
                     )
                     
-                    if let download = download {
+                    if self._download != nil {
                         progress.removeObserver(
                             self,
                             forKeyPath: #keyPath(Progress.fractionCompleted)
@@ -95,19 +103,15 @@ final class AppFileHandler: NSObject, @unchecked Sendable {
     }
     
     func move() async throws {
-        guard let payloadURL = uniqueWorkDirPayload else {
+        let destinationURL = try await _directory()
+        guard let payloadURL = self.uniqueWorkDirPayload else {
             throw ImportedFileHandlerError.payloadNotFound
         }
-        
-        let destinationURL = try await _directory()
-        
         guard _fileManager.fileExists(atPath: payloadURL.path) else {
             throw ImportedFileHandlerError.payloadNotFound
         }
-        
         try _fileManager.moveItem(at: payloadURL, to: destinationURL)
         Logger.misc.info("[\(self._uuid)] 已移动Payload到: \(destinationURL.path)")
-        
         try? _fileManager.removeItem(at: _uniqueWorkDir)
     }
     
@@ -120,14 +124,17 @@ final class AppFileHandler: NSObject, @unchecked Sendable {
         
         let bundle = Bundle(url: appUrl)
         
-        Storage.shared.addImported(
-            uuid: _uuid,
-            appName: bundle?.name,
-            appIdentifier: bundle?.bundleIdentifier,
-            appVersion: bundle?.version,
-            appIcon: bundle?.iconFileName
-        ) { _ in
-            Logger.misc.info("[\(self._uuid)] 已添加到数据库")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Storage.shared.addImported(
+                uuid: _uuid,
+                appName: bundle?.name,
+                appIdentifier: bundle?.bundleIdentifier,
+                appVersion: bundle?.version,
+                appIcon: bundle?.iconFileName
+            ) { _ in
+                Logger.misc.info("[\(self._uuid)] 已添加到数据库")
+                continuation.resume()
+            }
         }
     }
     

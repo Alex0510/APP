@@ -14,21 +14,28 @@ class ServerInstaller: Identifiable, ObservableObject {
 	@ObservedObject var viewModel: InstallerStatusViewModel
 	private var _server: Application?
 
-	init(app: AppInfoPresentable, viewModel: InstallerStatusViewModel) throws {
+	init(app: AppInfoPresentable, viewModel: InstallerStatusViewModel) {
 		self.app = app
 		self.viewModel = viewModel
-		try _setup()
-		try _configureRoutes()
-		try _server?.server.start()
-		_needsShutdown = true
+		// 延迟初始化服务器
+		Task {
+			do {
+				try await _setup()
+				try _configureRoutes()
+				try _server?.server.start()
+				_needsShutdown = true
+			} catch {
+				print("ServerInstaller 初始化失败: \(error)")
+			}
+		}
 	}
 	
 	deinit {
 		_shutdownServer()
 	}
 	
-	private func _setup() throws {
-		self._server = try? setupApp(port: port)
+	private func _setup() async throws {
+		self._server = try? await setupApp(port: port)
 	}
 		
 	private func _configureRoutes() throws {

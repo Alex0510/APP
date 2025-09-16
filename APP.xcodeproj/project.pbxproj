@@ -265,10 +265,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/copy_tools_dylibs_done",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "exit 0\n";
+			shellScript = "touch $(DERIVED_FILE_DIR)/copy_tools_dylibs_done\nexit 0\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -438,9 +439,8 @@
 					"$(PROJECT_DIR)/APP/动态库注入/Tools",
 					"$(PROJECT_DIR)/APP/Resources",
 					"$(PROJECT_DIR)/APP",
-					"$(PROJECT_DIR)/APP/ElleKit",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.1.1;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -496,7 +496,7 @@
 					"$(PROJECT_DIR)/APP",
 					"$(PROJECT_DIR)/APP/ElleKit",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.1.1;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.pxx917144686.APP;
 				PRODUCT_NAME = "$(TARGET_NAME)";

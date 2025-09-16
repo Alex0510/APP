@@ -60,25 +60,7 @@ extern bool aarch64_emulate_add_imm(uint32_t instruction, uint32_t *dst, uint32_
 extern uint64_t aarch64_emulate_adrp_add(uint32_t instruction, uint32_t addInstruction, uint64_t pc);
 extern uint64_t aarch64_emulate_adrp_ldr(uint32_t instruction, uint32_t ldrInstruction, uint64_t pc);
 
-// 声明NSUserDefaults扩展
-@interface NSUserDefaults (LiveContainer)
-+ (instancetype)lcUserDefaults;
-+ (instancetype)lcSharedDefaults;
-+ (NSString *)lcAppGroupPath;
-+ (NSString *)lcAppUrlScheme;
-+ (NSBundle *)lcMainBundle;
-+ (NSDictionary *)guestAppInfo;
-+ (bool)isLiveProcess;
-+ (bool)isSharedApp;
-+ (bool)isSideStore;
-+ (bool)sideStoreExist;
-+ (NSString*)lcGuestAppId;
-@end
-
-// 声明NSBundle扩展
-@interface NSBundle (LiveContainer)
-- (instancetype)initWithPathForMainBundle:(NSString *)path;
-@end
+// NSUserDefaults 和 NSBundle 扩展已在 utils.h 和 Tweaks.h 中声明，这里不再重复声明
 
 // 声明NSString扩展
 @interface NSString (LiveContainer)

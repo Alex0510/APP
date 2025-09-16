@@ -288,6 +288,36 @@ class DylibInjectionManager: ObservableObject {
             addLog("导入动态库失败: \(error.localizedDescription)", type: .error)
         }
     }
+
+    // MARK: - 新增：从文件App导入 IPA（copy/extract/move/addToDatabase）
+    @MainActor
+    func importIPA(from url: URL) async {
+        do {
+            // 在后台线程执行耗时的文件操作，避免阻塞主线程
+            let result = try await Task.detached { [weak self] () throws -> Bool in
+                guard let self = self else { throw NSError(domain: "DylibInjectionManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "Manager已释放"]) }
+                
+                let handler = AppFileHandler(file: url)
+                try await handler.performCopy()
+                try await handler.extract()
+                try await handler.move()
+                try await handler.addToDatabase()
+                
+                return true
+            }.value
+            
+            // 操作成功后在主线程更新UI和状态
+            if result {
+                addLog("成功导入 IPA: \(url.lastPathComponent)", type: .success)
+                // 提示库已更新
+                addLog("已添加到库，可在签名页查看", type: .info)
+            }
+        } catch {
+            // 在主线程处理错误
+            addLog("导入 IPA 失败: \(error.localizedDescription)", type: .error)
+            print("IPA导入详细错误: \(error)")
+        }
+    }
     
     func deleteDylib(_ dylib: DylibFile) {
         do {
@@ -298,6 +328,8 @@ class DylibInjectionManager: ObservableObject {
             addLog("删除动态库失败: \(error.localizedDescription)", type: .error)
         }
     }
+    
+
     
     // MARK: - 工具方法
     private func getFileSize(url: URL) -> String {
