@@ -3,6 +3,7 @@
 //  Created by pxx917144686 on 2025/09/08.
 //
 import SwiftUI
+import UIKit
 import AltSourceKit
 import Vapor
 
@@ -34,8 +35,6 @@ struct SearchView: SwiftUI.View {
     @State var showLoginSheet = false
     @State var showAccountMenu = false
     
-    // MARK: - 下载任务相关状态
-    @State var showDownloadTasks = false
     
     // MARK: - 视图模式枚举
     enum ViewMode: String, CaseIterable {
@@ -60,28 +59,15 @@ struct SearchView: SwiftUI.View {
         // 优先级：用户手动选择 > 登录账户地区 > 默认地区
         if isUserSelectedRegion && !searchRegion.isEmpty {
             // 如果用户手动选择了地区，优先使用用户选择
-            print("[SearchView] 使用用户手动选择的地区: \(searchRegion)")
             return searchRegion
         } else if let currentAccount = appStore.selectedAccount {
-            print("[SearchView] 使用登录账户地区: \(currentAccount.countryCode)")
-            // 如果账户地区与当前搜索地区不同，自动更新搜索地区
-            if searchRegion != currentAccount.countryCode {
-                DispatchQueue.main.async {
-                    self.searchRegion = currentAccount.countryCode
-                    self.isUserSelectedRegion = false // 重置用户选择标志
-                    print("[SearchView] 自动更新搜索地区为账户地区: \(currentAccount.countryCode)")
-                    // 触发UI刷新
-                    self.uiRefreshTrigger = UUID()
-                }
-            }
+            // 直接返回登录账户地区
             return currentAccount.countryCode
         } else if !searchRegion.isEmpty {
             // 如果用户手动选择了地区，使用选择
-            print("[SearchView] 使用用户选择的地区: \(searchRegion)")
             return searchRegion
         }
         // 默认返回美国地区
-        print("[SearchView] 使用默认地区: US")
         return "US"
     }
     
@@ -385,11 +371,11 @@ struct SearchView: SwiftUI.View {
     
 
     // 版本选择相关状态
-    @State private var showVersionPicker = false
-    @State private var selectedApp: iTunesSearchResult?
-    @State private var availableVersions: [AppVersion] = []
-    @State private var isLoadingVersions = false
-    @State private var versionError: String?
+    @State var showVersionPicker = false
+    @State var selectedApp: iTunesSearchResult?
+    @State var availableVersions: [StoreAppVersion] = []
+    @State var isLoadingVersions = false
+    @State var versionError: String?
     var possibleReigon: Set<String> {
         vm.selectedAccount != nil ? Set([vm.selectedAccount!.countryCode]) : Set()
     }
@@ -397,7 +383,7 @@ struct SearchView: SwiftUI.View {
         NavigationView {
             ZStack {
                 // 统一背景色 - 与其他界面保持一致
-                themeManager.backgroundColor
+                Color(.systemBackground)
                     .ignoresSafeArea()
                 
                 // 顶部安全区域占位 - 真机适配
@@ -519,9 +505,6 @@ struct SearchView: SwiftUI.View {
                 .environmentObject(appStore)
                 .environmentObject(themeManager)
         }
-        .sheet(isPresented: $showDownloadTasks) {
-            downloadTasksSheet
-        }
         .sheet(isPresented: $showAccountMenu) {
             accountMenuSheet
         }
@@ -529,24 +512,26 @@ struct SearchView: SwiftUI.View {
     
     // MARK: - 智能地区检测
     private func detectAndSetRegion() {
-        let detectedRegion = effectiveSearchRegion
-        print("[SearchView] 智能地区检测完成: \(detectedRegion)")
-        
-        // 如果检测到的地区与当前不同，且用户没有手动选择，则更新搜索地区
-        if searchRegion != detectedRegion && !isUserSelectedRegion {
-            searchRegion = detectedRegion
-            print("[SearchView] 搜索地区已更新: \(searchRegion)")
-        }
-        
-        // 打印当前账户信息用于调试
+        // 优先使用账户地区（如果有登录）
         if let currentAccount = appStore.selectedAccount {
-            print("[SearchView] 当前登录账户: \(currentAccount.email), 地区: \(currentAccount.countryCode)")
-            print("[SearchView] 账户地区与搜索地区匹配: \(currentAccount.countryCode == searchRegion)")
+            let accountRegion = currentAccount.countryCode
+            print("[SearchView] 检测到登录账户: \(currentAccount.email), 地区代码: \(accountRegion)")
+            
+            // 确保账户地区被正确设置，不依赖其他计算属性
+            if searchRegion != accountRegion && !isUserSelectedRegion {
+                searchRegion = accountRegion
+                print("[SearchView] 已将搜索地区更新为账户地区: \(searchRegion)")
+            }
         } else {
-            print("[SearchView] 未检测到登录账户，使用默认地区: \(searchRegion)")
+            // 如果没有登录账户，使用系统语言检测或默认地区
+            let detectedRegion = effectiveSearchRegion
+            if searchRegion != detectedRegion && !isUserSelectedRegion {
+                searchRegion = detectedRegion
+                print("[SearchView] 未检测到登录账户，使用默认地区: \(searchRegion)")
+            }
         }
         
-        print("[SearchView] 用户手动选择标志: \(isUserSelectedRegion)")
+        print("[SearchView] 当前显示地区: \(effectiveSearchRegion), 用户手动选择标志: \(isUserSelectedRegion)")
         
         // 强制更新UI - 使用状态变量触发刷新
         DispatchQueue.main.async {
@@ -657,7 +642,7 @@ struct SearchView: SwiftUI.View {
                         }
                     }
                 } label: {
-                    HStack(spacing: Spacing.xs) {
+                    HStack(spacing: 8) {
                         Image(systemName: "iphone")
                             .font(.system(size: 14, weight: .medium))
                         Text(searchType.displayName)
@@ -667,41 +652,12 @@ struct SearchView: SwiftUI.View {
                     }
                     .foregroundColor(themeManager.accentColor)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, Spacing.xs)
+                    .padding(.vertical, 8)
                     .background(
                         Capsule()
                             .fill(themeManager.accentColor.opacity(0.1))
                     )
                 }
-                
-                Spacer()
-                
-                // 下载任务按钮 - 居中位置
-                Button {
-                    showDownloadTasks = true
-                } label: {
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "arrow.down.circle.fill")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("下载管理")
-                            .font(.caption)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, Spacing.xs)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [themeManager.accentColor, themeManager.accentColor.opacity(0.8)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    )
-                    .shadow(color: themeManager.accentColor.opacity(0.3), radius: 4, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
                 
                 Spacer()
                 
@@ -716,7 +672,7 @@ struct SearchView: SwiftUI.View {
         Button(action: {
             showRegionPicker = true
         }) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: 8) {
                 Text(flag(country: effectiveSearchRegion))
                     .font(.title2)
                 Text(SearchView.countryCodeMapChinese[effectiveSearchRegion] ?? SearchView.countryCodeMap[effectiveSearchRegion] ?? effectiveSearchRegion)
@@ -746,7 +702,7 @@ struct SearchView: SwiftUI.View {
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, Spacing.xs)
+            .padding(.vertical, 8)
             .background(
                 Capsule()
                     .fill(themeManager.selectedTheme == .dark ? Color(.secondarySystemBackground) : Color(.secondarySystemBackground))
@@ -777,7 +733,7 @@ struct SearchView: SwiftUI.View {
                                         HStack(spacing: 16) {
                         Text(flag(country: searchRegion.isEmpty ? effectiveSearchRegion : searchRegion))
                             .font(.system(size: 48))
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                        VStack(alignment: .leading, spacing: 8) {
                             let displayRegion = searchRegion.isEmpty ? effectiveSearchRegion : searchRegion
                             Text(SearchView.countryCodeMapChinese[displayRegion] ?? SearchView.countryCodeMap[displayRegion] ?? displayRegion)
                                 .font(.title2)
@@ -828,19 +784,45 @@ struct SearchView: SwiftUI.View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 
-                // 地区搜索框
-                HStack {
+                // 地区搜索框 - 统一大小和样式
+                HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.secondary)
                     TextField("搜索地区...", text: $searchInput)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .font(.title3)
                         .onChange(of: searchInput) { newValue in
                             // 实时搜索地区
                             if newValue.isEmpty {
                                 // 如果搜索框为空，显示所有地区
                             }
                         }
+                    if !searchInput.isEmpty {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                searchInput = ""
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(themeManager.selectedTheme == .dark ? Color(.systemGray6) : Color(.systemBackground))
+                        .shadow(color: themeManager.selectedTheme == .dark ? .black.opacity(0.3) : .black.opacity(0.05), radius: 8, x: 0, y: 2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            .clear,
+                            lineWidth: 2
+                        )
+                )
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 
@@ -854,7 +836,7 @@ struct SearchView: SwiftUI.View {
                                 Text(flag(country: regionCode))
                                     .font(.title2)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    HStack(spacing: Spacing.xs) {
+                                    HStack(spacing: 8) {
                                         Text(SearchView.countryCodeMapChinese[regionCode] ?? SearchView.countryCodeMap[regionCode] ?? regionCode)
                                             .font(.body)
                                             .foregroundColor(.primary)
@@ -892,7 +874,7 @@ struct SearchView: SwiftUI.View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button("返回") {
                         showRegionPicker = false
                     }
                 }
@@ -921,7 +903,7 @@ struct SearchView: SwiftUI.View {
                                     .foregroundColor(.primary)
                                     .lineLimit(1)
                                 
-                                HStack(spacing: Spacing.xs) {
+                                HStack(spacing: 8) {
                                     Text(flag(country: currentAccount.countryCode))
                                         .font(.caption)
                                     Text(SearchView.countryCodeMapChinese[currentAccount.countryCode] ?? SearchView.countryCodeMap[currentAccount.countryCode] ?? currentAccount.countryCode)
@@ -939,7 +921,7 @@ struct SearchView: SwiftUI.View {
                     Button(action: {
                         logoutAccount()
                     }) {
-                        HStack(spacing: Spacing.xs) {
+                        HStack(spacing: 8) {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .font(.caption)
                             Text("登出")
@@ -947,7 +929,7 @@ struct SearchView: SwiftUI.View {
                         }
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, Spacing.xs)
+                        .padding(.vertical, 8)
                         .background(
                             Capsule()
                                 .fill(Color.gray.opacity(0.1))
@@ -991,7 +973,7 @@ struct SearchView: SwiftUI.View {
                     Button(action: {
                         showLoginSheet = true
                     }) {
-                        HStack(spacing: Spacing.xs) {
+                        HStack(spacing: 8) {
                             Image(systemName: "person.crop.circle.fill.badge.plus")
                                 .font(.caption)
                             Text("登录")
@@ -999,7 +981,7 @@ struct SearchView: SwiftUI.View {
                         }
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, Spacing.xs)
+                        .padding(.vertical, 8)
                         .background(
                             LinearGradient(
                                 colors: [themeManager.accentColor, themeManager.accentColor.opacity(0.8)],
@@ -1079,7 +1061,7 @@ struct SearchView: SwiftUI.View {
                                 await performSearch()
                             }
                         } label: {
-                            HStack(spacing: Spacing.xs) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 12))
                                 Text(history)
@@ -1087,7 +1069,7 @@ struct SearchView: SwiftUI.View {
                             }
                             .foregroundColor(.primary)
                             .padding(.horizontal, 8)
-                            .padding(.vertical, Spacing.xs)
+                            .padding(.vertical, 8)
                             .background(
                                 Capsule()
                                     .fill(Color(.secondarySystemBackground))
@@ -1133,7 +1115,7 @@ struct SearchView: SwiftUI.View {
                                 await performSearch()
                             }
                         } label: {
-                            HStack(spacing: Spacing.xs) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 12))
                                 Text(suggestion)
@@ -1141,7 +1123,7 @@ struct SearchView: SwiftUI.View {
                             }
                             .foregroundColor(.primary)
                             .padding(.horizontal, 8)
-                            .padding(.vertical, Spacing.xs)
+                            .padding(.vertical, 8)
                             .background(
                                 Capsule()
                                     .fill(Color(.secondarySystemBackground))
@@ -1174,7 +1156,7 @@ struct SearchView: SwiftUI.View {
             if !searchResult.isEmpty {
                 // 结果统计和视图切换器
                 HStack {
-                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("找到 \(searchResult.count) 个结果")
                             .font(.title2)
                             .foregroundColor(.primary)
@@ -1228,7 +1210,7 @@ struct SearchView: SwiftUI.View {
                         value: searching
                     )
             }
-            VStack(spacing: Spacing.xs) {
+            VStack(spacing: 8) {
                 Text("正在搜索...")
                     .font(.title2)
                     .foregroundColor(.primary)
@@ -1238,7 +1220,7 @@ struct SearchView: SwiftUI.View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xxxl)
+        .padding(.vertical, 32)
     }
     // MARK: - 空状态视图
     var emptyStateView: some SwiftUI.View {
@@ -1282,7 +1264,7 @@ struct SearchView: SwiftUI.View {
                                     .font(.caption)
                                     .foregroundColor(.blue)
                                     .padding(.horizontal, 8)
-                                    .padding(.vertical, Spacing.xs)
+                                    .padding(.vertical, 8)
                                     .background(
                                         Capsule()
                                             .stroke(.blue.opacity(0.3), lineWidth: 1)
@@ -1296,7 +1278,7 @@ struct SearchView: SwiftUI.View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xxxl)
+        .padding(.vertical, 32)
         .padding(.horizontal, 24)
     }
     // MARK: - 搜索错误视图
@@ -1358,7 +1340,7 @@ struct SearchView: SwiftUI.View {
             .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.xxxl)
+        .padding(.vertical, 32)
         .padding(.horizontal, 24)
     }
 
@@ -1376,7 +1358,7 @@ struct SearchView: SwiftUI.View {
                     }
                     print("[SearchView] 视图模式已更新: \(viewMode), 刷新触发器: \(viewModeRefreshTrigger)")
                 } label: {
-                    HStack(spacing: Spacing.xs) {
+                    HStack(spacing: 8) {
                         Image(systemName: mode.icon)
                             .font(.system(size: 14, weight: .medium))
                         Text(mode.displayName)
@@ -1384,7 +1366,7 @@ struct SearchView: SwiftUI.View {
                     }
                     .foregroundColor(viewMode == mode ? .white : themeManager.accentColor)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, Spacing.xs)
+                    .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
                             .fill(viewMode == mode ? themeManager.accentColor : themeManager.accentColor.opacity(0.1))
@@ -1479,7 +1461,7 @@ struct SearchView: SwiftUI.View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 3)
                 // 应用信息
-                VStack(alignment: .leading, spacing: Spacing.xs) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(item.name)
                         .font(.title3)
                         .fontWeight(.semibold)
@@ -1492,13 +1474,13 @@ struct SearchView: SwiftUI.View {
                         .lineLimit(1)
                 }
                 // 价格和版本信息
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: 8) {
                     if let price = item.formattedPrice {
                         Text(price)
                             .font(.caption2)
                             .fontWeight(.semibold)
                             .foregroundColor(.white)
-                            .padding(.horizontal, Spacing.xs)
+                            .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(
                                 Capsule()
@@ -1508,7 +1490,7 @@ struct SearchView: SwiftUI.View {
                     Text("v\(item.version)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, Spacing.xs)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(
                             Capsule()
@@ -1563,7 +1545,7 @@ struct SearchView: SwiftUI.View {
                 .frame(width: 60, height: 60)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 // 应用信息
-                VStack(alignment: .leading, spacing: Spacing.xs) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(item.name)
                         .font(.title3)
                         .fontWeight(.semibold)
@@ -1573,7 +1555,7 @@ struct SearchView: SwiftUI.View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
-                    HStack(spacing: Spacing.xs) {
+                    HStack(spacing: 8) {
                         if let price = item.formattedPrice {
                             Text(price)
                                 .font(.caption2)
@@ -1859,7 +1841,7 @@ struct SearchView: SwiftUI.View {
     }
 
 
-    private var loadingVersionsView: some SwiftUI.View {
+    var loadingVersionsView: some SwiftUI.View {
         VStack(spacing: 24) {
             ProgressView()
                 .scaleEffect(1.2)
@@ -1869,7 +1851,7 @@ struct SearchView: SwiftUI.View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    private func errorView(error: String) -> any SwiftUI.View {
+    func errorView(error: String) -> some SwiftUI.View {
         VStack(spacing: 24) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
@@ -1891,7 +1873,7 @@ struct SearchView: SwiftUI.View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    private var emptyVersionsView: some SwiftUI.View {
+    var emptyVersionsView: some SwiftUI.View {
         VStack(spacing: 24) {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 48))
@@ -1939,7 +1921,7 @@ struct SearchView: SwiftUI.View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
-                        .padding(.vertical, Spacing.xs)
+                        .padding(.vertical, 8)
                         .background(
                             Capsule()
                                 .fill(themeManager.accentColor.opacity(0.1))
@@ -1956,10 +1938,10 @@ struct SearchView: SwiftUI.View {
             .padding(.bottom, 24)
         }
     }
-    private func createModernVersionRow(version: AppVersion) -> any SwiftUI.View {
+    private func createModernVersionRow(version: StoreAppVersion) -> any SwiftUI.View {
         HStack(spacing: 16) {
             // 版本信息区域
-            VStack(alignment: .leading, spacing: Spacing.xs) {
+            VStack(alignment: .leading, spacing: 8) {
                 // 版本号
                 HStack(spacing: 8) {
                     Text("版本 \(version.versionString)")
@@ -1975,7 +1957,7 @@ struct SearchView: SwiftUI.View {
                 }
                 
                 // 版本ID
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: 8) {
                     Image(systemName: "number.circle.fill")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -1996,7 +1978,7 @@ struct SearchView: SwiftUI.View {
                     }
                 }
             }) {
-                HStack(spacing: Spacing.xs) {
+                HStack(spacing: 8) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.caption)
                     Text("下载")
@@ -2030,7 +2012,7 @@ struct SearchView: SwiftUI.View {
         .padding(.horizontal, 24)
     }
     @MainActor
-    func downloadVersion(app: iTunesSearchResult, version: AppVersion) async {
+    func downloadVersion(app: iTunesSearchResult, version: StoreAppVersion) async {
         showVersionPicker = false
         guard appStore.selectedAccount != nil else {
             print("[SearchView] 错误：没有登录账户")
@@ -2056,15 +2038,6 @@ struct SearchView: SwiftUI.View {
         }
     }
     
-    // MARK: - 下载任务弹窗
-    var downloadTasksSheet: some SwiftUI.View {
-        NavigationView {
-            DownloadView()
-                .environmentObject(themeManager)
-                .environmentObject(appStore)
-        }
-        .navigationViewStyle(.stack)
-    }
     
     // MARK: - 账户菜单弹窗
     var accountMenuSheet: some SwiftUI.View {

@@ -2,21 +2,22 @@
 import SwiftUI
 import NimbleViews
 
-extension AppIconView {
-	struct AltIcon: Identifiable {
-		var displayName: String
-		var author: String
-		var key: String?
-		var image: UIImage
-		var id: String { key ?? displayName }
-		
-		init(displayName: String, author: String, key: String? = nil) {
-			self.displayName = displayName
-			self.author = author
-			self.key = key
-			self.image = altImage(key)
-		}
+struct AltIcon: Identifiable {
+	var displayName: String
+	var author: String
+	var key: String?
+	var image: UIImage
+	var id: String { key ?? displayName }
+	
+	init(displayName: String, author: String, key: String? = nil) {
+		self.displayName = displayName
+		self.author = author
+		self.key = key
+		self.image = AppIconView.altImage(key)
 	}
+}
+
+extension AppIconView {
 	
 	static func altImage(_ name: String?) -> UIImage {
 		// 尝试从AppIcons文件夹中加载图标
@@ -73,7 +74,7 @@ struct AppIconView: View {
 extension AppIconView {
 	@ViewBuilder
 	private func _icon(
-		icon: AppIconView.AltIcon
+		icon: AltIcon
 	) -> some View {
 		Button {
 			UIApplication.shared.setAlternateIconName(icon.key) { _ in

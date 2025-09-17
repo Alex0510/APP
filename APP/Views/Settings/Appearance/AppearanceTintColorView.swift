@@ -196,7 +196,7 @@ struct ColorPickerView: View {
 				}
 				
 				ToolbarItem(placement: .navigationBarTrailing) {
-					Button(.localized("完成")) {
+					Button(.localized("返回")) {
 						selectedColorHex = selectedColor.toHex()
 						dismiss()
 					}

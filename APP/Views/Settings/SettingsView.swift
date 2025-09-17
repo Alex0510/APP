@@ -7,10 +7,14 @@ import IDeviceSwift
 struct SettingsView: View {
     private let _githubUrl = "https://github.com/pxx917144686/APP"
     @State private var currentIcon = UIApplication.shared.alternateIconName
+    @StateObject private var optionsManager = OptionsManager.shared
     
     var body: some View {
         NavigationStack {
             Form {
+                
+                // 高级功能区域 - 最显眼位置
+                advancedFeaturesSection
                 
                 _feedback()
                 
@@ -26,9 +30,42 @@ struct SettingsView: View {
 
 extension SettingsView {
     
+    // MARK: - 高级功能区域
+    private var advancedFeaturesSection: some View {
+        Section {
+            Toggle(isOn: $optionsManager.options.experiment_supportLiquidGlass) {
+                Label {
+                    Text("切换:液态玻璃UI")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                } icon: {
+                    Image(systemName: "26.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.title2)
+                }
+            }
+            .toggleStyle(SwitchToggleStyle(tint: .blue))
+        } header: {
+            HStack {
+                Image(systemName: "star.fill")
+                    .foregroundColor(.yellow)
+                Text("高级功能")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+            }
+        } footer: {
+            Text("iOS26系统,引入的新液态玻璃!遇到问题,联系作者pxx917144686")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .onChange(of: optionsManager.options.experiment_supportLiquidGlass) { _ in
+            optionsManager.saveOptions()
+        }
+    }
+    
     private var appearanceSection: some View {
         Section {
-            NavigationLink(destination: AppearanceView()) {
+            NavigationLink(destination: AppearanceView().environmentObject(ThemeManager.shared)) {
                 Label(.localized("外观"), systemImage: "paintbrush")
             }
             NavigationLink(destination: AppIconView(currentIcon: $currentIcon)) {

@@ -330,7 +330,7 @@ struct StoreEndpoint {
 // MARK: - 账户信息
 // Account 结构体移动到 AuthenticationManager.swift 中以避免重复
 // MARK: - 应用版本信息
-struct AppVersion: Codable, Identifiable {
+struct StoreAppVersion: Codable, Identifiable {
     let id: UUID
     let versionString: String
     let versionId: String
@@ -394,7 +394,7 @@ extension StoreClient {
     func getAppVersions(
         trackId: String,
         account: Account
-    ) async -> Result<[AppVersion], StoreError> {
+    ) async -> Result<[StoreAppVersion], StoreError> {
         // 为会话设置 cookie
         setCookies(account.cookies)
         do {
@@ -417,9 +417,9 @@ extension StoreClient {
             }
             let item = result.songList[0]
             // 从元数据中提取版本信息
-            var versions: [AppVersion] = []
+            var versions: [StoreAppVersion] = []
             // 当前版本
-            let currentVersion = AppVersion(
+            let currentVersion = StoreAppVersion(
                 versionString: item.metadata.bundleShortVersionString,
                 versionId: item.metadata.softwareVersionExternalIdentifier,
                 isCurrent: true
@@ -439,7 +439,7 @@ extension StoreClient {
                     let versionIdString = String(versionId)
                     // 跳过当前版本（已经添加）
                     if versionIdString != item.metadata.softwareVersionExternalIdentifier {
-                        let historicalVersion = AppVersion(
+                        let historicalVersion = StoreAppVersion(
                             versionString: "历史版本 \(versionCounter)",
                             versionId: versionIdString,
                             isCurrent: false
@@ -466,7 +466,7 @@ extension StoreClient {
         }
     }
     // 使用第三方 API 获取 APP 版本信息
-    private func fetchVersionsFromThirdPartyAPI(appId: String) async throws -> [AppVersion]? {
+    private func fetchVersionsFromThirdPartyAPI(appId: String) async throws -> [StoreAppVersion]? {
         let apiUrl = "https://api.timbrd.com/apple/app-version/index.php?id=\(appId)"
         guard let url = URL(string: apiUrl) else {
             print("[调试] 无效的第三方API URL")
@@ -495,10 +495,10 @@ extension StoreClient {
                 }
                 // 如果日期解析失败，按照 bundle_version 字符串进行比较
                 return compareVersionStrings(version1.bundle_version, version2.bundle_version) > 0
-            }.map { versionInfo -> AppVersion in
+            }.map { versionInfo -> StoreAppVersion in
                 // 判断是否为当前版本（这里简单假设第一个就是最新版本）
                 let isCurrent = versionInfo.bundle_version == versionData.first?.bundle_version
-                return AppVersion(
+                return StoreAppVersion(
                     versionString: versionInfo.bundle_version,
                     versionId: String(versionInfo.external_identifier),
                     isCurrent: isCurrent

@@ -8,164 +8,6 @@ import Combine
 import Foundation
 import Network
 
-// MARK: - 浮动主题选择器
-struct FloatingThemeSelector: SwiftUI.View {
-    @Binding var isPresented: Bool
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some SwiftUI.View {
-        if isPresented {
-            ZStack {
-                // 背景遮罩
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isPresented = false
-                        }
-                    }
-                
-                // 主题选择器卡片
-                VStack(spacing: 16) {
-                    Text("选择主题")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                    
-                    VStack(spacing: 12) {
-                        // 浅色模式
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                themeManager.selectedTheme = .light
-                                isPresented = false
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "sun.max.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.orange)
-                                    .frame(width: 24)
-                                
-                                Text("浅色模式")
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                                
-                                if themeManager.selectedTheme == .light {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(themeManager.selectedTheme == .light ? Color.blue.opacity(0.1) : Color.clear)
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        // 深色模式
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                themeManager.selectedTheme = .dark
-                                isPresented = false
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "moon.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.blue)
-                                    .frame(width: 24)
-                                
-                                Text("深色模式")
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                                
-                                if themeManager.selectedTheme == .dark {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(themeManager.selectedTheme == .dark ? Color.blue.opacity(0.1) : Color.clear)
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        // 跟随系统
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                themeManager.selectedTheme = .system
-                                isPresented = false
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "gear.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.gray)
-                                    .frame(width: 24)
-                                
-                                Text("跟随系统")
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                                
-                                if themeManager.selectedTheme == .system {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(themeManager.selectedTheme == .system ? Color.blue.opacity(0.1) : Color.clear)
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                    
-                    // 取消按钮
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            isPresented = false
-                        }
-                    }) {
-                        Text("取消")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                )
-                .padding(.horizontal, 40)
-            }
-            .transition(.opacity.combined(with: .scale(scale: 0.9)))
-        }
-    }
-}
-
-// MARK: - 现代卡片样式
-enum ModernCardStyle {
-    case elevated
-    case outlined
-    case flat
-}
 #if canImport(UIKit)
 import UIKit
 import SafariServices
@@ -176,6 +18,59 @@ import Vapor
 #if canImport(ZsignSwift)
 import ZsignSwift
 #endif
+
+// 全局安装状态管理
+class GlobalInstallationManager: ObservableObject {
+    static let shared = GlobalInstallationManager()
+    @Published var isAnyInstalling = false
+    @Published var currentInstallingRequestId: UUID? = nil
+    
+    private init() {}
+    
+    func startInstallation(for requestId: UUID) -> Bool {
+        guard !isAnyInstalling else { return false }
+        isAnyInstalling = true
+        currentInstallingRequestId = requestId
+        return true
+    }
+    
+    func finishInstallation() {
+        isAnyInstalling = false
+        currentInstallingRequestId = nil
+    }
+}
+
+// HTTP服务器管理器
+class HTTPServerManager: ObservableObject {
+    static let shared = HTTPServerManager()
+    private var activeServers: [UUID: SimpleHTTPServer] = [:]
+    
+    private init() {}
+    
+    func startServer(for requestId: UUID, port: Int, ipaPath: String, appInfo: AppInfo) {
+        let server = SimpleHTTPServer(port: port, ipaPath: ipaPath, appInfo: appInfo)
+        server.start()
+        activeServers[requestId] = server
+        NSLog("🚀 [HTTPServerManager] 启动服务器，端口: \(port)，请求ID: \(requestId)")
+    }
+    
+    func stopServer(for requestId: UUID) {
+        if let server = activeServers[requestId] {
+            server.stop()
+            activeServers.removeValue(forKey: requestId)
+            NSLog("🛑 [HTTPServerManager] 停止服务器，请求ID: \(requestId)")
+        }
+    }
+    
+    func stopAllServers() {
+        for (requestId, server) in activeServers {
+            server.stop()
+            NSLog("🛑 [HTTPServerManager] 停止服务器，请求ID: \(requestId)")
+        }
+        activeServers.removeAll()
+        NSLog("🛑 [HTTPServerManager] 已停止所有服务器")
+    }
+}
 #if canImport(ZipArchive)
 import ZipArchive
 #endif
@@ -183,47 +78,25 @@ import ZipArchive
 // 解决View类型冲突
 typealias SwiftUIView = SwiftUI.View
 
-// MARK: - UI组件
-struct Spacing {
-    static let xxs: CGFloat = 2
-    static let xs: CGFloat = 4
-    static let sm: CGFloat = 8
-    static let md: CGFloat = 12
-    static let lg: CGFloat = 16
-    static let xl: CGFloat = 20
-    static let xxl: CGFloat = 24
-    static let xxxl: CGFloat = 64
-}
-
+// MARK: - 现代卡片样式
 struct ModernCard<Content: SwiftUIView>: SwiftUIView {
-    let style: ModernCardStyle
-    let padding: CGFloat
     let content: Content
     
-    init(style: ModernCardStyle = .elevated, padding: CGFloat = Spacing.lg, @ViewBuilder content: () -> Content) {
-        self.style = style
-        self.padding = padding
+    init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
     
     var body: some SwiftUIView {
         content
-            .padding(padding)
+            .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(.systemBackground))
                     .shadow(
-                        color: style == .elevated ? Color.black.opacity(0.1) : Color.clear,
-                        radius: style == .elevated ? 8 : 0,
+                        color: Color.black.opacity(0.1),
+                        radius: 8,
                         x: 0,
-                        y: style == .elevated ? 4 : 0
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(
-                        style == .outlined ? Color.gray.opacity(0.3) : Color.clear,
-                        lineWidth: 1
+                        y: 4
                     )
             )
     }
@@ -233,12 +106,53 @@ struct ModernCard<Content: SwiftUIView>: SwiftUIView {
 #if canImport(UIKit)
 struct SafariWebView: UIViewControllerRepresentable {
     let url: URL
+    @Binding var isPresented: Bool
+    let onDismiss: (() -> Void)?
+    
+    init(url: URL, isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil) {
+        self.url = url
+        self._isPresented = isPresented
+        self.onDismiss = onDismiss
+    }
     
     func makeUIViewController(context: Context) -> SFSafariViewController {
-        return SFSafariViewController(url: url)
+        let config = SFSafariViewController.Configuration()
+        config.entersReaderIfAvailable = false
+        config.barCollapsingEnabled = true
+        
+        let safariVC = SFSafariViewController(url: url, configuration: config)
+        safariVC.delegate = context.coordinator
+        
+        return safariVC
     }
     
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {
+        // 更新UI控制器
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, SFSafariViewControllerDelegate {
+        let parent: SafariWebView
+        
+        init(_ parent: SafariWebView) {
+            self.parent = parent
+        }
+        
+        func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
+            parent.isPresented = false
+            parent.onDismiss?()
+        }
+        
+        func safariViewController(_ controller: SFSafariViewController, didCompleteInitialLoad didLoadSuccessfully: Bool) {
+            if didLoadSuccessfully {
+                NSLog("✅ [Safari WebView] 页面加载成功: \(parent.url)")
+            } else {
+                NSLog("❌ [Safari WebView] 页面加载失败: \(parent.url)")
+            }
+        }
     }
 }
 #endif
@@ -336,28 +250,14 @@ class SimpleHTTPServer: NSObject {
     }
     
     func start() {
-        NSLog("🚀 [Simple HTTP功能器] 启动功能器，端口: \(port)")
-        NSLog("📱 [Simple HTTP功能器] AppInfo: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
-        NSLog("📁 [Simple HTTP功能器] IPA路径: \(ipaPath)")
-        NSLog("⏰ [Simple HTTP功能器] 启动时间: \(Date())")
-        NSLog("🔧 [Simple HTTP功能器] 服务器队列: \(serverQueue.label)")
-        print("🚀 [Simple HTTP功能器] 启动功能器，端口: \(port)")
-        print("📱 [Simple HTTP功能器] AppInfo: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
-        print("📁 [Simple HTTP功能器] IPA路径: \(ipaPath)")
-        print("⏰ [Simple HTTP功能器] 启动时间: \(Date())")
-        print("🔧 [Simple HTTP功能器] 服务器队列: \(serverQueue.label)")
+        NSLog("🚀 [HTTP服务器] 启动服务器，端口: \(port)")
         
         // 请求本地网络权限
-        NSLog("🔐 [Simple HTTP功能器] 开始请求本地网络权限...")
         requestLocalNetworkPermission { [weak self] granted in
             if granted {
-                NSLog("✅ [Simple HTTP功能器] 本地网络权限已授予")
                 self?.serverQueue.async { [weak self] in
                     self?.startSimpleServer()
                 }
-            } else {
-                NSLog("❌ [Simple HTTP功能器] 本地网络权限被拒绝")
-                print("❌ [Simple HTTP功能器] 本地网络权限被拒绝")
             }
         }
     }
@@ -386,66 +286,39 @@ class SimpleHTTPServer: NSObject {
     }
     
     private func startSimpleServer() {
-        NSLog("🔧 [Simple HTTP功能器] 开始启动服务器...")
-        print("🔧 [Simple HTTP功能器] 开始启动服务器...")
-        
         do {
             // 创建Vapor应用
-            NSLog("📦 [Simple HTTP功能器] 创建Vapor应用...")
             let config = Environment(name: "development", arguments: ["serve"])
             app = Application(config)
-            NSLog("✅ [Simple HTTP功能器] Vapor应用创建成功")
             
-            // 配置功能器 - 监听所有接口
-            NSLog("⚙️ [Simple HTTP功能器] 配置服务器参数...")
+            // 配置服务器
             app?.http.server.configuration.port = port
             app?.http.server.configuration.address = .hostname("0.0.0.0", port: port)
             app?.http.server.configuration.tcpNoDelay = true
             app?.http.server.configuration.requestDecompression = .enabled
             app?.http.server.configuration.responseCompression = .enabled
             app?.threadPool = .init(numberOfThreads: 2)
-            NSLog("✅ [Simple HTTP功能器] 服务器参数配置完成 - 端口: \(port), 地址: 0.0.0.0")
-            
-            // 不设置TLS配置，强制HTTP
             app?.http.server.configuration.tlsConfiguration = nil
-            NSLog("🔒 [Simple HTTP功能器] TLS配置已禁用，使用HTTP")
             
-            // 设置CORS和缓存头
-            NSLog("🌐 [Simple HTTP功能器] 设置CORS中间件...")
+            // 设置CORS中间件
             app?.middleware.use(CORSMiddleware())
-            NSLog("✅ [Simple HTTP功能器] CORS中间件设置完成")
             
             // 设置路由
-            NSLog("🛣️ [Simple HTTP功能器] 设置路由...")
             setupSimpleRoutes()
-            NSLog("✅ [Simple HTTP功能器] 路由设置完成")
             
-            // 启动功能器
-            NSLog("🚀 [Simple HTTP功能器] 启动服务器...")
+            // 启动服务器
             try app?.run()
-            
             isRunning = true
-            NSLog("✅ [Simple HTTP功能器] 功能器已启动，端口: \(port)")
-            NSLog("🌐 [Simple HTTP功能器] 服务器地址: http://0.0.0.0:\(port)")
-            NSLog("📱 [Simple HTTP功能器] 本地访问地址: http://127.0.0.1:\(port)")
-            print("✅ [Simple HTTP功能器] 功能器已启动，端口: \(port)")
-            print("🌐 [Simple HTTP功能器] 服务器地址: http://0.0.0.0:\(port)")
-            print("📱 [Simple HTTP功能器] 本地访问地址: http://127.0.0.1:\(port)")
+            NSLog("✅ [HTTP服务器] 服务器已启动，端口: \(port)")
             
         } catch {
-            NSLog("❌ [Simple HTTP功能器] 启动失败: \(error)")
-            print("❌ [Simple HTTP功能器] 启动失败: \(error)")
+            NSLog("❌ [HTTP服务器] 启动失败: \(error)")
             isRunning = false
         }
     }
     
     private func setupSimpleRoutes() {
-        guard let app = app else { 
-            NSLog("❌ [Simple HTTP功能器] 无法设置路由，app为nil")
-            return 
-        }
-        
-        NSLog("🛣️ [Simple HTTP功能器] 开始设置路由...")
+        guard let app = app else { return }
         
         // 健康检查端点
         app.get("health") { req -> String in
@@ -454,23 +327,16 @@ class SimpleHTTPServer: NSObject {
         
         // 提供IPA文件功能
         app.get("ipa", ":filename") { [weak self] req -> Response in
-            let filename = req.parameters.get("filename") ?? "nil"
-            NSLog("📦 [Simple HTTP功能器] IPA文件请求 - filename: \(filename)")
-            
             guard let self = self,
                   let filename = req.parameters.get("filename"),
                   filename == self.appInfo.bundleIdentifier else {
-                NSLog("❌ [Simple HTTP功能器] IPA文件请求失败 - filename: \(filename), 期望: \(self?.appInfo.bundleIdentifier ?? "nil")")
                 return Response(status: .notFound)
             }
             
-            NSLog("📁 [Simple HTTP功能器] 读取IPA文件: \(self.ipaPath)")
             guard let ipaData = try? Data(contentsOf: URL(fileURLWithPath: self.ipaPath)) else {
-                NSLog("❌ [Simple HTTP功能器] 无法读取IPA文件: \(self.ipaPath)")
                 return Response(status: .notFound)
             }
             
-            NSLog("✅ [Simple HTTP功能器] IPA文件读取成功，大小: \(ipaData.count) 字节")
             let response = Response(status: .ok)
             response.headers.add(name: "Content-Type", value: "application/octet-stream")
             response.headers.add(name: "Access-Control-Allow-Origin", value: "*")
@@ -482,23 +348,16 @@ class SimpleHTTPServer: NSObject {
         
         // 提供IPA文件服务（直接通过bundleIdentifier访问）
         app.get(":filename") { [weak self] req -> Response in
-            let filename = req.parameters.get("filename") ?? "nil"
-            NSLog("📦 [Simple HTTP功能器] 直接IPA文件请求 - filename: \(filename)")
-            
             guard let self = self,
                   let filename = req.parameters.get("filename"),
                   filename == "\(self.appInfo.bundleIdentifier).ipa" else {
-                NSLog("❌ [Simple HTTP功能器] 直接IPA文件请求失败 - filename: \(filename), 期望: \(self?.appInfo.bundleIdentifier ?? "nil").ipa")
                 return Response(status: .notFound)
             }
             
-            NSLog("📁 [Simple HTTP功能器] 读取IPA文件: \(self.ipaPath)")
             guard let ipaData = try? Data(contentsOf: URL(fileURLWithPath: self.ipaPath)) else {
-                NSLog("❌ [Simple HTTP功能器] 无法读取IPA文件: \(self.ipaPath)")
                 return Response(status: .notFound)
             }
             
-            NSLog("✅ [Simple HTTP功能器] IPA文件读取成功，大小: \(ipaData.count) 字节")
             let response = Response(status: .ok)
             response.headers.add(name: "Content-Type", value: "application/octet-stream")
             response.headers.add(name: "Access-Control-Allow-Origin", value: "*")
@@ -510,20 +369,13 @@ class SimpleHTTPServer: NSObject {
         
         // 提供Plist文件功能
         app.get("plist", ":filename") { [weak self] req -> Response in
-            let filename = req.parameters.get("filename") ?? "nil"
-            NSLog("📄 [Simple HTTP服务器] Plist文件请求 - filename: \(filename)")
-            
             guard let self = self,
                   let filename = req.parameters.get("filename"),
                   filename == self.appInfo.bundleIdentifier else {
-                NSLog("❌ [Simple HTTP服务器] Plist文件请求失败 - filename: \(filename), 期望: \(self?.appInfo.bundleIdentifier ?? "nil")")
                 return Response(status: .notFound)
             }
             
-            NSLog("🔧 [Simple HTTP服务器] 生成Plist数据...")
             let plistData = self.generatePlistData()
-            NSLog("✅ [Simple HTTP服务器] Plist文件生成成功: \(filename), 大小: \(plistData.count) 字节")
-            
             let response = Response(status: .ok)
             response.headers.add(name: "Content-Type", value: "application/xml")
             response.headers.add(name: "Access-Control-Allow-Origin", value: "*")
@@ -547,7 +399,6 @@ class SimpleHTTPServer: NSObject {
             }
             
             NSLog("📄 [APP] 请求plist文件，解码路径: \(decodedPath)")
-            print("📄 请求plist文件，解码路径: \(decodedPath)")
             
             let response = Response(status: .ok)
             response.headers.add(name: "Content-Type", value: "application/xml")
@@ -558,7 +409,7 @@ class SimpleHTTPServer: NSObject {
             return response
         }
         
-        // 安装页面路由（保留作为备用）
+        // 安装页面路由
         app.get("install") { [weak self] req -> Response in
             guard let self = self else {
                 return Response(status: .internalServerError)
@@ -567,7 +418,7 @@ class SimpleHTTPServer: NSObject {
             // 生成外部manifest URL
             let externalManifestURL = self.generateExternalManifestURL()
             
-            // 创建自动安装页面
+            // 创建改进的自动安装页面
             let installPage = """
             <!DOCTYPE html>
             <html>
@@ -576,6 +427,9 @@ class SimpleHTTPServer: NSObject {
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>正在安装 \(self.appInfo.name)</title>
                 <style>
+                    * {
+                        box-sizing: border-box;
+                    }
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                         margin: 0;
@@ -596,6 +450,7 @@ class SimpleHTTPServer: NSObject {
                         backdrop-filter: blur(10px);
                         max-width: 400px;
                         width: 100%;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
                     }
                     .app-icon {
                         width: 80px;
@@ -607,11 +462,31 @@ class SimpleHTTPServer: NSObject {
                         align-items: center;
                         justify-content: center;
                         font-size: 40px;
+                        box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+                    }
+                    .app-info {
+                        margin-bottom: 20px;
+                    }
+                    .app-name {
+                        font-size: 24px;
+                        font-weight: 600;
+                        margin: 0 0 8px 0;
+                    }
+                    .app-version {
+                        font-size: 16px;
+                        opacity: 0.8;
+                        margin: 0 0 4px 0;
+                    }
+                    .app-bundle {
+                        font-size: 12px;
+                        opacity: 0.6;
+                        margin: 0;
                     }
                     .status {
                         margin-top: 20px;
                         font-size: 16px;
                         opacity: 0.9;
+                        min-height: 24px;
                     }
                     .loading {
                         display: inline-block;
@@ -623,82 +498,160 @@ class SimpleHTTPServer: NSObject {
                         animation: spin 1s ease-in-out infinite;
                         margin-right: 10px;
                     }
+                    .success {
+                        color: #4CAF50;
+                    }
+                    .error {
+                        color: #f44336;
+                    }
+                    .manual-install {
+                        margin-top: 20px;
+                        padding: 15px;
+                        background: rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
+                        font-size: 14px;
+                    }
+                    .install-button {
+                        background: #007AFF;
+                        color: white;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        margin-top: 10px;
+                        transition: background 0.3s;
+                    }
+                    .install-button:hover {
+                        background: #0056CC;
+                    }
+                    .install-button:disabled {
+                        background: #666;
+                        cursor: not-allowed;
+                    }
                     @keyframes spin {
                         to { transform: rotate(360deg); }
+                    }
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: translateY(20px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    .fade-in {
+                        animation: fadeIn 0.5s ease-out;
                     }
                 </style>
             </head>
             <body>
-                <div class="container">
+                <div class="container fade-in">
                     <div class="app-icon">📱</div>
-                    <h1>\(self.appInfo.name)</h1>
-                    <p>版本 \(self.appInfo.version)</p>
-                    <p>Bundle ID: \(self.appInfo.bundleIdentifier)</p>
+                    <div class="app-info">
+                        <h1 class="app-name">\(self.appInfo.name)</h1>
+                        <p class="app-version">版本 \(self.appInfo.version)</p>
+                        <p class="app-bundle">\(self.appInfo.bundleIdentifier)</p>
+                    </div>
                     
                     <div class="status" id="status">
                         <span class="loading"></span>正在启动安装程序...
                     </div>
+                    
+                    <div class="manual-install" id="manualInstall" style="display: none;">
+                        <p>如果自动安装失败，请点击下方按钮手动安装：</p>
+                        <button class="install-button" id="manualButton" onclick="manualInstall()">
+                            手动安装
+                        </button>
+                    </div>
                 </div>
                 
                 <script>
+                    let manifestURL = '';
+                    let itmsURL = '';
+                    let isInstalling = false; // 防止重复安装
+                    let installSuccess = false; // 标记是否已成功启动安装
+                    
                     // 页面加载完成后立即自动执行安装
                     window.onload = function() {
                         console.log('页面加载完成，开始自动安装...');
-                        autoInstall();
+                        initializeInstallation();
                     };
                     
-                    function autoInstall() {
-                        const status = document.getElementById('status');
-                        
+                    function initializeInstallation() {
                         // 使用外部manifest URL
-                        const manifestURL = '\(externalManifestURL)';
-                        const itmsURL = 'itms-services://?action=download-manifest&url=' + encodeURIComponent(manifestURL);
+                        manifestURL = '\(externalManifestURL)';
+                        itmsURL = 'itms-services://?action=download-manifest&url=' + encodeURIComponent(manifestURL);
                         
                         console.log('Manifest URL:', manifestURL);
                         console.log('ITMS URL:', itmsURL);
-                        status.innerHTML = '<span class="loading"></span>正在触发安装...';
-                        
-                        // 直接尝试安装，不测试manifest URL
-                        console.log('开始直接安装，跳过manifest URL测试...');
-                        status.innerHTML = '<span class="loading"></span>正在触发安装...';
                         
                         // 延迟一点时间确保页面完全加载
                         setTimeout(function() {
-                            try {
-                                // 方法1: 直接跳转
-                                window.location.href = itmsURL;
-                                status.innerHTML = '<span class="loading"></span>已启动安装程序...';
-                                
-                                // 如果跳转成功，3秒后隐藏页面内容
-                                setTimeout(function() {
-                                    document.body.innerHTML = '<div style="text-align: center; padding: 50px; color: white;"><h2>✅ 查看iPhone桌面显示</h2><p>遇到问题,联系源代码作者 pxx917144686</p></div>';
-                                }, 3000);
-                                
-                            } catch (error) {
-                                console.error('方法1失败:', error);
-                                status.innerHTML = '安装启动失败，正在尝试其他方法...';
-                                
-                                // 方法2: 使用iframe
-                                try {
-                                    const iframe = document.createElement('iframe');
-                                    iframe.style.display = 'none';
-                                    iframe.src = itmsURL;
-                                    document.body.appendChild(iframe);
-                                    status.innerHTML = '<span class="loading"></span>通过iframe启动安装...';
-                                } catch (error2) {
-                                    console.error('方法2失败:', error2);
-                                    
-                                    // 方法3: 使用window.open
-                                    try {
-                                        window.open(itmsURL, '_blank');
-                                        status.innerHTML = '<span class="loading"></span>通过新窗口启动安装...';
-                                    } catch (error3) {
-                                        console.error('方法3失败:', error3);
-                                        status.innerHTML = '自动安装失败，请手动复制URL: ' + itmsURL;
-                                    }
+                            autoInstall();
+                        }, 1000);
+                    }
+                    
+                    function autoInstall() {
+                        // 防止重复安装
+                        if (isInstalling || installSuccess) {
+                            console.log('安装正在进行中或已成功，跳过重复调用');
+                            return;
+                        }
+                        
+                        const status = document.getElementById('status');
+                        const manualInstall = document.getElementById('manualInstall');
+                        
+                        isInstalling = true;
+                        status.innerHTML = '<span class="loading"></span>正在启动安装程序...';
+                        
+                        console.log('开始安装尝试');
+                        
+                        try {
+                            // 只使用直接跳转方法触发安装
+                            window.location.href = itmsURL;
+                            status.innerHTML = '<span class="success">✅ 已启动安装程序...</span>';
+                            installSuccess = true;
+                            
+                            console.log('安装程序启动成功');
+                            
+                            // 如果跳转成功，3秒后显示成功信息
+                            setTimeout(function() {
+                                if (installSuccess) {
+                                    status.innerHTML = '<span class="success">✅ 请查看iPhone桌面~ 遇到问题联系代码作者pxx917144686</span>';
+                                    document.body.innerHTML = '<div class="container fade-in" style="text-align: center; padding: 50px; color: white;"><div class="app-icon">✅</div><h1>安装成功</h1><p>请查看iPhone桌面，应用正在安装中...</p><p style="font-size: 12px; opacity: 0.6;">遇到问题请联系源代码作者 pxx917144686</p></div>';
                                 }
-                            }
-                        }, 500);
+                            }, 3000);
+                            
+                        } catch (error) {
+                            console.error('安装失败:', error);
+                            status.innerHTML = '<span class="error">❌ 安装启动失败</span>';
+                            manualInstall.style.display = 'block';
+                            isInstalling = false;
+                        }
+                    }
+                    
+                    function manualInstall() {
+                        if (isInstalling || installSuccess) {
+                            console.log('安装正在进行中或已成功，忽略手动安装');
+                            return;
+                        }
+                        
+                        const button = document.getElementById('manualButton');
+                        const status = document.getElementById('status');
+                        
+                        button.disabled = true;
+                        button.textContent = '正在安装...';
+                        status.innerHTML = '<span class="loading"></span>手动触发安装...';
+                        isInstalling = true;
+                        
+                        try {
+                            window.location.href = itmsURL;
+                            status.innerHTML = '<span class="success">✅ 手动安装已启动</span>';
+                            installSuccess = true;
+                        } catch (error) {
+                            status.innerHTML = '<span class="error">❌ 手动安装失败: ' + error.message + '</span>';
+                            button.disabled = false;
+                            button.textContent = '重试安装';
+                            isInstalling = false;
+                        }
                     }
                 </script>
             </body>
@@ -745,13 +698,6 @@ class SimpleHTTPServer: NSObject {
             return response
         }
         
-        // 测试路由
-        app.get("test") { req -> Response in
-            let response = Response(status: .ok)
-            response.headers.add(name: "Content-Type", value: "text/plain")
-            response.body = .init(string: "Simple HTTP Server is running!")
-            return response
-        }
         
         // 健康检查路由
         app.get("health") { req -> Response in
@@ -764,7 +710,6 @@ class SimpleHTTPServer: NSObject {
     
     func stop() {
         NSLog("🛑 [Simple HTTP功能器] 停止功能器")
-        print("🛑 [Simple HTTP功能器] 停止功能器")
         
         serverQueue.async { [weak self] in
             self?.app?.shutdown()
@@ -775,42 +720,6 @@ class SimpleHTTPServer: NSObject {
     func setPlistData(_ data: Data, fileName: String) {
         self.plistData = data
         self.plistFileName = fileName
-        NSLog("✅ [Simple HTTP功能器] 已设置Plist数据: \(fileName)")
-        print("✅ [Simple HTTP功能器] 已设置Plist数据: \(fileName)")
-    }
-    
-    // MARK: - 同步获取设备IP地址
-    private func getDeviceIPAddressSync() -> String {
-        var address: String = "127.0.0.1" // 默认值
-        
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else { return address }
-        guard let firstAddr = ifaddr else { return address }
-        
-        for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
-            let interface = ifptr.pointee
-            
-            // 检查接口类型
-            let addrFamily = interface.ifa_addr.pointee.sa_family
-            if addrFamily == UInt8(AF_INET) {
-                // 检查接口名称
-                let name = String(cString: interface.ifa_name)
-                if name == "en0" || name == "pdp_ip0" {
-                    // 获取IP地址
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                               &hostname, socklen_t(hostname.count),
-                               nil, socklen_t(0), NI_NUMERICHOST)
-                    address = String(cString: hostname)
-                    break
-                }
-            }
-        }
-        
-        freeifaddrs(ifaddr)
-        NSLog("📱 [Simple HTTP功能器] 设备IP地址: \(address)")
-        print("📱 设备IP地址: \(address)")
-        return address
     }
     
     // MARK: - 生成URL
@@ -826,22 +735,14 @@ class SimpleHTTPServer: NSObject {
         let proxyURL = "https://api.palera.in/genPlist?bundleid=\(appInfo.bundleIdentifier)&name=\(appInfo.bundleIdentifier)&version=\(appInfo.version)&fetchurl=\(fullIPAURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? fullIPAURL)"
         
         NSLog("🔗 [APP] 外部manifest URL: \(proxyURL)")
-        print("🔗 外部manifest URL: \(proxyURL)")
         
         return proxyURL
     }
     
     // MARK: - 生成Plist文件数据
     private func generatePlistData() -> Data {
-        NSLog("🔧 [Simple HTTP服务器] 开始生成Plist数据...")
-        
-        // 使用localhost而不是设备IP地址
         let ipaURL = "http://127.0.0.1:\(port)/\(appInfo.bundleIdentifier).ipa"
         
-        NSLog("🔗 [Simple HTTP服务器] 本地IPA URL: \(ipaURL)")
-        NSLog("📦 [Simple HTTP服务器] AppInfo: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
-        
-        // 生成简化的plist内容
         let plistContent: [String: Any] = [
             "items": [[
                 "assets": [
@@ -859,28 +760,12 @@ class SimpleHTTPServer: NSObject {
             ]]
         ]
         
-        // 转换为XML格式的plist数据
         guard let plistData = try? PropertyListSerialization.data(
             fromPropertyList: plistContent,
             format: .xml,
             options: .zero
         ) else {
-            NSLog("❌ [Simple HTTP功能器] 生成Plist数据失败")
-            print("❌ 生成Plist数据失败")
             return Data()
-        }
-        
-        NSLog("📄 [Simple HTTP功能器] 生成Plist文件成功，大小: \(plistData.count) 字节")
-        print("📄 生成Plist文件成功，大小: \(plistData.count) 字节")
-        NSLog("🔗 [Simple HTTP功能器] 本地IPA URL: \(ipaURL)")
-        print("🔗 本地IPA URL: \(ipaURL)")
-        
-        // 验证 plist 内容
-        if let plistString = String(data: plistData, encoding: .utf8) {
-            NSLog("📋 [Simple HTTP功能器] Plist内容预览:")
-            print("📋 Plist内容预览:")
-            NSLog(plistString)
-            print(plistString)
         }
         
         return plistData
@@ -919,180 +804,14 @@ class SimpleHTTPServer: NSObject {
         return pngData
         #endif
     }
-    
-    // MARK: - 获取设备IP地址
-    private func getDeviceIPAddress() async -> String {
-        var address: String = "127.0.0.1" // 默认值
-        
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else { return address }
-        guard let firstAddr = ifaddr else { return address }
-        
-        for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
-            let interface = ifptr.pointee
-            
-            // 检查接口类型
-            let addrFamily = interface.ifa_addr.pointee.sa_family
-            if addrFamily == UInt8(AF_INET) {
-                // 检查接口名称
-                let name = String(cString: interface.ifa_name)
-                if name == "en0" || name == "pdp_ip0" {
-                    // 获取IP地址
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                               &hostname, socklen_t(hostname.count),
-                               nil, socklen_t(0), NI_NUMERICHOST)
-                    address = String(cString: hostname)
-                    break
-                }
-            }
-        }
-        
-        freeifaddrs(ifaddr)
-        NSLog("📱 [SimpleHTTPServer] 设备IP地址: \(address)")
-        print("📱 设备IP地址: \(address)")
-        
-        // 测试本地服务器连接
-        testLocalServerConnection(ip: address, port: 4593)
-        
-        // 测试 plist 和 IPA 文件可访问性
-        testInstallationURLs(ip: address, port: 4593)
-        
-        return address
-    }
-    
-    private func testLocalServerConnection(ip: String, port: Int) {
-        NSLog("🔍 [网络测试] 开始测试连接到 \(ip):\(port)")
-        print("🔍 [网络测试] 开始测试连接到 \(ip):\(port)")
-        
-        guard let url = URL(string: "http://\(ip):\(port)/health") else {
-            NSLog("❌ [网络测试] 无效的URL")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-        request.httpMethod = "GET"
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    NSLog("❌ [网络测试] 连接失败: \(error.localizedDescription)")
-                    print("❌ [网络测试] 连接失败: \(error.localizedDescription)")
-                    
-                    // 提供解决建议
-                    NSLog("💡 [网络测试] 建议检查:")
-                    NSLog("   1. WiFi网络是否正常")
-                    NSLog("   2. 设备是否在同一网络")
-                    NSLog("   3. 防火墙/路由器设置")
-                    NSLog("   4. iOS本地网络权限")
-                } else if let httpResponse = response as? HTTPURLResponse {
-                    NSLog("✅ [网络测试] 连接成功，状态码: \(httpResponse.statusCode)")
-                    print("✅ [网络测试] 连接成功，状态码: \(httpResponse.statusCode)")
-                }
-            }
-        }.resume()
-    }
-    
-    private func testInstallationURLs(ip: String, port: Int) {
-        NSLog("🔍 [安装测试] 开始测试安装URL可访问性...")
-        print("🔍 [安装测试] 开始测试安装URL可访问性...")
-        
-        // 测试 plist 文件
-        let plistURL = "http://\(ip):\(port)/plist/com.tencent.qqmail"
-        testURL(plistURL, name: "Plist文件")
-        
-        // 测试 IPA 文件
-        let ipaURL = "http://\(ip):\(port)/ipa/com.tencent.qqmail"
-        testURL(ipaURL, name: "IPA文件")
-        
-        // 测试健康检查
-        let healthURL = "http://\(ip):\(port)/health"
-        testURL(healthURL, name: "健康检查")
-    }
-    
-    private func testURL(_ urlString: String, name: String) {
-        guard let url = URL(string: urlString) else {
-            NSLog("❌ [安装测试] \(name) URL无效: \(urlString)")
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 5
-        request.httpMethod = "GET"
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    NSLog("❌ [安装测试] \(name) 访问失败: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 200 {
-                        NSLog("✅ [安装测试] \(name) 访问成功 (状态码: \(httpResponse.statusCode))")
-                        if let data = data {
-                            NSLog("📊 [安装测试] \(name) 数据大小: \(data.count) 字节")
-                        }
-                    } else {
-                        NSLog("⚠️ [安装测试] \(name) 状态码异常: \(httpResponse.statusCode)")
-                    }
-                }
-            }
-        }.resume()
-    }
 }
 #endif
 
-// MARK: - 安装状态
-enum AdhocInstallationStatus {
-    case idle
-    case preparing
-    case signing
-    case startingServer
-    case ready
-    case installing
-    case completed
-    case failed(Error)
-    
-    var displayText: String {
-        switch self {
-        case .idle:
-            return "准备安装"
-        case .preparing:
-            return "准备IPA文件..."
-        case .signing:
-            return "签名中..."
-        case .startingServer:
-            return "启动安装服务器..."
-        case .ready:
-            return "准备就绪，点击安装"
-        case .installing:
-            return "正在安装..."
-        case .completed:
-            return "安装完成"
-        case .failed(let error):
-            return "安装失败: \(error.localizedDescription)"
-        }
-    }
-    
-    var isInstalling: Bool {
-        switch self {
-        case .preparing, .signing, .startingServer, .installing:
-            return true
-        default:
-            return false
-        }
-    }
-}
-
-
-
 struct DownloadView: SwiftUIView {
     @StateObject private var vm: UnifiedDownloadManager = UnifiedDownloadManager.shared
-    @State private var refreshID = UUID()
     @State private var animateCards = false
     @State private var showThemeSelector = false
-    @State private var isInstalling = false
-    @State private var installProgress: Double = 0.0
-    @State private var installStatus = ""
+    @State private var scenePhase: ScenePhase = .active
     
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -1142,6 +861,15 @@ struct DownloadView: SwiftUIView {
                 }
             }
         }
+        .onChange(of: scenePhase) { newPhase in
+            handleScenePhaseChange(newPhase)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            handleAppEnteredBackground()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            handleAppBecameActive()
+        }
     }
     
     // MARK: - 下载任务分段视图
@@ -1151,12 +879,7 @@ struct DownloadView: SwiftUIView {
                 // 内容区域间距
                 Spacer(minLength: 16)
                 
-                if isInstalling {
-                    installationProgressView
-                        .scaleEffect(animateCards ? 1 : 0.9)
-                        .opacity(animateCards ? 1 : 0)
-                        .animation(.spring().delay(0.1), value: animateCards)
-                } else if vm.downloadRequests.isEmpty {
+                if vm.downloadRequests.isEmpty {
                     emptyStateView
                         .scaleEffect(animateCards ? 1 : 0.9)
                         .opacity(animateCards ? 1 : 0)
@@ -1174,388 +897,7 @@ struct DownloadView: SwiftUIView {
         }
     }
     
-    // MARK: - 安装方法
-    private func startKsignInstallation() {
-        guard !isInstalling else { return }
         
-        isInstalling = true
-        installProgress = 0.0
-        installStatus = "准备安装..."
-        
-        Task {
-            do {
-                try await performKsignInstallation()
-                
-                await MainActor.run {
-                    installProgress = 1.0
-                    installStatus = "安装完成"
-                    isInstalling = false
-                }
-            } catch {
-                await MainActor.run {
-                    installStatus = "安装失败: \(error.localizedDescription)"
-                    isInstalling = false
-                }
-            }
-        }
-    }
-    
-    private func performKsignInstallation() async throws {
-        NSLog("🔧 [APP] 开始安装流程")
-        print("🔧 开始安装流程")
-        
-        // 检查是否在模拟器中运行
-        #if targetEnvironment(simulator)
-        NSLog("⚠️ [APP] 检测到模拟器环境 - 安装可能无法正常工作")
-        print("⚠️ 检测到模拟器环境 - 安装可能无法正常工作")
-        #else
-        NSLog("📱 [APP] 检测到真机环境 - 将使用安装方法")
-        print("📱 检测到真机环境 - 将使用安装方法")
-        #endif
-        
-        // 获取实际的IPA文件路径
-        let ipaPath = getIPAPath()
-        
-        await MainActor.run {
-            installStatus = "正在验证IPA文件..."
-            installProgress = 0.1
-        }
-        
-        // 验证IPA文件路径是否有效
-        guard !ipaPath.isEmpty else {
-            throw PackageInstallationError.installationFailed("未找到IPA文件，请确保设备上有IPA文件")
-        }
-        
-        // 验证IPA文件是否存在
-        guard FileManager.default.fileExists(atPath: ipaPath) else {
-            throw PackageInstallationError.invalidIPAFile
-        }
-        
-        // 从IPA文件中提取应用信息
-        let appInfo = try await extractAppInfo(from: ipaPath)
-        
-        await MainActor.run {
-            installStatus = "正在进行签名..."
-            installProgress = 0.3
-        }
-        
-        // 执行签名（参考Ksign的SigningHandler流程）
-        try await performAdhocSigning(ipaPath: ipaPath, appInfo: appInfo)
-        
-        await MainActor.run {
-            installStatus = "签名成功，准备安装..."
-            installProgress = 0.6
-        }
-        
-        // 启动HTTP服务器进行OTA安装（参考Ksign的ServerInstaller）
-        #if canImport(Vapor)
-        let server = SimpleHTTPServer(
-            port: SimpleHTTPServer.randomPort(),
-            ipaPath: ipaPath,
-            appInfo: appInfo
-        )
-        
-        server.start()
-        
-        await MainActor.run {
-            installStatus = "安装服务器已启动，正在打开安装页面..."
-            installProgress = 0.9
-        }
-        
-        // 打开安装页面（参考Ksign的InstallPreviewView）
-        if let url = URL(string: "http://127.0.0.1:\(server.port)/install") {
-            #if canImport(UIKit)
-            DispatchQueue.main.async {
-                UIApplication.shared.open(url)
-            }
-            #endif
-        }
-        
-        await MainActor.run {
-            installStatus = "安装页面已打开，请在Safari中完成安装"
-            installProgress = 1.0
-        }
-        
-        // 延迟停止服务器
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
-            server.stop()
-        }
-        #else
-        throw PackageInstallationError.installationFailed("Vapor库不可用，无法启动安装服务器")
-        #endif
-    }
-    
-    // MARK: - 获取IPA文件路径
-    private func getIPAPath() -> String {
-        // 从Documents目录查找IPA文件
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let documentsURL = documentsPath.appendingPathComponent("")
-        
-        do {
-            let files = try FileManager.default.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            for file in files {
-                if file.pathExtension.lowercased() == "ipa" {
-                    NSLog("📁 [APP] 找到IPA文件: \(file.path)")
-                    print("📁 找到IPA文件: \(file.path)")
-                    return file.path
-                }
-            }
-        } catch {
-            NSLog("❌ [APP] 搜索IPA文件失败: \(error)")
-            print("❌ 搜索IPA文件失败: \(error)")
-        }
-        
-        // 如果Documents目录没有找到，尝试从Downloads目录查找
-        let downloadsPath = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
-        let downloadsURL = downloadsPath.appendingPathComponent("")
-        
-        do {
-            let files = try FileManager.default.contentsOfDirectory(at: downloadsURL, includingPropertiesForKeys: nil)
-            for file in files {
-                if file.pathExtension.lowercased() == "ipa" {
-                    NSLog("📁 [APP] 在Downloads目录找到IPA文件: \(file.path)")
-                    print("📁 在Downloads目录找到IPA文件: \(file.path)")
-                    return file.path
-                }
-            }
-        } catch {
-            NSLog("❌ [APP] 搜索Downloads目录失败: \(error)")
-            print("❌ 搜索Downloads目录失败: \(error)")
-        }
-        
-        // 如果都没有找到，抛出错误
-        NSLog("❌ [APP] 未找到任何IPA文件")
-        print("❌ 未找到任何IPA文件")
-        return ""
-    }
-    
-    // MARK: - 从IPA文件提取应用信息
-    private func extractAppInfo(from ipaPath: String) async throws -> AppInfo {
-        NSLog("📱 [APP] 开始从IPA文件提取应用信息: \(ipaPath)")
-        print("📱 开始从IPA文件提取应用信息: \(ipaPath)")
-        
-        // 创建临时目录来解压IPA文件
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        
-        do {
-            // 创建临时目录
-            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            
-            // 解压IPA文件
-            #if canImport(ZipArchive)
-            let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-            guard success else {
-                throw PackageInstallationError.installationFailed("IPA文件解压失败")
-            }
-            #else
-            // 如果没有ZipArchive，使用系统方法
-            #if os(macOS)
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            process.arguments = ["-q", ipaPath, "-d", tempDir.path]
-            try process.run()
-            process.waitUntilExit()
-            
-            guard process.terminationStatus == 0 else {
-                throw PackageInstallationError.installationFailed("IPA文件解压失败")
-            }
-            #else
-            // iOS上不支持Process，抛出错误
-            throw PackageInstallationError.installationFailed("iOS上不支持系统解压，请安装ZipArchive")
-            #endif
-            #endif
-            
-            // 查找Payload目录中的.app文件
-            let payloadDir = tempDir.appendingPathComponent("Payload")
-            let payloadContents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
-            
-            guard let appBundle = payloadContents.first(where: { $0.pathExtension == "app" }) else {
-                throw PackageInstallationError.installationFailed("未找到.app文件")
-            }
-            
-            // 读取Info.plist文件
-            let infoPlistPath = appBundle.appendingPathComponent("Info.plist")
-            let infoPlistData = try Data(contentsOf: infoPlistPath)
-            let infoPlist = try PropertyListSerialization.propertyList(from: infoPlistData, format: nil) as! [String: Any]
-            
-            // 提取应用信息
-            let bundleIdentifier = infoPlist["CFBundleIdentifier"] as? String ?? "unknown.bundle.id"
-            let appName = infoPlist["CFBundleDisplayName"] as? String ?? infoPlist["CFBundleName"] as? String ?? "Unknown App"
-            let version = infoPlist["CFBundleShortVersionString"] as? String ?? infoPlist["CFBundleVersion"] as? String ?? "1.0.0"
-            
-            NSLog("📱 [APP] 提取的应用信息: \(appName) v\(version) (\(bundleIdentifier))")
-            print("📱 提取的应用信息: \(appName) v\(version) (\(bundleIdentifier))")
-            
-            // 清理临时目录
-            try FileManager.default.removeItem(at: tempDir)
-            
-            return AppInfo(
-                name: appName,
-                version: version,
-                bundleIdentifier: bundleIdentifier,
-                path: ipaPath,
-                localPath: ipaPath
-            )
-            
-        } catch {
-            // 清理临时目录
-            try? FileManager.default.removeItem(at: tempDir)
-            throw PackageInstallationError.installationFailed("提取应用信息失败: \(error.localizedDescription)")
-        }
-    }
-    
-    // MARK: - 签名方法
-    private func performAdhocSigning(ipaPath: String, appInfo: AppInfo) async throws {
-        print("🔐 [DownloadView] 开始签名: \(ipaPath)")
-        print("📱 [DownloadView] 应用信息: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
-        
-        // 检查ZsignSwift库是否可用
-        #if canImport(ZsignSwift)
-        // 使用Task来等待签名完成，添加超时处理
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            // 添加签名任务
-            group.addTask {
-                try await withCheckedThrowingContinuation { continuation in
-                    // 先解压IPA文件获取.app包路径
-                    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                    defer {
-                        // 清理临时目录
-                        try? FileManager.default.removeItem(at: tempDir)
-                    }
-                    
-                    do {
-                        // 创建临时目录
-                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                        
-                        // 解压IPA文件
-                        #if canImport(ZipArchive)
-                        let unzipSuccess = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-                        guard unzipSuccess else {
-                            throw PackageInstallationError.installationFailed("IPA文件解压失败")
-                        }
-                        #else
-                        // 如果没有ZipArchive，使用系统方法
-                        #if os(macOS)
-                        let process = Process()
-                        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-                        process.arguments = ["-q", ipaPath, "-d", tempDir.path]
-                        try process.run()
-                        process.waitUntilExit()
-                        
-                        guard process.terminationStatus == 0 else {
-                            throw PackageInstallationError.installationFailed("IPA文件解压失败")
-                        }
-                        #else
-                        // iOS上不支持Process，抛出错误
-                        throw PackageInstallationError.installationFailed("iOS上不支持系统解压，请安装ZipArchive")
-                        #endif
-                        #endif
-                        
-                        // 查找Payload目录中的.app文件
-                        let payloadDir = tempDir.appendingPathComponent("Payload")
-                        let payloadContents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
-                        
-                        guard let appBundle = payloadContents.first(where: { $0.pathExtension == "app" }) else {
-                            throw PackageInstallationError.installationFailed("未找到.app文件")
-                        }
-                        
-                        let appPath = appBundle.path
-                        print("🔐 [DownloadView] 找到.app包路径: \(appPath)")
-                        
-                        let success = Zsign.sign(
-                            appPath: appPath,
-                            entitlementsPath: "",
-                            customIdentifier: appInfo.bundleIdentifier,
-                            customName: appInfo.name,
-                            customVersion: appInfo.version,
-                            adhoc: true,
-                            removeProvision: true, // 签名时应该移除provisioning文件
-                            completion: { _, error in
-                                if let error = error {
-                                    print("❌ [DownloadView] 签名失败: \(error)")
-                                    continuation.resume(throwing: PackageInstallationError.installationFailed("签名失败: \(error.localizedDescription)"))
-                                } else {
-                                    print("✅ [DownloadView] 签名成功")
-                                    continuation.resume()
-                                }
-                            }
-                        )
-                        
-                        if !success {
-                            continuation.resume(throwing: PackageInstallationError.installationFailed("签名过程启动失败"))
-                        }
-                        
-                    } catch {
-                        print("❌ [DownloadView] 解压或签名失败: \(error)")
-                        continuation.resume(throwing: error)
-                    }
-                }
-            }
-            
-            // 添加超时任务
-            group.addTask {
-                try await Task.sleep(nanoseconds: 30_000_000_000) // 30秒超时
-                throw PackageInstallationError.timeoutError
-            }
-            
-            // 等待第一个完成的任务
-            try await group.next()
-            group.cancelAll()
-        }
-        #else
-        // ZsignSwift库不可用，抛出错误
-        print("❌ [DownloadCardView] ZsignSwift库不可用！")
-        throw PackageInstallationError.installationFailed("ZsignSwift库不可用")
-        #endif
-    }
-    
-    /// 安装进度显示视图
-    private var installationProgressView: some SwiftUIView {
-        VStack(spacing: 20) {
-            // 安装图标
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-                .scaleEffect(isInstalling ? 1.1 : 1.0)
-                .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isInstalling)
-            
-            // 安装状态文本
-            Text(installStatus)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-                .multilineTextAlignment(.center)
-            
-            // 进度条
-            ProgressView(value: installProgress)
-                .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                .scaleEffect(x: 1, y: 2, anchor: .center)
-                .frame(height: 8)
-            
-            // 进度百分比
-            Text("\(Int(installProgress * 100))%")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            // 取消按钮
-            Button("取消安装") {
-                // TODO: 实现取消安装逻辑
-                isInstalling = false
-                installProgress = 0.0
-                installStatus = ""
-            }
-            .foregroundColor(.red)
-            .padding(.top, 20)
-        }
-        .padding(40)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.gray.opacity(0.1))
-                .shadow(radius: 10)
-        )
-        .padding(.horizontal, 20)
-    }
-    
     // MARK: - 下载请求视图
     private var downloadRequestsView: some SwiftUIView {
         ForEach(Array(vm.downloadRequests.enumerated()), id: \.element.id) { enumeratedItem in
@@ -1629,12 +971,89 @@ struct DownloadView: SwiftUIView {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 32)
     }
+    
+    // MARK: - 应用生命周期管理
+    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        switch newPhase {
+        case .active:
+            NSLog("📱 [DownloadView] 应用进入前台")
+            handleAppBecameActive()
+        case .inactive:
+            NSLog("📱 [DownloadView] 应用变为非活跃状态")
+            handleAppBecameInactive()
+        case .background:
+            NSLog("📱 [DownloadView] 应用进入后台")
+            handleAppEnteredBackground()
+        @unknown default:
+            NSLog("📱 [DownloadView] 未知的应用状态变化")
+        }
+    }
+    
+    private func handleAppBecameActive() {
+        // 应用从后台回到前台时的处理
+        NSLog("🔄 [DownloadView] 恢复下载任务状态")
+        
+        // 恢复下载任务
+        vm.restoreDownloadTasks()
+        
+        // 检查是否有未完成的安装任务
+        checkAndResumeInstallations()
+        
+        // 刷新UI
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                animateCards = true
+            }
+        }
+    }
+    
+    private func handleAppBecameInactive() {
+        // 应用变为非活跃状态时的处理
+        NSLog("⏸️ [DownloadView] 暂停下载任务")
+        
+        // 保存当前下载状态
+        vm.saveDownloadTasks()
+    }
+    
+    private func handleAppEnteredBackground() {
+        // 应用进入后台时的处理
+        NSLog("💾 [DownloadView] 保存下载任务状态")
+        
+        // 保存下载任务到持久化存储
+        vm.saveDownloadTasks()
+        
+        // 暂停所有下载任务
+        vm.pauseAllDownloads()
+        
+        // 停止HTTP服务器
+        stopAllHTTPServers()
+    }
+    
+    private func checkAndResumeInstallations() {
+        // 检查是否有未完成的安装任务并恢复
+        for request in vm.downloadRequests {
+            if request.runtime.status == .completed,
+               let localFilePath = request.localFilePath,
+               FileManager.default.fileExists(atPath: localFilePath) {
+                NSLog("🔄 [DownloadView] 发现可恢复的安装任务: \(request.name)")
+                // 这里可以添加恢复安装的逻辑
+            }
+        }
+    }
+    
+    private func stopAllHTTPServers() {
+        // 停止所有HTTP服务器
+        NSLog("🛑 [DownloadView] 停止所有HTTP服务器")
+        HTTPServerManager.shared.stopAllServers()
+    }
+    
 }
 
 // MARK: - 下载卡片视图
 struct DownloadCardView: SwiftUIView {
     @ObservedObject var request: DownloadRequest
     @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var globalInstallManager = GlobalInstallationManager.shared
     
     // 添加状态变量
     @State private var showDetailView = false
@@ -1644,7 +1063,6 @@ struct DownloadCardView: SwiftUIView {
     @State private var isInstalling = false
     @State private var installationProgress: Double = 0.0
     @State private var installationMessage: String = ""
-    @State private var httpServer: SimpleHTTPServer?
     
     // Safari WebView状态
     @State private var showSafariWebView = false
@@ -1761,27 +1179,46 @@ struct DownloadCardView: SwiftUIView {
         }
     }
     
-    // MARK: - 操作按钮（去掉暂停功能）
+    // MARK: - 操作按钮
     private var actionButtons: some SwiftUIView {
         VStack(spacing: 8) {
             // 主要操作按钮
             HStack(spacing: 8) {
-                // 下载失败时显示重试按钮
+                // 下载失败时显示相应按钮
                 if request.runtime.status == .failed {
-                    Button(action: {
-                        retryDownload()
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.clockwise")
-                            Text("重试")
+                    if isUnpurchasedAppError() {
+                        // 未购买应用，显示跳转App Store按钮
+                        Button(action: {
+                            openAppStore()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "app.badge")
+                                Text("此APP疑似没有购买记录，跳转 App Store 购买")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
                         }
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+                    } else {
+                        // 其他错误，显示重试按钮
+                        Button(action: {
+                            retryDownload()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                Text("重试")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
                 }
                 
                 Spacer()
@@ -1808,27 +1245,53 @@ struct DownloadCardView: SwiftUIView {
                                 startInstallation(for: request)
                             }) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.white)
-                                    Text("开始安装")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
+                                    if isInstalling {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(0.8)
+                                    } else if globalInstallManager.isAnyInstalling && globalInstallManager.currentInstallingRequestId != request.id {
+                                        Image(systemName: "clock.fill")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.6))
+                                    } else {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
+                                    
+                                    if isInstalling {
+                                        Text("安装中...")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    } else if globalInstallManager.isAnyInstalling && globalInstallManager.currentInstallingRequestId != request.id {
+                                        Text("等待中...")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.6))
+                                    } else {
+                                        Text("开始安装")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
                                 .background(
                                     LinearGradient(
-                                        colors: [Color.green, Color.green.opacity(0.8)],
+                                        colors: isInstalling || (globalInstallManager.isAnyInstalling && globalInstallManager.currentInstallingRequestId != request.id) 
+                                            ? [Color.gray, Color.gray.opacity(0.8)]
+                                            : [Color.green, Color.green.opacity(0.8)],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )
                                 )
                                 .cornerRadius(10)
-                                .shadow(color: Color.green.opacity(0.3), radius: 4, x: 0, y: 2)
+                                .shadow(color: isInstalling || (globalInstallManager.isAnyInstalling && globalInstallManager.currentInstallingRequestId != request.id) 
+                                    ? Color.gray.opacity(0.3) 
+                                    : Color.green.opacity(0.3), radius: 4, x: 0, y: 2)
                             }
                             .buttonStyle(PlainButtonStyle())
+                            .disabled(isInstalling || (globalInstallManager.isAnyInstalling && globalInstallManager.currentInstallingRequestId != request.id))
                         }
                     }
                     
@@ -1846,13 +1309,14 @@ struct DownloadCardView: SwiftUIView {
         }
         .sheet(isPresented: $showSafariWebView) {
             if let url = safariURL {
-                SafariWebView(url: url)
+                SafariWebView(
+                    url: url,
+                    isPresented: $showSafariWebView,
+                    onDismiss: {
+                        NSLog("🔒 [DownloadCardView] Safari WebView已关闭")
+                    }
+                )
             }
-        }
-        .alert("分享结果", isPresented: $showShareAlert) {
-            Button("确定", role: .cancel) { }
-        } message: {
-            Text(shareMessage)
         }
     }
     
@@ -1885,22 +1349,9 @@ struct DownloadCardView: SwiftUIView {
     
     // MARK: - 分享功能
     private func shareIPAFile(path: String) {
-        print("📤 [分享] 开始分享IPA文件: \(path)")
-        
-        // 验证文件存在性
         guard FileManager.default.fileExists(atPath: path) else {
-            print("❌ [分享] 文件不存在: \(path)")
-            showShareError("文件不存在")
+            print("❌ 文件不存在: \(path)")
             return
-        }
-        
-        // 获取文件信息
-        do {
-            let fileAttributes = try FileManager.default.attributesOfItem(atPath: path)
-            let fileSize = fileAttributes[.size] as? Int64 ?? 0
-            print("📊 [分享] 文件大小: \(ByteCountFormatter().string(fromByteCount: fileSize))")
-        } catch {
-            print("⚠️ [分享] 无法获取文件信息: \(error)")
         }
         
         let fileURL = URL(fileURLWithPath: path)
@@ -1912,84 +1363,31 @@ struct DownloadCardView: SwiftUIView {
             applicationActivities: nil
         )
         
-        // 设置分享标题和描述
+        // 设置分享标题
         activityViewController.setValue("分享IPA文件", forKey: "subject")
         
-        // 排除不需要的分享选项
-        activityViewController.excludedActivityTypes = [
-            .addToReadingList,
-            .assignToContact,
-            .openInIBooks,
-            .postToFlickr,
-            .postToTencentWeibo,
-            .postToVimeo,
-            .postToWeibo,
-            .print,
-            .saveToCameraRoll
-        ]
-        
-        // 设置完成回调
-        activityViewController.completionWithItemsHandler = { activityType, completed, returnedItems, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ [分享] 分享失败: \(error.localizedDescription)")
-                    self.showShareError("分享失败: \(error.localizedDescription)")
-                } else if completed {
-                    print("✅ [分享] 分享成功: \(activityType?.rawValue ?? "未知方式")")
-                    self.showShareSuccess("分享成功")
-                } else {
-                    print("ℹ️ [分享] 用户取消了分享")
-                }
-            }
-        }
-        
         // 获取当前窗口的根视图控制器
-        DispatchQueue.main.async {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first,
-               let rootViewController = window.rootViewController {
-                
-                // 在iPad上需要设置popoverPresentationController
-                if let popover = activityViewController.popoverPresentationController {
-                    popover.sourceView = rootViewController.view
-                    popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX, 
-                                              y: rootViewController.view.bounds.midY, 
-                                              width: 0, height: 0)
-                    popover.permittedArrowDirections = []
-                }
-                
-                // 查找最顶层的视图控制器
-                var topViewController = rootViewController
-                while let presentedViewController = topViewController.presentedViewController {
-                    topViewController = presentedViewController
-                }
-                
-                topViewController.present(activityViewController, animated: true) {
-                    print("✅ [分享] 分享界面已显示")
-                }
-            } else {
-                print("❌ [分享] 无法获取根视图控制器")
-                self.showShareError("无法显示分享界面")
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootViewController = window.rootViewController {
+            
+            // 在iPad上需要设置popoverPresentationController
+            if let popover = activityViewController.popoverPresentationController {
+                popover.sourceView = rootViewController.view
+                popover.sourceRect = CGRect(x: rootViewController.view.bounds.midX, 
+                                          y: rootViewController.view.bounds.midY, 
+                                          width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            
+            rootViewController.present(activityViewController, animated: true) {
+                print("✅ 分享界面已显示")
             }
         }
         #else
-        print("❌ [分享] 非iOS平台不支持分享功能")
-        showShareError("当前平台不支持分享功能")
         #endif
-    }
     
-    // MARK: - 分享反馈
-    @State private var shareMessage: String = ""
-    @State private var showShareAlert: Bool = false
-    
-    private func showShareSuccess(_ message: String) {
-        shareMessage = message
-        showShareAlert = true
-    }
-    
-    private func showShareError(_ message: String) {
-        shareMessage = message
-        showShareAlert = true
+    print("📤 [分享] 准备分享IPA文件: \(path)")
     }
     
     private var statusIndicator: some SwiftUIView {
@@ -2179,35 +1577,6 @@ struct DownloadCardView: SwiftUIView {
         .padding(.horizontal, 4)
     }
 
-    var progressCard: some SwiftUIView {
-        ModernCard(style: .elevated, padding: Spacing.lg) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Label("下载进度", systemImage: "arrow.down.circle")
-                        .font(.headline)
-                        .foregroundColor(themeManager.accentColor)
-                    
-                    Spacer()
-                    
-                    Text("\(Int(request.runtime.progressValue * 100))%")
-                        .font(.title2)
-                        .foregroundColor(themeManager.accentColor)
-                }
-                
-                ProgressView(value: request.runtime.progressValue)
-                    .progressViewStyle(LinearProgressViewStyle(tint: themeManager.accentColor))
-                    .scaleEffect(y: 2.0)
-                
-                HStack {
-                    Spacer()
-                    
-                    Text(request.createdAt.formatted())
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-    }
     
     // MARK: - 下载管理方法
     private func deleteDownload() {
@@ -2218,10 +1587,77 @@ struct DownloadCardView: SwiftUIView {
         UnifiedDownloadManager.shared.startDownload(for: request)
     }
     
+    // MARK: - 错误检测和App Store跳转
+    private func isUnpurchasedAppError() -> Bool {
+        guard let errorMessage = request.runtime.error else { return false }
+        
+        // 检测常见的未购买应用错误信息
+        let unpurchasedKeywords = [
+            "应用未购买",
+            "未购买",
+            "license",
+            "purchase",
+            "购买",
+            "songList为空",
+            "用户可能未购买此应用",
+            "请先前往App Store购买"
+        ]
+        
+        return unpurchasedKeywords.contains { keyword in
+            errorMessage.localizedCaseInsensitiveContains(keyword)
+        }
+    }
+    
+    private func openAppStore() {
+        // 构建App Store链接
+        let appStoreURL = "https://apps.apple.com/app/id\(request.package.identifier)"
+        
+        guard let url = URL(string: appStoreURL) else {
+            print("❌ [App Store] 无法创建App Store链接: \(appStoreURL)")
+            return
+        }
+        
+        print("🔗 [App Store] 正在打开App Store链接: \(appStoreURL)")
+        
+        #if canImport(UIKit)
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url) { success in
+                if success {
+                    print("✅ [App Store] 成功打开App Store")
+                } else {
+                    print("❌ [App Store] 打开App Store失败")
+                }
+            }
+        } else {
+            print("❌ [App Store] 无法打开App Store链接")
+        }
+        #endif
+    }
+    
     // MARK: - 安装功能
     private func startInstallation(for request: DownloadRequest) {
-        guard !isInstalling else { return }
+        // 全局安装状态检查
+        guard globalInstallManager.startInstallation(for: request.id) else {
+            NSLog("⚠️ [APP] 其他应用正在安装中，忽略当前请求")
+            return
+        }
         
+        // 本地安装状态检查
+        guard !isInstalling else { 
+            NSLog("⚠️ [APP] 安装正在进行中，忽略重复点击")
+            globalInstallManager.finishInstallation()
+            return 
+        }
+        
+        // 检查是否已经有本地文件
+        guard let localFilePath = request.localFilePath,
+              FileManager.default.fileExists(atPath: localFilePath) else {
+            NSLog("❌ [APP] 本地文件不存在，无法安装")
+            globalInstallManager.finishInstallation()
+            return
+        }
+        
+        NSLog("🚀 [APP] 开始安装流程 - 请求ID: \(request.id)")
         isInstalling = true
         installationProgress = 0.0
         installationMessage = "准备安装..."
@@ -2234,225 +1670,27 @@ struct DownloadCardView: SwiftUIView {
                     installationProgress = 1.0
                     installationMessage = "安装成功完成"
                     isInstalling = false
+                    globalInstallManager.finishInstallation()
+                    NSLog("✅ [APP] 安装流程完成")
                 }
             } catch {
                 await MainActor.run {
                     installationMessage = "安装失败: \(error.localizedDescription)"
                     isInstalling = false
+                    globalInstallManager.finishInstallation()
+                    NSLog("❌ [APP] 安装流程失败: \(error)")
                 }
             }
         }
     }
     
-    // MARK: - 签名方法
-    private func performAdhocSigning(ipaPath: String, appInfo: AppInfo) async throws {
-        print("🔐 [DownloadCardView] 开始深度修复签名流程: \(ipaPath)")
-        print("📱 [DownloadCardView] 应用信息: \(appInfo.name) v\(appInfo.version) (\(appInfo.bundleIdentifier))")
-        
-        // 检查ZsignSwift库是否可用
-        print("🔍 [DownloadCardView] 检查ZsignSwift库可用性...")
-        
-        #if canImport(ZsignSwift)
-        print("✅ [DownloadCardView] ZsignSwift库已导入")
-        
-        // 创建临时工作目录
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("Signing_\(UUID().uuidString)")
-        defer {
-            // 清理临时目录
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-        
-        do {
-            // 创建临时目录
-            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            print("📁 [DownloadCardView] 创建临时目录: \(tempDir.path)")
-            
-            // 解压IPA文件
-            print("📦 [DownloadCardView] 开始解压IPA文件...")
-            #if canImport(ZipArchive)
-            let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-            guard success else {
-                throw PackageInstallationError.installationFailed("IPA解压失败")
-            }
-            print("✅ [DownloadCardView] IPA解压成功")
-            #else
-            throw PackageInstallationError.installationFailed("ZipArchive库不可用")
-            #endif
-            
-            // 验证解压结果
-            let payloadDir = tempDir.appendingPathComponent("Payload")
-            guard FileManager.default.fileExists(atPath: payloadDir.path) else {
-                throw PackageInstallationError.installationFailed("Payload目录不存在")
-            }
-            
-            let contents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
-            guard let appBundle = contents.first(where: { $0.pathExtension == "app" }) else {
-                throw PackageInstallationError.installationFailed("未找到.app包")
-            }
-            
-            let appPath = appBundle.path
-            print("📱 [DownloadCardView] 找到.app包: \(appPath)")
-            
-            // 验证.app包内容
-            let appContents = try FileManager.default.contentsOfDirectory(at: appBundle, includingPropertiesForKeys: nil)
-            print("📋 [DownloadCardView] .app包内容: \(appContents.map { $0.lastPathComponent })")
-            
-            // 查找可执行文件
-            let executable = appContents.first { $0.pathExtension.isEmpty && !$0.lastPathComponent.contains(".") }
-            guard let executable = executable else {
-                throw PackageInstallationError.installationFailed("未找到可执行文件")
-            }
-            print("⚙️ [DownloadCardView] 找到可执行文件: \(executable.lastPathComponent)")
-            
-            // 执行签名
-            print("🔐 [DownloadCardView] 开始执行签名...")
-            let signResult = await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Error?), Never>) in
-                let success = Zsign.sign(
-                    appPath: appPath,
-                    entitlementsPath: "",
-                    customIdentifier: appInfo.bundleIdentifier,
-                    customName: appInfo.name,
-                    customVersion: appInfo.version,
-                    adhoc: true,
-                    removeProvision: true,
-                    completion: { result, error in
-                        if let error = error {
-                            print("❌ [DownloadCardView] 签名失败: \(error)")
-                            continuation.resume(returning: (false, error))
-                        } else {
-                            print("✅ [DownloadCardView] 签名成功")
-                            continuation.resume(returning: (true, nil as Error?))
-                        }
-                    }
-                )
-                
-                // 如果Zsign.sign立即返回false，说明调用失败
-                if !success {
-                    print("❌ [DownloadCardView] Zsign.sign调用失败")
-                    continuation.resume(returning: (false, NSError(domain: "ZsignError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Zsign.sign调用失败"])))
-                }
-            }
-            
-            if !signResult.0 {
-                throw PackageInstallationError.installationFailed("签名失败: \(signResult.1?.localizedDescription ?? "未知错误")")
-            }
-            
-            print("✅ [DownloadCardView] 签名流程完成")
-            
-        } catch {
-            print("❌ [DownloadCardView] 签名过程中发生错误: \(error)")
-            throw PackageInstallationError.installationFailed("签名失败: \(error.localizedDescription)")
-        }
-        
-        #else
-        print("❌ [DownloadCardView] ZsignSwift库不可用，使用备用方案")
-        
-        // 备用方案：使用系统工具进行简单处理
-        try await performFallbackInstallation(ipaPath: ipaPath, appInfo: appInfo)
-        #endif
-    }
-    
-    // MARK: - 备用安装方案
-    private func performFallbackInstallation(ipaPath: String, appInfo: AppInfo) async throws {
-        print("🔄 [DownloadCardView] 使用备用安装方案")
-        
-        // 创建临时工作目录
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("Fallback_\(UUID().uuidString)")
-        defer {
-            try? FileManager.default.removeItem(at: tempDir)
-        }
-        
-        do {
-            // 创建临时目录
-            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            
-            // 解压IPA文件
-            #if canImport(ZipArchive)
-            let success = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
-            guard success else {
-                throw PackageInstallationError.installationFailed("IPA解压失败")
-            }
-            #else
-            throw PackageInstallationError.installationFailed("ZipArchive库不可用")
-            #endif
-            
-            // 创建iTunesMetadata.plist
-            let metadataDict: [String: Any] = [
-                "appleId": appInfo.bundleIdentifier,
-                "artistId": 0,
-                "artistName": appInfo.name,
-                "bundleId": appInfo.bundleIdentifier,
-                "bundleVersion": appInfo.version,
-                "copyright": "Copyright © 2025",
-                "drmVersionNumber": 0,
-                "fileExtension": "ipa",
-                "fileName": "\(appInfo.name).ipa",
-                "genre": "Productivity",
-                "genreId": 6007,
-                "itemId": 0,
-                "itemName": appInfo.name,
-                "kind": "software",
-                "playlistName": "iOS Apps",
-                "price": 0.0,
-                "priceDisplay": "Free",
-                "rating": "4+",
-                "releaseDate": "2025-01-01T00:00:00Z",
-                "s": 143441,
-                "softwareIcon57x57URL": "",
-                "softwareIconNeedsShine": false,
-                "softwareSupportedDeviceIds": [1, 2],
-                "softwareVersionBundleId": appInfo.bundleIdentifier,
-                "softwareVersionExternalIdentifier": 0,
-                "softwareVersionExternalIdentifiers": [],
-                "subgenres": [],
-                "vendorId": 0,
-                "versionRestrictions": 0
-            ]
-            
-            let plistData = try PropertyListSerialization.data(
-                fromPropertyList: metadataDict,
-                format: .xml,
-                options: 0
-            )
-            
-            let metadataPath = tempDir.appendingPathComponent("iTunesMetadata.plist")
-            try plistData.write(to: metadataPath)
-            
-            // 重新打包IPA文件
-            let processedIPAPath = URL(fileURLWithPath: ipaPath).deletingLastPathComponent()
-                .appendingPathComponent("processed_\(URL(fileURLWithPath: ipaPath).lastPathComponent)")
-            
-            let repackSuccess = SSZipArchive.createZipFile(atPath: processedIPAPath.path, withContentsOfDirectory: tempDir.path)
-            guard repackSuccess else {
-                throw PackageInstallationError.installationFailed("IPA重新打包失败")
-            }
-            
-            // 替换原文件
-            try FileManager.default.removeItem(at: URL(fileURLWithPath: ipaPath))
-            try FileManager.default.moveItem(at: processedIPAPath, to: URL(fileURLWithPath: ipaPath))
-            
-            print("✅ [DownloadCardView] 备用方案完成")
-            
-        } catch {
-            print("❌ [DownloadCardView] 备用方案失败: \(error)")
-            throw PackageInstallationError.installationFailed("备用安装方案失败: \(error.localizedDescription)")
-        }
-    }
     
     private func performOTAInstallation(for request: DownloadRequest) async throws {
-        NSLog("🔧 [APP] 开始简化安装流程")
-        NSLog("⏰ [APP] 安装开始时间: \(Date())")
-        NSLog("📋 [APP] 下载请求ID: \(request.id)")
-        print("🔧 开始简化安装流程")
-        print("⏰ 安装开始时间: \(Date())")
-        print("📋 下载请求ID: \(request.id)")
+        NSLog("🔧 [APP] 开始安装流程")
         
         guard let localFilePath = request.localFilePath else {
-            NSLog("❌ [APP] 本地文件路径为空")
             throw PackageInstallationError.invalidIPAFile
         }
-        
-        NSLog("✅ [APP] 本地文件路径验证通过: \(localFilePath)")
         
         // 创建AppInfo
         let appInfo = AppInfo(
@@ -2462,38 +1700,14 @@ struct DownloadCardView: SwiftUIView {
             path: localFilePath
         )
         
-        NSLog("📱 [APP] AppInfo创建成功:")
-        NSLog("   - 名称: \(request.package.name)")
-        NSLog("   - 版本: \(request.version)")
-        NSLog("   - Bundle ID: \(request.package.bundleIdentifier)")
-        NSLog("   - 路径: \(localFilePath)")
-        print("📱 AppInfo: \(request.package.name) v\(request.version) (\(request.package.bundleIdentifier))")
-        print("📁 IPA路径: \(localFilePath)")
-        
         await MainActor.run {
             installationMessage = "正在验证IPA文件..."
             installationProgress = 0.2
         }
         
-        NSLog("🔍 [APP] 开始验证IPA文件...")
         // 验证IPA文件是否存在
         guard FileManager.default.fileExists(atPath: localFilePath) else {
-            NSLog("❌ [APP] IPA文件不存在: \(localFilePath)")
             throw PackageInstallationError.invalidIPAFile
-        }
-        
-        // 获取文件大小
-        do {
-            let attributes = try FileManager.default.attributesOfItem(atPath: localFilePath)
-            if let fileSize = attributes[.size] as? Int64 {
-                let formatter = ByteCountFormatter()
-                formatter.allowedUnits = [.useMB, .useGB]
-                formatter.countStyle = .file
-                let fileSizeString = formatter.string(fromByteCount: fileSize)
-                NSLog("✅ [APP] IPA文件验证成功 - 大小: \(fileSizeString)")
-            }
-        } catch {
-            NSLog("⚠️ [APP] 无法获取文件大小: \(error)")
         }
         
         await MainActor.run {
@@ -2501,10 +1715,8 @@ struct DownloadCardView: SwiftUIView {
             installationProgress = 0.4
         }
         
-        NSLog("🔐 [APP] 开始执行签名...")
         // 执行签名
         try await self.performAdhocSigning(ipaPath: localFilePath, appInfo: appInfo)
-        NSLog("✅ [APP] 签名完成")
         
         await MainActor.run {
             installationMessage = "签名成功，准备安装..."
@@ -2512,59 +1724,26 @@ struct DownloadCardView: SwiftUIView {
         }
         
         // 启动HTTP服务器
-        NSLog("🚀 [APP] 创建HTTP服务器...")
         let serverPort = SimpleHTTPServer.randomPort()
-        NSLog("🔢 [APP] 随机端口: \(serverPort)")
-        
-        let server = SimpleHTTPServer(
+        HTTPServerManager.shared.startServer(
+            for: request.id,
             port: serverPort,
             ipaPath: localFilePath,
             appInfo: appInfo
         )
         
-        NSLog("✅ [APP] HTTP服务器创建成功，开始启动...")
-        server.start()
-        
         // 等待服务器启动
-        NSLog("⏳ [APP] 等待服务器启动 (4秒)...")
         try await Task.sleep(nanoseconds: 4_000_000_000) // 等待4秒
-        NSLog("✅ [APP] 服务器启动等待完成")
-        
-        // 测试服务器连接
-        NSLog("🔍 [APP] 开始测试服务器连接...")
-        await testServerConnection(port: server.port)
         
         await MainActor.run {
             installationMessage = "正在生成安装URL..."
             installationProgress = 0.8
         }
         
-        // 获取设备IP地址
-        NSLog("🌐 [APP] 开始获取设备IP地址...")
-        let deviceIP = await getDeviceIPAddress()
-        NSLog("📱 [APP] 设备IP地址获取成功: \(deviceIP)")
-        NSLog("🔢 [APP] 服务器端口: \(server.port)")
-        print("📱 设备IP地址: \(deviceIP)")
-        
-        // 生成安装URL - 智能选择IP地址
-        NSLog("🔗 [APP] 开始生成安装URL...")
-        
-        // 优先使用localhost，因为iOS系统对localhost访问更友好
-        let manifestURL = "http://127.0.0.1:\(server.port)/plist/\(appInfo.bundleIdentifier)"
+        // 生成安装URL
+        let manifestURL = "http://127.0.0.1:\(serverPort)/plist/\(appInfo.bundleIdentifier)"
         let encodedManifestURL = manifestURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? manifestURL
         let itmsURL = "itms-services://?action=download-manifest&url=\(encodedManifestURL)"
-        
-        NSLog("💡 [APP] 使用localhost地址，避免iOS网络限制")
-        
-        NSLog("🔗 [APP] Manifest URL: \(manifestURL)")
-        NSLog("🔗 [APP] 编码后的Manifest URL: \(encodedManifestURL)")
-        NSLog("🔗 [APP] ITMS URL: \(itmsURL)")
-        print("🔗 Manifest URL: \(manifestURL)")
-        print("🔗 ITMS URL: \(itmsURL)")
-        
-        // 测试plist文件访问
-        NSLog("🔍 [APP] 开始测试plist文件访问...")
-        await testPlistAccess(manifestURL: manifestURL)
         
         await MainActor.run {
             installationMessage = "正在打开iOS安装对话框..."
@@ -2572,42 +1751,26 @@ struct DownloadCardView: SwiftUIView {
         }
         
         // 使用Safari WebView打开安装页面
-        NSLog("🔍 [APP] 开始创建安装页面URL...")
-        let localInstallURL = "http://127.0.0.1:\(server.port)/install"
+        let localInstallURL = "http://127.0.0.1:\(serverPort)/install"
         
         if let installURL = URL(string: localInstallURL) {
-            NSLog("✅ [APP] 安装页面URL创建成功: \(installURL)")
-            NSLog("🔍 [APP] 准备在Safari WebView中打开安装页面...")
-            print("🔍 准备在Safari WebView中打开安装页面: \(installURL)")
-            
-            // 先测试本地服务器连接
-            NSLog("🌐 [APP] 开始测试本地服务器连接...")
-            await testNetworkConnectivity(deviceIP: "127.0.0.1", port: server.port)
-            
-            NSLog("📱 [APP] 准备在主线程中打开Safari WebView...")
             DispatchQueue.main.async {
-                NSLog("🚀 [APP] 开始设置Safari WebView...")
                 self.safariURL = installURL
                 self.showSafariWebView = true
-                NSLog("✅ [APP] 正在Safari WebView中打开安装页面")
-                print("✅ 正在Safari WebView中打开安装页面")
                 
-                // 延迟关闭Safari WebView，给用户足够时间看到安装弹窗
-                DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
-                    self.showSafariWebView = false
-                    NSLog("🔒 [APP] 自动关闭Safari WebView")
-                    print("🔒 自动关闭Safari WebView")
-                    
-                    // 延迟停止服务器
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        server.stop()
-                        NSLog("🛑 [APP] 停止HTTP服务器")
-                        print("🛑 停止HTTP服务器")
+                // 设置自动关闭定时器
+                DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+                    if self.showSafariWebView {
+                        self.showSafariWebView = false
                     }
+                }
+                
+                // 延迟停止服务器
+                DispatchQueue.main.asyncAfter(deadline: .now() + 30.0) {
+                    HTTPServerManager.shared.stopServer(for: request.id)
                 }
             }
         } else {
-            NSLog("❌ [APP] 无法创建安装页面URL: \(localInstallURL)")
             throw PackageInstallationError.installationFailed("无法创建安装页面URL")
         }
         
@@ -2617,187 +1780,75 @@ struct DownloadCardView: SwiftUIView {
         }
     }
     
-    // MARK: - 测试服务器连接
-    private func testServerConnection(port: Int) async {
-        let testURL = "http://127.0.0.1:\(port)/test"
-        NSLog("🔍 [APP] 测试服务器连接 - URL: \(testURL)")
+    // MARK: - 签名方法
+    private func performAdhocSigning(ipaPath: String, appInfo: AppInfo) async throws {
         
-        do {
-            let (data, response) = try await URLSession.shared.data(from: URL(string: testURL)!)
-            if let httpResponse = response as? HTTPURLResponse {
-                NSLog("📡 [APP] 服务器连接测试 - 状态码: \(httpResponse.statusCode)")
-                NSLog("📡 [APP] 响应数据大小: \(data.count) 字节")
-                
-                if httpResponse.statusCode == 200 {
-                    NSLog("✅ [APP] 服务器连接测试成功")
-                    if let responseString = String(data: data, encoding: .utf8) {
-                        NSLog("📄 [APP] 服务器响应: \(responseString)")
+        #if canImport(ZsignSwift)
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                try await withCheckedThrowingContinuation { continuation in
+                    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                    defer {
+                        try? FileManager.default.removeItem(at: tempDir)
                     }
-                } else {
-                    NSLog("❌ [APP] 服务器连接测试失败，状态码: \(httpResponse.statusCode)")
-                }
-            }
-        } catch {
-            NSLog("❌ [APP] 服务器连接测试错误: \(error)")
-        }
-    }
-    
-    // MARK: - 测试网络连接
-    private func testNetworkConnectivity(deviceIP: String, port: Int) async {
-        NSLog("🌐 [APP] 开始测试网络连接...")
-        NSLog("📱 [APP] 测试设备IP: \(deviceIP)")
-        NSLog("🔢 [APP] 测试端口: \(port)")
-        
-        let testURLs = [
-            "http://\(deviceIP):\(port)/test",
-            "http://\(deviceIP):\(port)/health"
-        ]
-        
-        var successCount = 0
-        for (index, testURL) in testURLs.enumerated() {
-            NSLog("🔍 [APP] 测试URL \(index + 1)/\(testURLs.count): \(testURL)")
-            guard let url = URL(string: testURL) else { 
-                NSLog("❌ [APP] 无法创建URL: \(testURL)")
-                continue 
-            }
-            
-            do {
-                let (data, response) = try await URLSession.shared.data(from: url)
-                if let httpResponse = response as? HTTPURLResponse {
-                    NSLog("📡 [APP] 网络连接测试 - \(testURL)")
-                    NSLog("   - 状态码: \(httpResponse.statusCode)")
-                    NSLog("   - 响应大小: \(data.count) 字节")
                     
-                    if httpResponse.statusCode == 200 {
-                        NSLog("✅ [APP] 网络连接测试成功: \(testURL)")
-                        successCount += 1
-                        if let responseString = String(data: data, encoding: .utf8) {
-                            NSLog("📄 [APP] 响应内容: \(responseString)")
-                        }
-                    } else {
-                        NSLog("❌ [APP] 网络连接测试失败 - 状态码: \(httpResponse.statusCode)")
-                    }
-                }
-            } catch {
-                NSLog("❌ [APP] 网络连接测试失败 - \(testURL)")
-                NSLog("   - 错误: \(error)")
-            }
-        }
-        
-        if successCount > 0 {
-            NSLog("✅ [APP] 网络连接测试完成 - 成功: \(successCount)/\(testURLs.count)")
-        } else {
-            NSLog("⚠️ [APP] 网络连接测试失败，可能影响安装")
-            NSLog("💡 [APP] 建议检查:")
-            NSLog("   1. 设备IP地址是否正确: \(deviceIP)")
-            NSLog("   2. 服务器是否正在运行")
-            NSLog("   3. 防火墙设置")
-            NSLog("   4. 本地网络权限")
-        }
-    }
-    
-    // MARK: - 测试plist文件访问
-    private func testPlistAccess(manifestURL: String) async {
-        NSLog("📄 [APP] 开始测试plist文件访问...")
-        NSLog("🔗 [APP] Manifest URL: \(manifestURL)")
-        
-        guard let url = URL(string: manifestURL) else {
-            NSLog("❌ [APP] 无法创建plist测试URL: \(manifestURL)")
-            return
-        }
-        
-        NSLog("✅ [APP] URL创建成功，开始请求...")
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-            if let httpResponse = response as? HTTPURLResponse {
-                NSLog("📡 [APP] Plist文件访问测试结果:")
-                NSLog("   - 状态码: \(httpResponse.statusCode)")
-                NSLog("   - 文件大小: \(data.count) 字节")
-                NSLog("   - Content-Type: \(httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "未知")")
-                
-                if httpResponse.statusCode == 200 {
-                    NSLog("✅ [APP] Plist文件访问成功")
-                    if let plistString = String(data: data, encoding: .utf8) {
-                        let preview = String(plistString.prefix(300))
-                        NSLog("📋 [APP] Plist内容预览:")
-                        NSLog("\(preview)...")
+                    do {
+                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
                         
-                        // 验证plist格式
-                        if plistString.contains("<?xml") && plistString.contains("plist") {
-                            NSLog("✅ [APP] Plist格式验证通过")
-                        } else {
-                            NSLog("⚠️ [APP] Plist格式可能有问题")
+                        #if canImport(ZipArchive)
+                        let unzipSuccess = SSZipArchive.unzipFile(atPath: ipaPath, toDestination: tempDir.path)
+                        guard unzipSuccess else {
+                            throw PackageInstallationError.installationFailed("IPA文件解压失败")
                         }
-                    } else {
-                        NSLog("⚠️ [APP] 无法解析plist内容为字符串")
-                    }
-                } else {
-                    NSLog("❌ [APP] Plist文件访问失败，状态码: \(httpResponse.statusCode)")
-                    if let errorData = String(data: data, encoding: .utf8) {
-                        NSLog("📄 [APP] 错误响应: \(errorData)")
+                        #else
+                        throw PackageInstallationError.installationFailed("需要ZipArchive库")
+                        #endif
+                        
+                        let payloadDir = tempDir.appendingPathComponent("Payload")
+                        let payloadContents = try FileManager.default.contentsOfDirectory(at: payloadDir, includingPropertiesForKeys: nil)
+                        
+                        guard let appBundle = payloadContents.first(where: { $0.pathExtension == "app" }) else {
+                            throw PackageInstallationError.installationFailed("未找到.app文件")
+                        }
+                        
+                        let appPath = appBundle.path
+                        let success = Zsign.sign(
+                            appPath: appPath,
+                            entitlementsPath: "",
+                            customIdentifier: appInfo.bundleIdentifier,
+                            customName: appInfo.name,
+                            customVersion: appInfo.version,
+                            adhoc: true,
+                            removeProvision: true,
+                            completion: { _, error in
+                                if let error = error {
+                                    continuation.resume(throwing: PackageInstallationError.installationFailed("签名失败: \(error.localizedDescription)"))
+                                } else {
+                                    continuation.resume()
+                                }
+                            }
+                        )
+                        
+                        if !success {
+                            continuation.resume(throwing: PackageInstallationError.installationFailed("签名过程启动失败"))
+                        }
+                        
+                    } catch {
+                        continuation.resume(throwing: error)
                     }
                 }
             }
-        } catch {
-            NSLog("❌ [APP] Plist文件访问测试失败: \(error)")
-            NSLog("💡 [APP] 可能的原因:")
-            NSLog("   1. 网络连接问题")
-            NSLog("   2. 服务器未启动")
-            NSLog("   3. 路由配置错误")
-            NSLog("   4. 文件不存在")
-        }
-    }
-    
-    // MARK: - 获取设备IP地址
-    private func getDeviceIPAddress() async -> String {
-        NSLog("🌐 [APP] 开始获取设备IP地址...")
-        var address: String = "127.0.0.1" // 默认值
-        var interfaceCount = 0
-        var foundInterfaces: [String] = []
-        
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0 else { 
-            NSLog("❌ [APP] getifaddrs调用失败")
-            return address 
-        }
-        guard let firstAddr = ifaddr else { 
-            NSLog("❌ [APP] 无法获取网络接口列表")
-            return address 
-        }
-        
-        NSLog("🔍 [APP] 开始扫描网络接口...")
-        for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
-            let interface = ifptr.pointee
-            interfaceCount += 1
             
-            // 检查接口类型
-            let addrFamily = interface.ifa_addr.pointee.sa_family
-            if addrFamily == UInt8(AF_INET) {
-                // 检查接口名称
-                let name = String(cString: interface.ifa_name)
-                foundInterfaces.append(name)
-                NSLog("🔍 [APP] 发现IPv4接口: \(name)")
-                
-                if name == "en0" || name == "pdp_ip0" {
-                    NSLog("✅ [APP] 找到目标接口: \(name)")
-                    // 获取IP地址
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                               &hostname, socklen_t(hostname.count),
-                               nil, socklen_t(0), NI_NUMERICHOST)
-                    address = String(cString: hostname)
-                    NSLog("✅ [APP] 成功获取IP地址: \(address) (接口: \(name))")
-                    break
-                }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 30_000_000_000)
+                throw PackageInstallationError.timeoutError
             }
+            
+            try await group.next()
+            group.cancelAll()
         }
-        
-        freeifaddrs(ifaddr)
-        NSLog("📊 [APP] 网络接口扫描完成:")
-        NSLog("   - 总接口数: \(interfaceCount)")
-        NSLog("   - 发现的接口: \(foundInterfaces.joined(separator: ", "))")
-        NSLog("   - 最终IP地址: \(address)")
-        print("📱 设备IP地址: \(address)")
-        return address
+        #else
+        throw PackageInstallationError.installationFailed("ZsignSwift库不可用")
+        #endif
     }
 }

@@ -4,5 +4,6 @@
 <dict>
 	<key>get-task-allow</key>
 	<true/>
+	<!-- 移除 App Groups，以兼容无 App Groups 权限的个人证书。若需启用，请在真机签名时再打开。 -->
 </dict>
 </plist>

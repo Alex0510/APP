@@ -4,9 +4,7 @@ import NimbleViews
 import UIKit
 
 struct AppearanceView: View {
-	@AppStorage("Feather.userInterfaceStyle")
-	private var _userIntefacerStyle: Int = UIUserInterfaceStyle.unspecified.rawValue
-	
+	@EnvironmentObject var themeManager: ThemeManager
 	
 	@AppStorage("com.apple.SwiftUI.IgnoreSolariumLinkedOnCheck")
 	private var _ignoreSolariumLinkedOnCheck: Bool = false
@@ -14,7 +12,18 @@ struct AppearanceView: View {
     var body: some View {
 		NBList(.localized("外观")) {
 			Section {
-				Picker(.localized("外观"), selection: $_userIntefacerStyle) {
+				Picker(.localized("外观"), selection: Binding(
+					get: {
+						// 现在AppTheme的rawValue与UIUserInterfaceStyle的rawValue匹配，直接返回
+						return themeManager.selectedTheme.rawValue
+					},
+					set: { newValue in
+						// 现在AppTheme的rawValue与UIUserInterfaceStyle的rawValue匹配，直接转换
+						if let appTheme = AppTheme(rawValue: newValue) {
+							themeManager.selectedTheme = appTheme
+						}
+					}
+				)) {
 					ForEach(UIUserInterfaceStyle.allCases.sorted(by: { $0.rawValue < $1.rawValue }), id: \.rawValue) { style in
 						Text(style.label).tag(style.rawValue)
 					}
@@ -31,15 +40,10 @@ struct AppearanceView: View {
 			
 			if #available(iOS 19.0, *) {
 				NBSection(.localized("测试性质")) {
-					Toggle(.localized("启用IOS26液态玻璃"), isOn: $_ignoreSolariumLinkedOnCheck)
+					Toggle(.localized("切换:液态玻璃UI"), isOn: $_ignoreSolariumLinkedOnCheck)
 				} footer: {
-					Text(.localized("启用液态玻璃，需要重启APP,才能生效。"))
+					Text(.localized("重启APP生效。遇到问题联系pxx917144686"))
 				}
-			}
-		}
-		.onChange(of: _userIntefacerStyle) { value in
-			if let style = UIUserInterfaceStyle(rawValue: value) {
-				UIApplication.topViewController()?.view.window?.overrideUserInterfaceStyle = style
 			}
 		}
 		.onChange(of: _ignoreSolariumLinkedOnCheck) { _ in

@@ -135,15 +135,6 @@ struct SigningOptionsView: View {
 				isOn: $options.experiment_replaceSubstrateWithEllekit,
 				temporaryValue: temporaryOptions?.experiment_replaceSubstrateWithEllekit
 			)
-			
-			_toggle(
-				.localized("启用液态玻璃"),
-				systemImage: "26.circle",
-				isOn: $options.experiment_supportLiquidGlass,
-				temporaryValue: temporaryOptions?.experiment_supportLiquidGlass
-			)
-		} footer: {
-			Text(.localized("此选项强制转换应用程序以尝试使用iOS 26引入的新液态玻璃重新设计，由于框架不同，这可能不适用于所有应用程序。"))
 		}
 	}
 	

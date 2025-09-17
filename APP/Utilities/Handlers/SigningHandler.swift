@@ -7,8 +7,6 @@ import Darwin
 @_silgen_name("LCPatchMachOForSDK26")
 func LCPatchMachOForSDK26(_ path: UnsafePointer<CChar>?) -> NSString?
 
-@_silgen_name("LCPatchMachOFixupARM64eSlice")
-func LCPatchMachOFixupARM64eSlice(_ path: UnsafePointer<CChar>?) -> NSString?
 
 final class SigningHandler: NSObject {
 	private let _fileManager = FileManager.default
@@ -83,20 +81,12 @@ final class SigningHandler: NSObject {
 			try await _locateMachosAndChangeToSDK26(for: movedAppPath)
 		}
 		
-		if #available(iOS 19, *) {
-			try await _locateMachosAndFixupArm64eSlice(for: movedAppPath)
-		}
-		
 		if _options.experiment_replaceSubstrateWithEllekit {
 			try await _inject(for: movedAppPath, with: _options)
 		} else {
 			if !_options.injectionFiles.isEmpty {
 				try await _inject(for: movedAppPath, with: _options)
 			}
-		}
-		
-		if #available(iOS 19, *) {
-			try await _locateMachosAndFixupArm64eSlice(for: movedAppPath)
 		}
 		
 		let handler = ZsignHandler(appUrl: movedAppPath, options: _options, cert: appCertificate)
@@ -369,28 +359,6 @@ extension SigningHandler {
 		_enumerateFiles(at: app) { $0.hasSuffix("_CodeSignature") }
 	}
 	
-	@available(iOS 19, *)
-	private func _locateMachosAndFixupArm64eSlice(for app: URL) async throws {
-		let machoFiles = _enumerateFiles(at: app) {
-			$0.hasSuffix(".dylib") || $0.hasSuffix(".framework")
-		}
-		
-		for fileURL in machoFiles {
-			switch fileURL.pathExtension {
-			case "dylib":
-				_ = LCPatchMachOFixupARM64eSlice(fileURL.path)
-			case "framework":
-				if
-					let bundle = Bundle(url: fileURL),
-					let execURL = bundle.executableURL
-				{
-					_ = LCPatchMachOFixupARM64eSlice(execURL.path)
-				}
-			default:
-				continue
-			}
-		}
-	}
 	
 	private func _enumerateFiles(at base: URL, where predicate: (String) -> Bool) -> [URL] {
 		guard let fileEnum = _fileManager.enumerator(atPath: base.path()) else {

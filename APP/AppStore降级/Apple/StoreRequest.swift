@@ -440,12 +440,20 @@ class StoreRequest {
         } else {
             print("[DEBUG] songList not found in response")
         }
+        
         if httpResponse.statusCode == 200 {
             var songList: [StoreItem] = []
             if let songs = plist["songList"] as? [[String: Any]] {
                 songList = songs.compactMap { parseStoreItem(from: $0) }
             }
             print("[DEBUG] Parsed songList count: \(songList.count)")
+            
+            // 如果songList为空，抛出invalidLicense错误
+            if songList.isEmpty {
+                print("[DEBUG] songList为空，用户可能未购买此应用")
+                throw StoreError.invalidLicense
+            }
+            
             let dsPersonId = plist["dsPersonID"] as? String ?? ""
             let jingleDocType = plist["jingleDocType"] as? String
             let jingleAction = plist["jingleAction"] as? String

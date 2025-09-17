@@ -7,7 +7,7 @@ extension UIUserInterfaceStyle: @retroactive CaseIterable {
 	
 	var label: String {
 		switch self {
-		case .unspecified: .localized("默认")
+		case .unspecified: .localized("跟随系统")
 		case .dark: .localized("深色")
 		case .light: .localized("浅色")
 		@unknown default: .localized("未知")

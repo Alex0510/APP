@@ -36,10 +36,10 @@ struct SigningEntitlementsView: View {
 			FileImporterRepresentableView(
 				allowedContentTypes:  [.xmlPropertyList, .plist, .entitlements],
 				onDocumentsPicked: { urls in
+					DispatchQueue.main.async { _isAddingPresenting = false }
 					guard let selectedFileURL = urls.first else { return }
-					
 					FileManager.default.moveAndStore(selectedFileURL, with: "FeatherEntitlement") { url in
-						bindingValue = url
+						DispatchQueue.main.async { bindingValue = url }
 					}
 				}
 			)

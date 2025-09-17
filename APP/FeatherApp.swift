@@ -41,6 +41,11 @@ struct FeatherApp: App {
 				}
 				
 				UIApplication.topViewController()?.view.window?.tintColor = UIColor(Color(hex: UserDefaults.standard.string(forKey: "Feather.userTintColor") ?? "#B496DC"))
+				
+				// 恢复下载任务
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+					UnifiedDownloadManager.shared.restoreDownloadTasks()
+				}
 			}
 		}
 	}
@@ -108,9 +113,6 @@ struct FeatherApp: App {
 				
 				FR.exportCertificateAndOpenUrl(using: callbackTemplate)
 			}
-			if let fullPath = url.validatedScheme(after: "/source/") {
-				FR.handleSource(fullPath) { }
-			}
 			if
 				let fullPath = url.validatedScheme(after: "/install/"),
 				let downloadURL = URL(string: fullPath)
@@ -163,13 +165,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 	}
 	
 	private func _setupLibraryPaths() {
-		// 设置库文件路径，让APP能够找到Tools文件夹中的动态库
-		if let toolsPath = Bundle.main.path(forResource: "Tools", ofType: nil, inDirectory: "动态库注入") {
-			setenv("DYLD_LIBRARY_PATH", toolsPath, 1)
-			print("设置库文件路径: \(toolsPath)")
-		} else {
-			print("警告: 无法找到Tools文件夹")
-		}
+		// Tools文件夹已删除，不再需要设置库文件路径
 	}
 	
 	private func _createPipeline() {

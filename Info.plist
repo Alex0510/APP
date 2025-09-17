@@ -95,7 +95,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.1.1</string>
+	<string>2.2.1</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -151,95 +151,13 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>com.apple.itunes.ipa</string>
 				<string>public.data</string>
 				<string>public.content</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>iOS应用安装包</string>
-			<key>UTTypeIconFile</key>
-			<string>APP_extension</string>
-			<key>UTTypeIconFiles</key>
-			<array/>
-			<key>UTTypeIcons</key>
-			<dict>
-				<key>UTTypeIconText</key>
-				<string>IPA</string>
-			</dict>
+			<string>SideStore Installed App</string>
 			<key>UTTypeIdentifier</key>
-			<string>nya.asami.ipa</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>ipa</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/octet-stream</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>com.apple.itunes.ipa</string>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>iOS应用</string>
-			<key>UTTypeIconFile</key>
-			<string>ksign_extension</string>
-			<key>UTTypeIcons</key>
-			<dict>
-				<key>UTTypeIconBadgeName</key>
-				<string></string>
-				<key>UTTypeIconText</key>
-				<string>TIPA</string>
-			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>nya.asami.tipa</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>tipa</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/trollstore-ipa</string>
-				</array>
-			</dict>
-		</dict>
-		<dict>
-			<key>UTTypeConformsTo</key>
-			<array>
-				<string>public.data</string>
-				<string>public.content</string>
-			</array>
-			<key>UTTypeDescription</key>
-			<string>证书</string>
-			<key>UTTypeIconFile</key>
-			<string>ksign_extension</string>
-			<key>UTTypeIcons</key>
-			<dict>
-				<key>UTTypeIconText</key>
-				<string>KSIGN</string>
-			</dict>
-			<key>UTTypeIdentifier</key>
-			<string>nya.asami.ksign.cert</string>
-			<key>UTTypeTagSpecification</key>
-			<dict>
-				<key>public.filename-extension</key>
-				<array>
-					<string>ksign</string>
-				</array>
-				<key>public.mime-type</key>
-				<array>
-					<string>application/octet-stream</string>
-				</array>
-			</dict>
+			<string>io.sidestore.Installed.com.pxx917144686.APP</string>
 		</dict>
 	</array>
 </dict>

@@ -96,7 +96,7 @@ struct Options: Codable, Equatable {
 
 		var localizedDescription: String {
 			switch self {
-			case .default: .localized("默认")
+			case .default: .localized("跟随系统")
 			case .light: .localized("浅色")
 			case .dark: .localized("深色")
 			}

@@ -58,11 +58,16 @@ struct SigningTweaksView: View {
 				allowedContentTypes: [.dylib, .deb],
 				allowsMultipleSelection: true,
 				onDocumentsPicked: { urls in
+					DispatchQueue.main.async { _isAddingPresenting = false }
 					guard !urls.isEmpty else { return }
-					
-					for url in urls {
-						FileManager.default.moveAndStore(url, with: "FeatherTweak") { url in
-							options.injectionFiles.append(url)
+					let validUrls = urls.filter { ["dylib", "deb"].contains($0.pathExtension.lowercased()) }
+					for url in validUrls {
+						FileManager.default.moveAndStore(url, with: "FeatherTweak") { storedURL in
+							DispatchQueue.main.async {
+								if !options.injectionFiles.contains(storedURL) {
+									options.injectionFiles.append(storedURL)
+								}
+							}
 						}
 					}
 				}

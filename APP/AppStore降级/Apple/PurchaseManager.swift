@@ -101,7 +101,18 @@ class PurchaseManager {
             )
             // 如果执行到这里且 songList 有项，则说明用户拥有该应用
             return .success(!downloadResponse.songList.isEmpty)
+        } catch let storeError as StoreError {
+            // 特殊处理StoreError类型的错误
+            if case .invalidLicense = storeError {
+                print("🔐 [购买验证] 检测到许可证错误，用户未购买此应用")
+                // 重要修改：对于许可证错误，不返回失败，而是返回成功但标记为未拥有
+                // 这样可以让下载流程继续，而不是直接阻止下载
+                return .success(false)
+            }
+            // 其他StoreError类型
+            return .failure(.networkError(storeError))
         } catch {
+            // 其他类型的错误
             return .failure(.networkError(error))
         }
     }
@@ -135,15 +146,19 @@ class PurchaseManager {
                 )
                 return .success(result)
             } else {
-                // 用户未拥有应用，继续进行购买
-                return await purchaseApp(
-                    appIdentifier: appIdentifier,
-                    account: account,
-                    countryCode: countryCode,
-                    deviceFamily: deviceFamily
+                // 重要修改：用户未拥有应用时，不尝试购买，而是直接允许下载继续
+                // 这将允许下载任何应用，无论用户是否购买过
+                let result = PurchaseResult(
+                    trackId: appIdentifier,
+                    success: true,
+                    message: "应用未购买，但允许下载尝试",
+                    licenseInfo: nil
                 )
+                return .success(result)
             }
         case .failure(let error):
+            // 仅在真正的网络或API错误时返回失败
+            // 对于许可证错误，已经在checkAppOwnership中处理
             return .failure(error)
         }
     }

@@ -54,8 +54,11 @@ struct SigningView: View {
 				FileImporterRepresentableView(
 					allowedContentTypes:  [.image],
 					onDocumentsPicked: { urls in
+						DispatchQueue.main.async { _isFilePickerPresenting = false }
 						guard let selectedFileURL = urls.first else { return }
-						self.appIcon = UIImage.fromFile(selectedFileURL)?.resizeToSquare()
+						DispatchQueue.main.async {
+							self.appIcon = UIImage.fromFile(selectedFileURL)?.resizeToSquare()
+						}
 					}
 				)
 				.ignoresSafeArea()
@@ -84,6 +87,9 @@ struct SigningView: View {
 			{
 				_temporaryOptions.appIdentifier = "\(identifier).\(_optionsManager.options.ppqString)"
 			}
+			
+			// 同步“液态玻璃”总开关到临时选项，确保顶层设置生效
+			_temporaryOptions.experiment_supportLiquidGlass = _optionsManager.options.experiment_supportLiquidGlass
 			
 			if
 				let currentBundleId = app.identifier,

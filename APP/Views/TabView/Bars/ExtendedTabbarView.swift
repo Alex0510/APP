@@ -6,15 +6,6 @@ import NukeUI
 struct ExtendedTabbarView: View {
 	@Environment(\.horizontalSizeClass) var horizontalSizeClass
 	@AppStorage("Feather.tabCustomization") var customization = TabViewCustomization()
-	@StateObject var viewModel = SourcesViewModel.shared
-	
-	@State private var _isAddingPresenting = false
-	
-	@FetchRequest(
-		entity: AltSource.entity(),
-		sortDescriptors: [NSSortDescriptor(keyPath: \AltSource.name, ascending: true)],
-		animation: .snappy
-	) private var _sources: FetchedResults<AltSource>
 		
 	var body: some View {
 		TabView {
@@ -34,70 +25,10 @@ struct ExtendedTabbarView: View {
 				.hidden(horizontalSizeClass == .compact)
 			}
 			
-			TabSection("来源") {
-				Tab(.localized("所有仓库"), systemImage: "globe.desk") {
-					NavigationStack {
-						SourceAppsView(object: Array(_sources), viewModel: viewModel)
-					}
-				}
-				
-				ForEach(_sources, id: \.identifier) { source in
-					Tab {
-						NavigationStack {
-							SourceAppsView(object: [source], viewModel: viewModel)
-						}
-					} label: {
-						_icon(source.name ?? .localized("未知"), iconUrl: source.iconURL)
-					}
-					.swipeActions {
-						Button(.localized("删除"), systemImage: "trash", role: .destructive) {
-							Storage.shared.deleteSource(for: source)
-						}
-					}
-				}
-			}
-			.sectionActions {
-				Button(.localized("添加来源"), systemImage: "plus") {
-					_isAddingPresenting = true
-				}
-			}
-			.defaultVisibility(.hidden, for: .tabBar)
-			.hidden(horizontalSizeClass == .compact)
 		}
 		.tabViewStyle(.sidebarAdaptable)
 		.tabViewCustomization($customization)
-		.sheet(isPresented: $_isAddingPresenting) {
-			SourcesAddView()
-				.presentationDetents([.medium])
-		}
 	}
 	
-	@ViewBuilder
-	private func _icon(_ title: String, iconUrl: URL?) -> some View {
-		Label {
-			Text(title)
-		} icon: {
-			if let iconURL = iconUrl {
-				LazyImage(url: iconURL) { state in
-					if let image = state.image {
-						image
-							.resizable()
-							.aspectRatio(contentMode: .fit)
-							.frame(width: 14, height: 14)
-							.clipShape(Circle())
-					} else {
-						standardIcon
-					}
-				}
-			} else {
-				standardIcon
-			}
-		}
-	}
-
-	
-	var standardIcon: some View {
-		Image(systemName: "app.dashed")
-	}
 }
 

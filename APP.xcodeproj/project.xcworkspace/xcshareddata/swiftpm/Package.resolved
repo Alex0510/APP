@@ -1,5 +1,5 @@
 {
-  "originHash" : "61e66ab133778d16cd9044f369c4a5a9916bc23a4e563e58eccbe24d6e6a6f58",
+  "originHash" : "6ea9eee8a3802b00aec6d71990905384e21652ed09efae592b677d84244adfad",
   "pins" : [
     {
       "identity" : "altsourcekit",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-server/async-http-client.git",
       "state" : {
-        "revision" : "254d34096123cd5da4f82e69f52f622ac7526d68",
-        "version" : "1.27.0"
+        "revision" : "7dc119c7edf3c23f52638faadb89182861dee853",
+        "version" : "1.28.0"
       }
     },
     {
@@ -94,7 +94,7 @@
     {
       "identity" : "openssl",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/krzyzanowskim/OpenSSL",
+      "location" : "https://github.com/krzyzanowskim/OpenSSL.git",
       "state" : {
         "revision" : "623c84da314e85363236507ca38a4bde65df21c3",
         "version" : "3.3.3001"
@@ -303,8 +303,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system.git",
       "state" : {
-        "revision" : "890830fff1a577dc83134890c7984020c5f6b43b",
-        "version" : "1.6.2"
+        "revision" : "395a77f0aa927f0ff73941d7ac35f2b46d47c9db",
+        "version" : "1.6.3"
       }
     },
     {

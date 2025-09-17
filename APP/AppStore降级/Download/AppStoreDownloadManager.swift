@@ -7,9 +7,13 @@
 import Foundation
 import CryptoKit
 import SwiftUI
+import UIKit
 #if canImport(ZipArchive)
 import ZipArchive
 #endif
+
+// 导入自定义弹窗组件
+// import APP.AppStore降级.UI.UnpurchasedAlert // 暂时注释，实际项目中应该使用正确的导入路径
 
 // 为了避免与StoreRequest.swift中的类型冲突，这里使用不同的名称
 struct DownloadStoreItem {
@@ -472,37 +476,59 @@ class AppStoreDownloadManager: NSObject, ObservableObject, URLSessionDownloadDel
                 )
                 
                 // 解析 songList
-                guard let songList = plistResponse["songList"] as? [[String: Any]], !songList.isEmpty else {
-                    let error: DownloadError = .unknownError("无法获取下载信息")
+                // 如果songList为空，我们将创建一个模拟的downloadStoreItem
+                var downloadStoreItem: DownloadStoreItem?
+                
+                if let songList = plistResponse["songList"] as? [[String: Any]], !songList.isEmpty {
+                    let firstSongItem = songList[0]
+                    print("✅ [下载管理器] 成功获取下载信息")
+                    print("   - 下载URL: \(firstSongItem["URL"] as? String ?? "未知")")
+                    print("   - MD5: \(firstSongItem["md5"] as? String ?? "未知")")
+                    
+                    // 检查真实的 sinf 数据
+                    if let sinfs = firstSongItem["sinfs"] as? [[String: Any]] {
+                        print("   - 真实Sinf数量: \(sinfs.count)")
+                        for (index, sinf) in sinfs.enumerated() {
+                            if let sinfData = sinf["sinf"] as? String {
+                                print("   - Sinf \(index + 1): 长度 \(sinfData.count) 字符 (真实数据)")
+                            }
+                        }
+                    } else {
+                        print("   - 警告: 没有找到 sinf 数据")
+                    }
+                    
+                    // 将响应数据转换为DownloadStoreItem
+                    downloadStoreItem = convertToDownloadStoreItem(from: firstSongItem)
+                } else {
+                    // 处理未购买应用的情况
+                    print("⚠️ [下载管理器] songList为空，用户可能未购买此应用")
+                    
+                    // 检查是否有failureType和customerMessage
+                    if let failureType = plistResponse["failureType"] as? String, 
+                       let customerMessage = plistResponse["customerMessage"] as? String {
+                        print("⚠️ [下载管理器] 响应包含错误: \(failureType) - \(customerMessage)")
+                    }
+                    
+                    // 应用未购买，直接返回失败状态
+                    let error: DownloadError = .licenseError("应用未购买，请先前往App Store购买")
                     DispatchQueue.main.async {
                         completion(.failure(error))
                     }
                     return
                 }
                 
-                let firstSongItem = songList[0]
-                print("✅ [下载管理器] 成功获取下载信息")
-                print("   - 下载URL: \(firstSongItem["URL"] as? String ?? "未知")")
-                print("   - MD5: \(firstSongItem["md5"] as? String ?? "未知")")
-                
-                // 检查真实的 sinf 数据
-                if let sinfs = firstSongItem["sinfs"] as? [[String: Any]] {
-                    print("   - 真实Sinf数量: \(sinfs.count)")
-                    for (index, sinf) in sinfs.enumerated() {
-                        if let sinfData = sinf["sinf"] as? String {
-                            print("   - Sinf \(index + 1): 长度 \(sinfData.count) 字符 (真实数据)")
-                        }
+                // 确保downloadStoreItem不为空
+                guard let storeItem = downloadStoreItem else {
+                    let error: DownloadError = .unknownError("无法创建下载项")
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
                     }
-                } else {
-                    print("   - 警告: 没有找到 sinf 数据")
+                    return
                 }
-                
-                // 将响应数据转换为DownloadStoreItem，确保使用真实的 sinf 数据
-                let downloadStoreItem = convertToDownloadStoreItem(from: firstSongItem)
                 
                 // 开始实际的文件下载
                 await startFileDownload(
-                    storeItem: downloadStoreItem,
+                    storeItem: storeItem,
                     destinationURL: destinationURL,
                     progressHandler: progressHandler,
                     completion: completion
@@ -714,7 +740,7 @@ class AppStoreDownloadManager: NSObject, ObservableObject, URLSessionDownloadDel
     ) async {
         guard let downloadURL = URL(string: storeItem.url) else {
             DispatchQueue.main.async {
-                completion(.failure(.invalidURL("无效的下载URL: \(storeItem.url)")))
+                completion(.failure(.unknownError("无效的下载URL: \(storeItem.url)")))
             }
             return
         }
@@ -1096,19 +1122,66 @@ extension AppStoreDownloadManager {
             }
         }
     }
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        didCompleteWithError error: Error?
-    ) {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let downloadTask = task as? URLSessionDownloadTask,
               let downloadId = downloadTasks.first(where: { $0.value == downloadTask })?.key,
-              let completion = completionHandlers[downloadId] else {
+              let completion = completionHandlers[downloadId],
+              let destinationURL = downloadDestinations[downloadId],
+              let storeItem = downloadStoreItems[downloadId] else {
             return
         }
+        
         if let error = error {
-            DispatchQueue.main.async {
-                completion(.failure(.networkError(error)))
+            print("❌ [下载失败] 任务ID: \(downloadId)，错误: \(error.localizedDescription)")
+            
+            // 下载失败处理逻辑
+            print("❌ [下载失败] 任务ID: \(downloadId)，错误: \(error.localizedDescription)")
+            
+            // 检查错误类型
+            if let nsError = error as NSError? {
+                // 检查是否是网络错误
+                if nsError.domain == NSURLErrorDomain {
+                    // 根据错误码提供更具体的错误信息
+                    switch nsError.code {
+                    case NSURLErrorNotConnectedToInternet:
+                        print("📶 [网络错误] 设备未连接到互联网")
+                        DispatchQueue.main.async {
+                            completion(.failure(.networkError(NSError(domain: "DownloadManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "设备未连接到互联网，请检查网络连接后重试"]))))
+                        }
+                    case NSURLErrorTimedOut:
+                        print("⏱️ [网络错误] 下载超时")
+                        DispatchQueue.main.async {
+                            completion(.failure(.networkError(NSError(domain: "DownloadManager", code: -2, userInfo: [NSLocalizedDescriptionKey: "下载超时，请检查网络连接后重试"]))))
+                        }
+                    case NSURLErrorCancelled:
+                        print("🚫 [下载取消] 下载任务已被取消")
+                        DispatchQueue.main.async {
+                            completion(.failure(.unknownError("下载已取消")))
+                        }
+                    default:
+                        print("🌐 [网络错误] 其他网络错误，错误码: \(nsError.code)")
+                        DispatchQueue.main.async {
+                            completion(.failure(.networkError(NSError(domain: "DownloadManager", code: -3, userInfo: [NSLocalizedDescriptionKey: "下载失败，请稍后重试"]))))
+                        }
+                    }
+                } else if nsError.domain == "NSCocoaErrorDomain" {
+                    // 文件系统错误
+                    print("💾 [文件错误] 文件系统错误，错误码: \(nsError.code)")
+                    DispatchQueue.main.async {
+                        completion(.failure(.fileSystemError("文件操作失败，请确保有足够的存储空间")))
+                    }
+                } else {
+                    // 其他类型的错误
+                    print("❓ [未知错误] 错误域: \(nsError.domain)，错误码: \(nsError.code)")
+                    DispatchQueue.main.async {
+                        completion(.failure(.unknownError("下载过程中发生未知错误")))
+                    }
+                }
+            } else {
+                // 非NSError类型的错误
+                DispatchQueue.main.async {
+                    completion(.failure(.unknownError("下载失败: \(error.localizedDescription)")))
+                }
             }
         }
         cleanupDownload(downloadId: downloadId)
