@@ -40,7 +40,8 @@ extension ServerView {
 }
 
 struct ServerView: View {
-	@AppStorage("Feather.ipFix") private var _ipFix: Bool = false
+    // 强制仅使用本地地址：移除开关，常量为 true
+    @AppStorage("Feather.ipFix") private var _ipFix: Bool = true
 	@AppStorage("Feather.serverMethod") private var _serverMethod: Int = 1
 	private let _serverMethods: [String] = [.localized("完全本地"), .localized("半本地")]
 	
@@ -55,8 +56,12 @@ struct ServerView: View {
 						Text(_serverMethods[index]).tag(index)
 					}
 				}
-				Toggle(.localized("仅使用本地地址"), systemImage: "lifepreserver", isOn: $_ipFix)
-					.disabled(_serverMethod != 1)
+                // 移除“仅使用本地地址”开关，固定启用
+                HStack {
+                    Label(.localized("仅使用本地地址"), systemImage: "lifepreserver")
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                }
 			}
 			
 		}

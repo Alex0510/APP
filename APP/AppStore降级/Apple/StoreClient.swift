@@ -383,7 +383,7 @@ extension StoreClient {
                 appIdentifier: trackId,
                 directoryServicesIdentifier: account.dsPersonId,
                 passwordToken: account.passwordToken,
-                countryCode: country
+                storeFront: account.storeResponse.storeFront
             )
             return .success(result)
         } catch {
@@ -550,7 +550,9 @@ extension StoreClient {
             let result = try await StoreRequest.shared.download(
                 appIdentifier: trackId,
                 directoryServicesIdentifier: account.dsPersonId,
-                appVersion: appVerId
+                appVersion: appVerId,
+                passwordToken: account.passwordToken,
+                storeFront: account.storeResponse.storeFront
             )
             // 检查 songList 是否为空，避免数组越界
             guard !result.songList.isEmpty else {

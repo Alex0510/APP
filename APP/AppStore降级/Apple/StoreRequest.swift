@@ -26,6 +26,8 @@ class StoreRequestDelegate: NSObject, URLSessionDelegate {
 /// 用于身份验证、下载和购买的Store API请求处理器
 class StoreRequest {
     static let shared = StoreRequest()
+    // 统一GUID：确保认证/购买/下载使用同一个GUID
+    private static var cachedGUID: String?
     private let session: URLSession
     private let baseURL = "https://p25-buy.itunes.apple.com"
     
@@ -57,7 +59,7 @@ class StoreRequest {
         print("📧 [认证参数] Apple ID: \(email)")
         print("🔐 [认证参数] 密码长度: \(password.count) 字符")
         print("📱 [认证参数] 双重认证码: \(mfa != nil ? "已提供(\(mfa!.count)位)" : "未提供")")
-        let guid = getGUID()
+        let guid = acquireGUID()
         print("🆔 [设备信息] 生成的GUID: \(guid)")
         let url = URL(string: "https://auth.itunes.apple.com/auth/v1/native/fast?guid=\(guid)")!
         print("🌐 [请求URL] \(url.absoluteString)")
@@ -149,7 +151,7 @@ class StoreRequest {
         passwordToken: String? = nil,
         storeFront: String? = nil
     ) async throws -> StoreDownloadResponse {
-        let guid = getGUID()
+        let guid = acquireGUID()
         let url = URL(string: "\(baseURL)/WebObjects/MZFinance.woa/wa/volumeStoreDownloadProduct?guid=\(guid)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -162,7 +164,7 @@ class StoreRequest {
             request.setValue(passwordToken, forHTTPHeaderField: "X-Token")
         }
         if let storeFront = storeFront {
-            request.setValue(storeFront, forHTTPHeaderField: "X-Apple-Store-Front")
+            request.setValue(normalizeStoreFront(storeFront), forHTTPHeaderField: "X-Apple-Store-Front")
         }
         // 修复请求体参数
         var body: [String: Any] = [
@@ -208,39 +210,58 @@ class StoreRequest {
     ///   - appIdentifier: App identifier
     ///   - directoryServicesIdentifier: User's DSID
     ///   - passwordToken: User's password token
-    ///   - countryCode: Store region country code
+    ///   - storeFront: X-Apple-Store-Front header value (from account)
     /// - Returns: Purchase response
     func purchase(
         appIdentifier: String,
         directoryServicesIdentifier: String,
         passwordToken: String,
-        countryCode: String
+        storeFront: String
     ) async throws -> StorePurchaseResponse {
-        let url = URL(string: "\(baseURL)/WebObjects/MZBuy.woa/wa/buyProduct")!
+        let guid = acquireGUID()
+        // 购买需走 buy.itunes.apple.com，不使用 p25 分片域
+        let url = URL(string: "https://buy.itunes.apple.com/WebObjects/MZBuy.woa/wa/buyProduct")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        // 购买接口同样接受 plist 体，这里统一采用 plist
+        request.setValue("application/x-apple-plist", forHTTPHeaderField: "Content-Type")
         request.setValue(getUserAgent(), forHTTPHeaderField: "User-Agent")
         request.setValue(directoryServicesIdentifier, forHTTPHeaderField: "X-Dsid")
         request.setValue(directoryServicesIdentifier, forHTTPHeaderField: "iCloud-DSID")
-        request.setValue("143441-1,29", forHTTPHeaderField: "X-Apple-Store-Front")
+        request.setValue(normalizeStoreFront(storeFront), forHTTPHeaderField: "X-Apple-Store-Front")
         request.setValue(passwordToken, forHTTPHeaderField: "X-Token")
-        let body: [String: Any] = [
-            "guid": getGUID(),
+        // 对齐 ipatool 的购买参数，尽量模拟官方客户端静默获取流程
+        var body: [String: Any] = [
+            "guid": guid,
             "salableAdamId": appIdentifier,
             "dsPersonId": directoryServicesIdentifier,
             "passwordToken": passwordToken,
             "price": "0",
             "pricingParameters": "STDQ",
             "productType": "C",
-            "appExtVrsId": "0"
+            "appExtVrsId": "0",
+            "hasAskedToFulfillPreorder": "true",
+            "buyWithoutAuthorization": "true",
+            "hasDoneAgeCheck": "true",
+            "needDiv": "0",
+            "origPage": "Software-\(appIdentifier)",
+            "origPageLocation": "Buy"
         ]
+        // 尝试增加 signal 参数以模拟前端交互
+        body["pg"] = "default"
+        body["sd"] = "true"
         let plistData = try PropertyListSerialization.data(
             fromPropertyList: body,
             format: .xml,
             options: 0
         )
         request.httpBody = plistData
+        // 调试输出
+        if let bodyString = String(data: plistData, encoding: .utf8) {
+            print("[DEBUG][BUY] Request body: \(bodyString)")
+        }
+        print("[DEBUG][BUY] Request URL: \(url)")
+        print("[DEBUG][BUY] Request headers: \(request.allHTTPHeaderFields ?? [:])")
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw StoreError.invalidResponse
@@ -250,6 +271,8 @@ class StoreRequest {
             options: [],
             format: nil
         ) as? [String: Any] ?? [:]
+        print("[DEBUG][BUY] HTTP Status Code: \(httpResponse.statusCode)")
+        print("[DEBUG][BUY] Response keys: \(plist.keys.sorted())")
         return try parsePurchaseResponse(plist: plist, httpResponse: httpResponse)
     }
     // MARK: - 私有辅助方法
@@ -257,37 +280,30 @@ class StoreRequest {
     private func getUserAgent() -> String {
         return "Configurator/2.15 (Macintosh; OS X 11.0.0; 16G29) AppleWebKit/2603.3.8"
     }
-    /// Generate GUID for requests
-    private func getGUID() -> String {
-        // 获取真实MAC地址
-        var macAddress = ""
-        var ifaddrs: UnsafeMutablePointer<ifaddrs>?
-        if getifaddrs(&ifaddrs) == 0 {
-            var ptr = ifaddrs
-            while ptr != nil {
-                defer { ptr = ptr?.pointee.ifa_next }
-                let interface = ptr?.pointee
-                let addrFamily = interface?.ifa_addr.pointee.sa_family
-                if addrFamily == UInt8(AF_LINK) {
-                    let name = String(cString: (interface?.ifa_name)!)
-                    if name == "en0" { // WiFi interface
-                        let sockaddr_dl_ptr = interface?.ifa_addr.withMemoryRebound(to: sockaddr_dl.self, capacity: 1) { $0 }
-                        if let sockaddr_dl_ptr = sockaddr_dl_ptr {
-                            let sockaddr_dl = sockaddr_dl_ptr.pointee
-                            let dataPtr = withUnsafePointer(to: sockaddr_dl.sdl_data) { ptr in
-                                return UnsafeRawPointer(ptr).advanced(by: Int(sockaddr_dl.sdl_nlen))
-                            }
-                            let data = Data(bytes: dataPtr, count: Int(sockaddr_dl.sdl_alen))
-                            macAddress = data.map { String(format: "%02X", $0) }.joined()
-                            break
-                        }
-                    }
-                }
-            }
-            freeifaddrs(ifaddrs)
-        }
-        return macAddress.isEmpty ? "000000000000" : macAddress
+    /// 规范化 StoreFront 头部：取纯数字代码（例如 "143441"），避免携带地区后缀（如 "-1,29"）导致购买异常
+    private func normalizeStoreFront(_ value: String) -> String {
+        // 只保留前面的数字部分
+        let digitsPrefix = value.split(separator: "-").first.map(String.init) ?? value
+        // 若仍包含逗号后的参数，继续截断
+        return digitsPrefix.split(separator: ",").first.map(String.init) ?? digitsPrefix
     }
+    /// Acquire a stable GUID for the session (persist for all requests)
+    private func acquireGUID() -> String {
+        if let g = StoreRequest.cachedGUID, !g.isEmpty, g != "000000000000" { return g }
+        // 尝试基于设备信息生成；若不可用则生成随机12位HEX
+        let generated = Self.generateFallbackGUID()
+        StoreRequest.cachedGUID = generated
+        return generated
+    }
+    /// 生成随机12位大写HEX，替代不可用的MAC
+    private static func generateFallbackGUID() -> String {
+        let hex = "0123456789ABCDEF"
+        var out = ""
+        for _ in 0..<12 { out.append(hex.randomElement()!) }
+        return out
+    }
+    /// 供外部（如下载管理器）读取当前GUID
+    func currentGUID() -> String { acquireGUID() }
     /// Parse authentication response
     private func parseAuthResponse(
         plist: [String: Any],
@@ -534,6 +550,10 @@ class StoreRequest {
         httpResponse: HTTPURLResponse
     ) throws -> StorePurchaseResponse {
         if httpResponse.statusCode == 200 {
+            // 如果返回包含 dialog 或 failureType，表示需要用户在官方 App Store 进行交互
+            if plist["dialog"] != nil || plist["failureType"] != nil {
+                throw StoreError.userInteractionRequired
+            }
             let dsPersonId = plist["dsPersonID"] as? String ?? ""
             let jingleDocType = plist["jingleDocType"] as? String
             let jingleAction = plist["jingleAction"] as? String
@@ -565,6 +585,7 @@ enum StoreError: Error, LocalizedError, Equatable {
     case codeRequired
     case lockedAccount
     case keychainError
+    case userInteractionRequired
     var errorDescription: String? {
         switch self {
         case .networkError(let error):
@@ -593,6 +614,8 @@ enum StoreError: Error, LocalizedError, Equatable {
             return "Account is locked"
         case .keychainError:
             return "Keychain error occurred"
+        case .userInteractionRequired:
+            return "需要在 App Store 完成一次身份验证/获取"
         case .unknownError:
             return "Unknown error occurred"
         }

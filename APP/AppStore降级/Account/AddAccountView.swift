@@ -108,7 +108,7 @@ struct AddAccountView: View {
                                     TextField("输入6位验证码", text: $code)
                                         .textFieldStyle(ModernTextFieldStyle(themeManager: themeManager))
                                         .keyboardType(.numberPad)
-                                        .onChange(of: code) { _, newValue in
+                                        .onChange(of: code) { newValue in
                                             // 限制输入长度为6位
                                             if newValue.count > 6 {
                                                 code = String(newValue.prefix(6))
@@ -182,14 +182,9 @@ struct AddAccountView: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("取消") {
-                        dismiss()
-                    }
-                    .foregroundColor(.primary)
-                }
-            }
+            .navigationBarItems(leading: Button("取消") {
+                dismiss()
+            }.foregroundColor(.primary))
             .onAppear {
                 // 保持用户当前的主题设置，不强制重置
             }

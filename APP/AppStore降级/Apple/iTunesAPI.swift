@@ -5,6 +5,7 @@
 //  由 pxx917144686 于 2025/08/24 创建。
 //
 import Foundation
+import SwiftUI
 /// 搜索错误类型
 enum SearchError: Error, LocalizedError {
     case networkError(Error)
@@ -137,6 +138,32 @@ class iTunesClient {
         config.timeoutIntervalForResource = 60
         self.session = URLSession(configuration: config)
     }
+    // MARK: - 公共辅助
+    private func storefrontCode(for countryCode: String) -> String {
+        let cc = countryCode.uppercased()
+        return Apple.storeFrontCodeMap[cc] ?? "143441"
+    }
+    private func appsPageURL(country: String, appId: Int) -> URL {
+        return URL(string: "https://apps.apple.com/\(country)/app/id\(appId)")!
+    }
+    private func fetchAMPTargetToken(country: String, appId: Int) async throws -> String {
+        let url = appsPageURL(country: country, appId: appId)
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let html = String(data: data, encoding: .utf8) else {
+            throw SearchError.invalidResponse
+        }
+        let pattern = #"token%22%3A%22([^%]+)%22%7D"#
+        let regex = try NSRegularExpression(pattern: pattern, options: [])
+        let range = NSRange(location: 0, length: html.utf16.count)
+        guard let match = regex.firstMatch(in: html, options: [], range: range), match.numberOfRanges >= 2,
+              let tokenRange = Range(match.range(at: 1), in: html) else {
+            throw SearchError.invalidResponse
+        }
+        return String(html[tokenRange])
+    }
     /// 在 iTunes 应用商店中搜索应用
     /// - 参数:
     ///   - term: 搜索词
@@ -224,6 +251,117 @@ class iTunesClient {
             deviceFamily: deviceFamily
         )
         return result?.trackId
+    }
+
+    // MARK: - Reviews (RSS JSON)
+    enum ReviewSort: String { case mostRecent = "mostRecent", mostHelpful = "mostHelpful" }
+    struct AppReview: Codable, Identifiable, Hashable {
+        let id: String
+        let userName: String
+        let userUrl: String
+        let version: String
+        let score: Int
+        let title: String
+        let text: String
+        let url: String
+        let updated: String
+    }
+    func reviews(
+        id: Int,
+        country: String = "us",
+        page: Int = 1,
+        sort: ReviewSort = .mostRecent
+    ) async throws -> [AppReview] {
+        var url = URL(string: "https://itunes.apple.com/\(country)/rss/customerreviews/page=\(page)/id=\(id)/sortby=\(sort.rawValue)/json")!
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw SearchError.invalidResponse }
+        // 结构松散，使用字典解析
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        let feed = json?["feed"] as? [String: Any]
+        let entries = (feed?["entry"] as? [[String: Any]]) ?? []
+        let map: ( [String: Any] ) -> AppReview? = { entry in
+            guard let id = (entry["id"] as? [String: Any])?["label"] as? String,
+                  let author = entry["author"] as? [String: Any],
+                  let name = (author["name"] as? [String: Any])?["label"] as? String,
+                  let uri = (author["uri"] as? [String: Any])?["label"] as? String,
+                  let version = ((entry["im:version"] as? [String: Any])?["label"]) as? String,
+                  let ratingStr = ((entry["im:rating"] as? [String: Any])?["label"]) as? String,
+                  let rating = Int(ratingStr),
+                  let title = (entry["title"] as? [String: Any])?["label"] as? String,
+                  let text = (entry["content"] as? [String: Any])?["label"] as? String,
+                  let link = (entry["link"] as? [String: Any])?["attributes"] as? [String: Any],
+                  let href = link["href"] as? String,
+                  let updated = (entry["updated"] as? [String: Any])?["label"] as? String
+            else { return nil }
+            return AppReview(id: id, userName: name, userUrl: uri, version: version, score: rating, title: title, text: text, url: href, updated: updated)
+        }
+        return entries.compactMap(map)
+    }
+
+    // MARK: - Privacy (AMP API)
+    struct AppPrivacy: Codable {
+        let managePrivacyChoicesUrl: String?
+        let privacyTypes: [PrivacyType]
+        struct PrivacyType: Codable { let privacyType: String; let identifier: String; let description: String; let dataCategories: [DataCategory]? }
+        struct DataCategory: Codable { let dataCategory: String; let identifier: String; let dataTypes: [String]? }
+    }
+    func privacy(id: Int, country: String = "US") async throws -> AppPrivacy {
+        let token = try await fetchAMPTargetToken(country: country, appId: id)
+        let url = URL(string: "https://amp-api-edge.apps.apple.com/v1/catalog/\(country)/apps/\(id)?platform=web&fields=privacyDetails")!
+        var request = URLRequest(url: url)
+        request.setValue("https://apps.apple.com", forHTTPHeaderField: "Origin")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw SearchError.invalidResponse }
+        let root = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        if let dataArr = root?["data"] as? [[String: Any]], let first = dataArr.first,
+           let attributes = first["attributes"] as? [String: Any], let privacy = attributes["privacyDetails"] {
+            let pdata = try JSONSerialization.data(withJSONObject: privacy, options: [])
+            return try JSONDecoder().decode(AppPrivacy.self, from: pdata)
+        }
+        throw SearchError.invalidResponse
+    }
+
+    // MARK: - Version History (AMP API)
+    struct AppVersionInfo: Codable, Identifiable, Hashable { let versionDisplay: String; let releaseNotes: String?; let releaseDate: String; let releaseTimestamp: String; var id: String { versionDisplay + releaseTimestamp } }
+    func versionHistory(id: Int, country: String = "US") async throws -> [AppVersionInfo] {
+        let token = try await fetchAMPTargetToken(country: country, appId: id)
+        let url = URL(string: "https://amp-api-edge.apps.apple.com/v1/catalog/\(country)/apps/\(id)?platform=web&extend=versionHistory&additionalPlatforms=appletv,ipad,iphone,mac,realityDevice")!
+        var request = URLRequest(url: url)
+        request.setValue("https://apps.apple.com", forHTTPHeaderField: "Origin")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw SearchError.invalidResponse }
+        let root = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+        if let dataArr = root?["data"] as? [[String: Any]], let first = dataArr.first,
+           let attributes = first["attributes"] as? [String: Any],
+           let platform = attributes["platformAttributes"] as? [String: Any],
+           let ios = platform["ios"] as? [String: Any],
+           let versions = ios["versionHistory"] {
+            let vdata = try JSONSerialization.data(withJSONObject: versions, options: [])
+            return try JSONDecoder().decode([AppVersionInfo].self, from: vdata)
+        }
+        return []
+    }
+
+    // MARK: - Suggest (XML Plist)
+    struct SuggestTerm: Codable, Identifiable, Hashable { let term: String; var id: String { term } }
+    func suggest(term: String) async throws -> [SuggestTerm] {
+        guard let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return [] }
+        let url = URL(string: "https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints?clientApplication=Software&term=\(encoded)")!
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw SearchError.invalidResponse }
+        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
+        guard let dict = plist as? [String: Any],
+              let arr = ((dict["plist"] as? [String: Any])?["dict"] as? [String: Any])?["array"] as? [[String: Any]] ?? (dict["array"] as? [[String: Any]]),
+              let list = arr.first? ["dict"] as? [[String: Any]] else { return [] }
+        var terms: [SuggestTerm] = []
+        for entry in list {
+            if let s = entry["string"] as? [String], let t = s.first { terms.append(SuggestTerm(term: t)) }
+        }
+        return terms
     }
 }
 // MARK: - 扩展

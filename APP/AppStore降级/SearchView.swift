@@ -361,6 +361,7 @@ struct SearchView: SwiftUI.View {
     @State var isHovered = false
     @State var searchError: String? = nil
     @State var searchSuggestions: [String] = []
+    @State var isFetchingSuggestions: Bool = false
     @State var searchCache: [String: [iTunesSearchResult]] = [:]
     @State var showSearchSuggestions = false
     @StateObject var vm = AppStore.this
@@ -374,6 +375,11 @@ struct SearchView: SwiftUI.View {
     @State var showVersionPicker = false
     @State var selectedApp: iTunesSearchResult?
     @State var availableVersions: [StoreAppVersion] = []
+    @State var versionHistory: [iTunesClient.AppVersionInfo] = []
+    // 正在执行“获取”的条目 trackId（避免一次点击影响所有条目按钮）
+    @State private var purchasingTrackId: Int? = nil
+    @State private var showPurchaseAlert: Bool = false
+    @State private var purchaseAlertText: String = ""
     @State var isLoadingVersions = false
     @State var versionError: String?
     var possibleReigon: Set<String> {
@@ -401,12 +407,6 @@ struct SearchView: SwiftUI.View {
                     ScrollViewReader { proxy in
                         ScrollView(.vertical, showsIndicators: false) {
                             LazyVStack(spacing: 0) {
-                                // 账户状态栏
-                                accountStatusBar
-                                    .scaleEffect(animateHeader ? 1 : 0.95)
-                                    .opacity(animateHeader ? 1 : 0)
-                                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: animateHeader)
-                                
                                 // 搜索头部区域
                                 modernSearchBar
                                     .scaleEffect(animateHeader ? 1 : 0.95)
@@ -497,6 +497,7 @@ struct SearchView: SwiftUI.View {
         .sheet(isPresented: $showVersionPicker) {
             versionPickerSheet
         }
+        // 移除查看隐私/评论的弹窗
         .sheet(isPresented: $showRegionPicker) {
             regionPickerSheet
         }
@@ -554,7 +555,10 @@ struct SearchView: SwiftUI.View {
                         .onChange(of: searchKey) { newValue in
                             if !newValue.isEmpty {
                                 showSearchSuggestions = true
+                                // 本地建议
                                 searchSuggestions = getSearchSuggestions(for: newValue)
+                                // 远程联想建议
+                                Task { await fetchRemoteSuggestions(for: newValue) }
                             } else {
                                 showSearchSuggestions = false
                                 searchSuggestions = []
@@ -624,7 +628,7 @@ struct SearchView: SwiftUI.View {
                 .scaleEffect(searching ? 0.95 : 1.0)
                 .animation(.spring(response: 0.3), value: searching)
             }
-            // 搜索类型、下载按钮和地区选择
+            // 搜索类型、账户与地区同一行
             HStack(spacing: 16) {
                 // 搜索类型选择器
                 Menu {
@@ -659,8 +663,9 @@ struct SearchView: SwiftUI.View {
                     )
                 }
                 
-                Spacer()
-                
+                Spacer(minLength: 12)
+                // 账户胶囊（紧凑）
+                compactAccountCapsule
                 // 智能地区选择器
                 smartRegionSelector
             }
@@ -718,6 +723,44 @@ struct SearchView: SwiftUI.View {
             // 确保地区选择器显示正确的当前地区
             print("[SearchView] 地区选择器显示，当前地区: \(effectiveSearchRegion)")
         }
+    }
+    // 紧凑版账户胶囊（显示邮箱与登录/登出入口）
+    private var compactAccountCapsule: some SwiftUI.View {
+        HStack(spacing: 8) {
+            Image(systemName: appStore.selectedAccount == nil ? "person.circle" : "person.circle.fill")
+                .font(.system(size: 16))
+                .foregroundColor(appStore.selectedAccount == nil ? .secondary : themeManager.accentColor)
+            if let acc = appStore.selectedAccount {
+                Text(acc.email)
+                    .font(.caption)
+                    .lineLimit(1)
+            } else {
+                Text("未登录")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Menu {
+                if appStore.selectedAccount == nil {
+                    Button("登录") { showLoginSheet = true }
+                } else {
+                    Button("账户详情") { showAccountMenu = true }
+                    Button("登出") { logoutAccount() }
+                }
+            } label: {
+                Image(systemName: appStore.selectedAccount == nil ? "person.crop.circle.fill.badge.plus" : "rectangle.portrait.and.arrow.right")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.gray.opacity(0.1)))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(themeManager.selectedTheme == .dark ? Color(.secondarySystemBackground) : Color(.secondarySystemBackground))
+        )
     }
     
     // MARK: - 地区选择器弹窗
@@ -1430,15 +1473,9 @@ struct SearchView: SwiftUI.View {
     }
     // MARK: - 结果卡片视图
     func resultCardView(item: iTunesSearchResult, index: Int) -> any SwiftUI.View {
-        Button {
-            // 只调用loadVersionsForApp，让它统一管理状态设置
-            Task {
-                await loadVersionsForApp(item)
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                // 应用图标
-                AsyncImage(url: URL(string: item.artworkUrl512 ?? "")) { image in
+            return VStack(alignment: .leading, spacing: 8) {
+                // 应用图标（优先 1024/512 大图）
+                AsyncImage(url: URL(string: bestArtworkURL(from512: item.artworkUrl512, fallback100: item.artworkUrl100))) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -1474,32 +1511,55 @@ struct SearchView: SwiftUI.View {
                         .lineLimit(1)
                 }
                 // 价格和版本信息
-                HStack(spacing: 8) {
-                    if let price = item.formattedPrice {
-                        Text(price)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        if let price = item.formattedPrice {
+                            Text(price)
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(themeManager.accentColor)
+                                )
+                        }
+                        Text("v\(item.version)")
                             .font(.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 2)
                             .background(
                                 Capsule()
-                                    .fill(themeManager.accentColor)
+                                    .fill(Color(.secondarySystemBackground))
                             )
+                        if let genre = item.primaryGenreName, !genre.isEmpty {
+                            Text(genre)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(Color(.secondarySystemBackground))
+                                )
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
-                    Text("v\(item.version)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(Color(.secondarySystemBackground))
-                        )
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        starRow(rating: item.averageUserRating, count: item.userRatingCount)
+                        Spacer()
+                    }
+                    HStack(spacing: 8) {
+                        chip(item.byteCountDescription)
+                        if let minOS = item.minimumOsVersion, !minOS.isEmpty { chip("iOS \(minOS)+") }
+                        Image(systemName: item.displaySupportedDevicesIcon)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
                 }
             }
             .padding(8)
@@ -1510,8 +1570,10 @@ struct SearchView: SwiftUI.View {
             )
             .scaleEffect(isHovered ? 1.02 : 1.0)
             .animation(.spring(response: 0.3), value: isHovered)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            Task { loadVersionsForApp(item) }
         }
-        .buttonStyle(.plain)
         .onAppear {
             // 当显示到倒数第3个项目时开始预加载
             if index >= searchResult.count - 3 && !isLoadingMore && searchResult.count >= pageSize {
@@ -1521,15 +1583,9 @@ struct SearchView: SwiftUI.View {
     }
     // MARK: - 结果列表视图
     func resultListView(item: iTunesSearchResult, index: Int) -> any SwiftUI.View {
-        Button {
-            // 只调用loadVersionsForApp，让它统一管理状态设置
-            Task {
-                await loadVersionsForApp(item)
-            }
-        } label: {
-            HStack(spacing: 16) {
-                // 应用图标
-                AsyncImage(url: URL(string: item.artworkUrl512 ?? "")) { image in
+            return HStack(spacing: 16) {
+                // 应用图标（优先 1024/512 大图）
+                AsyncImage(url: URL(string: bestArtworkURL(from512: item.artworkUrl512, fallback100: item.artworkUrl100))) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -1561,10 +1617,32 @@ struct SearchView: SwiftUI.View {
                                 .font(.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(.secondarySystemBackground)))
                         }
                         Text("v\(item.version)")
                             .font(.caption2)
                             .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color(.secondarySystemBackground)))
+                        if let genre = item.primaryGenreName, !genre.isEmpty {
+                            Text(genre)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color(.secondarySystemBackground)))
+                        }
+                    }
+                    starRow(rating: item.averageUserRating, count: item.userRatingCount)
+                    HStack(spacing: 8) {
+                        chip(item.byteCountDescription)
+                        if let minOS = item.minimumOsVersion, !minOS.isEmpty { chip("iOS \(minOS)+") }
+                        Image(systemName: item.displaySupportedDevicesIcon)
+                            .foregroundColor(.secondary)
+                            .font(.caption)
                     }
                 }
                 Spacer()
@@ -1578,14 +1656,21 @@ struct SearchView: SwiftUI.View {
                     .fill(themeManager.selectedTheme == .dark ? Color(.systemGray6) : Color(.systemBackground))
                     .shadow(color: themeManager.selectedTheme == .dark ? .black.opacity(0.3) : .black.opacity(0.03), radius: 8, x: 0, y: 2)
             )
-        }
-        .buttonStyle(.plain)
-        .onAppear {
-            if index == searchResult.count - 1 && !isLoadingMore {
-                loadMoreResults()
+            .overlay(alignment: .bottomTrailing) {
+                purchaseButton(item: item)
+                    .padding(8)
             }
-        }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Task { loadVersionsForApp(item) }
+            }
+            .onAppear {
+                if index == searchResult.count - 1 && !isLoadingMore {
+                    loadMoreResults()
+                }
+            }
     }
+    // 之前的“查看隐私/评论”功能已按需移除
 
     // MARK: - 辅助方法
     func startAnimations() {
@@ -1734,6 +1819,22 @@ struct SearchView: SwiftUI.View {
         }
         searchSuggestions = Array(suggestions).sorted()
     }
+    // 远程联想建议
+    func fetchRemoteSuggestions(for query: String) async {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        if isFetchingSuggestions { return }
+        isFetchingSuggestions = true
+        defer { isFetchingSuggestions = false }
+        let res = await SearchManager.shared.suggest(term: query)
+        switch res {
+        case .success(let terms):
+            let remote = terms.map { $0.term }
+            let combined = Array(Set((searchSuggestions + remote))).sorted()
+            await MainActor.run { self.searchSuggestions = combined }
+        case .failure:
+            break
+        }
+    }
     func clearSearchCache() {
         searchCache.removeAll()
     }
@@ -1743,6 +1844,115 @@ struct SearchView: SwiftUI.View {
         let historySuggestions = searchHistory.filter { $0.lowercased().contains(lowercaseQuery) }
         let dynamicSuggestions = searchSuggestions.filter { $0.lowercased().contains(lowercaseQuery) }
         return Array(Set(historySuggestions + dynamicSuggestions)).prefix(5).map { $0 }
+    }
+    // MARK: - 小组件
+    func starRow(rating: Double?, count: Int?) -> some SwiftUI.View {
+        let r = max(0.0, min(rating ?? 0.0, 5.0))
+        let full = Int(r)
+        let half = (r - Double(full)) >= 0.5
+        return HStack(spacing: 2) {
+            ForEach(0..<5, id: \.self) { i in
+                if i < full {
+                    Image(systemName: "star.fill").foregroundColor(.orange)
+                } else if i == full && half {
+                    Image(systemName: "star.leadinghalf.filled").foregroundColor(.orange)
+                } else {
+                    Image(systemName: "star").foregroundColor(.orange.opacity(0.4))
+                }
+            }
+            if let c = count { Text("(\(c))").font(.caption2).foregroundColor(.secondary) }
+        }
+    }
+    func chip(_ text: String) -> some SwiftUI.View {
+        Text(text)
+            .font(.caption2)
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(Color(.secondarySystemBackground)))
+    }
+    // 升级封面图：优先尝试将 512 链接替换为 1024；若无则回退到 512/100
+    private func bestArtworkURL(from512: String?, fallback100: String?) -> String {
+        if var url = from512, !url.isEmpty {
+            // 常见规则：.../512x512bb.jpg → 1024x1024bb.jpg
+            url = url.replacingOccurrences(of: "/512x512bb", with: "/1024x1024bb")
+            return url
+        }
+        return from512 ?? fallback100 ?? ""
+    }
+    // 购买入口（仅对免费 App 用于获取许可）
+    func purchaseButton(item: iTunesSearchResult) -> some SwiftUI.View {
+        Group {
+            if (item.price ?? 0.0) == 0.0 { // 免费应用才显示“购买”
+                Button {
+                    Task { await purchaseFreeAppIfNeeded(item: item) }
+                } label: {
+                    HStack(spacing: 6) {
+                        let loading = (purchasingTrackId == (item.trackId))
+                        if loading { ProgressView().scaleEffect(0.7) }
+                        Text(loading ? "购买中" : "购买")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(themeManager.accentColor))
+                    .foregroundColor(.white)
+                }
+                .disabled(purchasingTrackId != nil && purchasingTrackId != item.trackId)
+                .buttonStyle(.plain)
+                .alert("提示", isPresented: $showPurchaseAlert) {
+                    Button("好的", role: .cancel) {}
+                } message: {
+                    Text(purchaseAlertText)
+                }
+            }
+        }
+    }
+    // 调用购买流程为账户绑定许可
+    func purchaseFreeAppIfNeeded(item: iTunesSearchResult) async {
+        guard let account = AuthenticationManager.shared.loadSavedAccount() else {
+            purchaseAlertText = "请先登录账号再获取应用"
+            showPurchaseAlert = true
+            return
+        }
+        let currentId = item.trackId
+        await MainActor.run { purchasingTrackId = currentId }
+        defer { Task { await MainActor.run { purchasingTrackId = nil } } }
+        // 使用 PurchaseManager 先检查拥有
+        let check = await PurchaseManager.shared.checkAppOwnership(
+            appIdentifier: String(item.trackId),
+            account: account,
+            countryCode: account.countryCode
+        )
+        switch check {
+        case .success(let owned):
+            if owned {
+                // 已拥有：直接进入历史版本选择界面
+                await MainActor.run {
+                    loadVersionsForApp(item)
+                }
+                return
+            } else {
+                // 未拥有：直接跳转 App Store
+                openAppStorePage(for: item)
+                return
+            }
+        case .failure:
+            // 检查失败：直接跳转 App Store，无提示
+            openAppStorePage(for: item)
+            return
+        }
+    }
+    /// 打开官方 App Store 的该应用页面
+    private func openAppStorePage(for item: iTunesSearchResult) {
+        let urlStr = item.trackViewUrl
+        guard let url = URL(string: urlStr) else { return }
+        #if os(macOS)
+        NSWorkspace.shared.open(url)
+        #elseif os(iOS)
+        UIApplication.shared.open(url)
+        #endif
     }
     // MARK: - Version Selection Methods
     func loadVersionsForApp(_ app: iTunesSearchResult) {
@@ -1763,20 +1973,20 @@ struct SearchView: SwiftUI.View {
                 guard let account = AuthenticationManager.shared.loadSavedAccount() else {
                     throw NSError(domain: "SearchView", code: -1, userInfo: [NSLocalizedDescriptionKey: "未登录账户，无法获取版本信息"])
                 }
-                // 使用 StoreClient 获取版本信息
-                let result = await StoreClient.shared.getAppVersions(
+                // 并行：StoreClient 版本ID集合 + iTunes 版本历史详情
+                async let storeVersionsTask: Result<[StoreAppVersion], StoreError> = StoreClient.shared.getAppVersions(
                     trackId: String(app.trackId),
                     account: account
                 )
-                switch result {
+                async let historyTask: [iTunesClient.AppVersionInfo] = try iTunesClient.shared.versionHistory(id: app.trackId, country: effectiveSearchRegion)
+                let (storeVersionsResult, hist) = try await (storeVersionsTask, historyTask)
+                switch storeVersionsResult {
                 case .success(let versions):
                     await MainActor.run {
                         self.availableVersions = versions
+                        self.versionHistory = hist
                         self.isLoadingVersions = false
-                        print("[SearchView] 成功加载 \(versions.count) 个版本")
-                        for version in versions {
-                            print("[SearchView] 版本: \(version.versionString) - ID: \(version.versionId)")
-                        }
+                        print("[SearchView] 成功加载 \(versions.count) 个版本, 历史记录 \(hist.count) 条")
                     }
                 case .failure(let error):
                     throw error
@@ -1942,9 +2152,9 @@ struct SearchView: SwiftUI.View {
         HStack(spacing: 16) {
             // 版本信息区域
             VStack(alignment: .leading, spacing: 8) {
-                // 版本号
+                // 版本号 + 发布日期（从 versionHistory 映射）
                 HStack(spacing: 8) {
-                    Text("版本 \(version.versionString)")
+                    Text(displayVersionTitle(version: version))
                         .font(.body)
                         .fontWeight(.bold)
                         .foregroundColor(themeManager.accentColor)
@@ -1954,6 +2164,14 @@ struct SearchView: SwiftUI.View {
                             Capsule()
                                 .fill(themeManager.accentColor.opacity(0.1))
                         )
+                }
+                
+                // 发布说明（首行）
+                if let note = shortReleaseNote(for: version) {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
                 
                 // 版本ID
@@ -2010,6 +2228,23 @@ struct SearchView: SwiftUI.View {
                 .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
         )
         .padding(.horizontal, 24)
+    }
+    // 映射显示：版本标题（含日期）
+    private func displayVersionTitle(version: StoreAppVersion) -> String {
+        if let h = versionHistory.first(where: { $0.versionDisplay == version.versionString }) {
+            return "版本 \(h.versionDisplay) · \(h.releaseDate)"
+        }
+        return "版本 \(version.versionString)"
+    }
+    // 映射显示：发布说明首段
+    private func shortReleaseNote(for version: StoreAppVersion) -> String? {
+        if let h = versionHistory.first(where: { $0.versionDisplay == version.versionString }) {
+            if let rn = h.releaseNotes, !rn.isEmpty {
+                let firstLine = rn.split(separator: "\n").first.map(String.init) ?? rn
+                return firstLine
+            }
+        }
+        return nil
     }
     @MainActor
     func downloadVersion(app: iTunesSearchResult, version: StoreAppVersion) async {

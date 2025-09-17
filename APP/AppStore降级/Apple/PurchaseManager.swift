@@ -51,7 +51,7 @@ class PurchaseManager {
                 appIdentifier: trackId,
                 directoryServicesIdentifier: account.directoryServicesIdentifier,
                 passwordToken: account.passwordToken,
-                countryCode: countryCode
+                storeFront: account.storeResponse.storeFront
             )
             // 如果执行到这里，说明购买成功
             let result = PurchaseResult(
@@ -62,6 +62,9 @@ class PurchaseManager {
             )
             return .success(result)
         } catch {
+            if let se = error as? StoreError, se == .userInteractionRequired {
+                return .failure(.unknownError("需要在 App Store 完成一次获取/密码确认后再试"))
+            }
             return .failure(.networkError(error))
         }
     }
@@ -97,7 +100,10 @@ class PurchaseManager {
             }
             let downloadResponse = try await StoreRequest.shared.download(
                 appIdentifier: trackId,
-                directoryServicesIdentifier: account.directoryServicesIdentifier
+                directoryServicesIdentifier: account.directoryServicesIdentifier,
+                appVersion: nil,
+                passwordToken: account.passwordToken,
+                storeFront: account.storeResponse.storeFront
             )
             // 如果执行到这里且 songList 有项，则说明用户拥有该应用
             return .success(!downloadResponse.songList.isEmpty)
@@ -146,15 +152,24 @@ class PurchaseManager {
                 )
                 return .success(result)
             } else {
-                // 重要修改：用户未拥有应用时，不尝试购买，而是直接允许下载继续
-                // 这将允许下载任何应用，无论用户是否购买过
-                let result = PurchaseResult(
-                    trackId: appIdentifier,
-                    success: true,
-                    message: "应用未购买，但允许下载尝试",
-                    licenseInfo: nil
-                )
-                return .success(result)
+                // 未拥有则尝试执行零元购买（仅对免费应用有效；对付费应用会返回错误）
+                do {
+                    let _ = try await StoreRequest.shared.purchase(
+                        appIdentifier: String(appIdentifier),
+                        directoryServicesIdentifier: account.directoryServicesIdentifier,
+                        passwordToken: account.passwordToken,
+                        storeFront: account.storeResponse.storeFront
+                    )
+                    let result = PurchaseResult(
+                        trackId: appIdentifier,
+                        success: true,
+                        message: "已完成获取（零元购买）",
+                        licenseInfo: nil
+                    )
+                    return .success(result)
+                } catch {
+                    return .failure(.networkError(error))
+                }
             }
         case .failure(let error):
             // 仅在真正的网络或API错误时返回失败

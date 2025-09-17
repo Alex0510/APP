@@ -138,3 +138,50 @@ extension iTunesSearchResult {
         return nil
     }
 }
+// MARK: - 扩展：高级能力封装（隐私/版本/评论/联想）
+extension SearchManager {
+    /// 获取应用的版本历史（通过 AMP API）
+    func fetchVersionHistory(appId: Int, countryCode: String = "US") async -> Result<[iTunesClient.AppVersionInfo], SearchError> {
+        do {
+            let list = try await itunesClient.versionHistory(id: appId, country: countryCode)
+            return .success(list)
+        } catch let err as SearchError {
+            return .failure(err)
+        } catch {
+            return .failure(.networkError(error))
+        }
+    }
+    /// 获取应用的隐私详情
+    func fetchPrivacy(appId: Int, countryCode: String = "US") async -> Result<iTunesClient.AppPrivacy, SearchError> {
+        do {
+            let info = try await itunesClient.privacy(id: appId, country: countryCode)
+            return .success(info)
+        } catch let err as SearchError {
+            return .failure(err)
+        } catch {
+            return .failure(.networkError(error))
+        }
+    }
+    /// 获取应用的评论列表
+    func fetchReviews(appId: Int, countryCode: String = "us", page: Int = 1, sort: iTunesClient.ReviewSort = .mostRecent) async -> Result<[iTunesClient.AppReview], SearchError> {
+        do {
+            let list = try await itunesClient.reviews(id: appId, country: countryCode, page: page, sort: sort)
+            return .success(list)
+        } catch let err as SearchError {
+            return .failure(err)
+        } catch {
+            return .failure(.networkError(error))
+        }
+    }
+    /// 联想词
+    func suggest(term: String) async -> Result<[iTunesClient.SuggestTerm], SearchError> {
+        do {
+            let list = try await itunesClient.suggest(term: term)
+            return .success(list)
+        } catch let err as SearchError {
+            return .failure(err)
+        } catch {
+            return .failure(.networkError(error))
+        }
+    }
+}
