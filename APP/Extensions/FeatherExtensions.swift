@@ -57,7 +57,7 @@ public extension String {
     }
     
     func localized() -> String {
-        String.localized(self)
+        return self
     }
 }
 

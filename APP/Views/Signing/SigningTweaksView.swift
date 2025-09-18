@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct SigningTweaksView: View {
@@ -16,52 +15,56 @@ struct SigningTweaksView: View {
 	
 	// MARK: Body
 	var body: some View {
-		NBList(.localized("Tweaks")) {
-			NBSection(.localized("Injection")) {
+		List {
+			Section {
 				SigningOptionsView.picker(
-					.localized("Injection Path"),
+					"Injection Path",
 					systemImage: "doc.badge.gearshape",
 					selection: $options.injectPath,
 					values: Options.InjectPath.allCases
 				)
 				SigningOptionsView.picker(
-					.localized("Injection Folder"),
+					"Injection Folder",
 					systemImage: "folder.badge.gearshape",
 					selection: $options.injectFolder,
 					values: Options.InjectFolder.allCases
 				)
+			} header: {
+				Text("Injection")
 			}
 			
-			NBSection(.localized("Tweaks")) {
+			Section {
 				if !options.injectionFiles.isEmpty {
 					ForEach(options.injectionFiles, id: \.absoluteString) { tweak in
 						_file(tweak: tweak)
 					}
 				} else {
-					Text(verbatim: .localized("No files chosen."))
+					Text("No files chosen.")
 						.font(.footnote)
-						.foregroundColor(.disabled())
+						.foregroundColor(.secondary)
 				}
+			} header: {
+				Text("Tweaks")
 			}
 		}
+		.navigationTitle("Tweaks")
 		.toolbar {
-			NBToolbarButton(
-				systemImage: "plus",
-				style: .icon,
-				placement: .topBarTrailing
-			) {
-				_isAddingPresenting = true
+			ToolbarItem(placement: .topBarTrailing) {
+				Button {
+					_isAddingPresenting = true
+				} label: {
+					Text("添加")
+				}
 			}
 		}
 		.sheet(isPresented: $_isAddingPresenting) {
 			FileImporterRepresentableView(
 				allowedContentTypes: [.dylib, .deb],
-				allowsMultipleSelection: true,
-				onDocumentsPicked: { urls in
+				onResult: { result in
 					DispatchQueue.main.async { _isAddingPresenting = false }
-					guard !urls.isEmpty else { return }
-					let validUrls = urls.filter { ["dylib", "deb"].contains($0.pathExtension.lowercased()) }
-					for url in validUrls {
+					switch result {
+					case .success(let url):
+						guard ["dylib", "deb"].contains(url.pathExtension.lowercased()) else { return }
 						FileManager.default.moveAndStore(url, with: "FeatherTweak") { storedURL in
 							DispatchQueue.main.async {
 								if !options.injectionFiles.contains(storedURL) {
@@ -69,6 +72,8 @@ struct SigningTweaksView: View {
 								}
 							}
 						}
+					case .failure(let error):
+						print("Failed to import files: \(error)")
 					}
 				}
 			)
@@ -102,7 +107,7 @@ extension SigningTweaksView {
 				}
 			}
 		} label: {
-			Label(.localized("Delete"), systemImage: "trash")
+			Label("Delete", systemImage: "trash")
 		}
 	}
 }

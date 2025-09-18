@@ -1,6 +1,5 @@
 import SwiftUI
 import Nuke
-import IDeviceSwift
 import OSLog
 
 @main
@@ -27,14 +26,15 @@ struct FeatherApp: App {
 					.transition(.move(edge: .top).combined(with: .opacity))
 			}
 			.animation(.smooth, value: downloadManager.manualDownloads.description)
-			.onReceive(NotificationCenter.default.publisher(for: .heartbeatInvalidHost)) { _ in
-				DispatchQueue.main.async {
-					UIAlertController.showAlertWithOk(
-						title: "无效主机ID",
-						message: .localized("您的配对文件无效且与您的设备不兼容，请导入有效的配对文件。")
-					)
-				}
-			}
+			// TODO: Fix notification name
+			// .onReceive(NotificationCenter.default.publisher(for: .heartbeatInvalidHost)) { _ in
+			//	DispatchQueue.main.async {
+			//		UIAlertController.showAlertWithOk(
+			//			title: "无效主机ID",
+			//			message: "您的配对文件无效且与您的设备不兼容，请导入有效的配对文件。"
+			//		)
+			//	}
+			// }
 			.onAppear {
 				if let style = UIUserInterfaceStyle(rawValue: UserDefaults.standard.integer(forKey: "Feather.userInterfaceStyle")) {
 					UIApplication.topViewController()?.view.window?.overrideUserInterfaceStyle = style
@@ -92,7 +92,7 @@ struct FeatherApp: App {
 					p12Password: password
 				) { error in
 					if let error = error {
-						UIAlertController.showAlertWithOk(title: .localized("Error"), message: error.localizedDescription)
+						UIAlertController.showAlertWithOk(title: "错误", message: error.localizedDescription)
 					} else {
 						generator.notificationOccurred(.success)
 					}

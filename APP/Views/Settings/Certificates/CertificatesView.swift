@@ -1,6 +1,5 @@
 
 import SwiftUI
-import NimbleViews
 
 struct CertificatesView: View {
 	@AppStorage("feather.selectedCert") private var _storedSelectedCert: Int = 0
@@ -24,46 +23,51 @@ struct CertificatesView: View {
 	}
 	
 	var body: some View {
-		NBGrid {
+		List {
 			ForEach(Array(_certificates.enumerated()), id: \.element.uuid) { index, cert in
 				_cellButton(for: cert, at: index)
 			}
 		}
-		.navigationTitle(.localized("证书"))
+		.navigationTitle("证书")
 		.overlay {
 			if _certificates.isEmpty {
 				if #available(iOS 17, *) {
-					ContentUnavailableView {
-						Label(.localized("无证书"), systemImage: "questionmark.folder.fill")
-					} description: {
-						Text(.localized("通过导入您的第一个证书开始签名。"))
-					} actions: {
-						Button {
-							_isAddingPresenting = true
-						} label: {
-							NBButton(.localized("导入"), systemImage: "plus", style: .text)
+						VStack(spacing: 16) {
+							Image(systemName: "questionmark.folder.fill")
+								.font(.system(size: 48))
+								.foregroundColor(.secondary)
+							Text("无证书")
+								.font(.title2)
+								.fontWeight(.medium)
+							Text("通过导入一个证书开始签名。")
+								.font(.body)
+								.foregroundColor(.secondary)
+							Button {
+								_isAddingPresenting = true
+							} label: {
+								Label("导入", systemImage: "plus")
+							}
+							.buttonStyle(.bordered)
+							
+							if _bindingSelectedCert == nil {
+								Button {
+									_isAddingPresenting = true
+								} label: {
+									Label("添加证书", systemImage: "plus")
+								}
+								.buttonStyle(.bordered)
+							}
 						}
-					}
 				}
 			}
 		}
-		.toolbar {
-			if _bindingSelectedCert == nil {
-				NBToolbarButton(
-					systemImage: "plus",
-					style: .icon,
-					placement: .topBarTrailing
-				) {
-					_isAddingPresenting = true
-				}
-			}
-		}
+		.navigationBarTitleDisplayMode(.inline)
+		.navigationBarBackButtonHidden(false)
 		.sheet(item: $_isSelectedInfoPresenting) { cert in
 			CertificatesInfoView(cert: cert)
 		}
 		.sheet(isPresented: $_isAddingPresenting) {
 			CertificatesAddView()
-				.presentationDetents([.medium])
 		}
 	}
 }
@@ -77,44 +81,40 @@ extension CertificatesView {
 			CertificatesCellView(
 				cert: cert
 			)
-			.padding()
-			.background(
-				RoundedRectangle(cornerRadius: 10.5)
-					.fill(Color(uiColor: .quaternarySystemFill))
-			)
-			.overlay(
-				RoundedRectangle(cornerRadius: 10.5)
-					.strokeBorder(
-						_selectedCertBinding.wrappedValue == index ? Color.accentColor : Color.clear,
-						lineWidth: 2
-					)
-			)
-			.contextMenu {
-				_contextActions(for: cert)
-				Divider()
-				_actions(for: cert)
-			}
-			.transaction {
-				$0.animation = nil
-			}
+			.frame(maxWidth: .infinity, alignment: .leading)
+			.padding(.vertical, 8)
 		}
 		.buttonStyle(.plain)
+		.listRowBackground(
+			_selectedCertBinding.wrappedValue == index ? 
+			Color.accentColor.opacity(0.1) : 
+			Color.clear
+		)
+		.listRowSeparator(.hidden)
+		.contextMenu {
+			_contextActions(for: cert)
+			Divider()
+			_actions(for: cert)
+		}
+		.transaction {
+			$0.animation = nil
+		}
 	}
 	
 	@ViewBuilder
 	private func _actions(for cert: CertificatePair) -> some View {
-		Button(.localized("删除"), systemImage: "trash", role: .destructive) {
+			Button("删除", systemImage: "trash", role: .destructive) {
 			Storage.shared.deleteCertificate(for: cert)
 		}
 	}
 	
 	@ViewBuilder
 	private func _contextActions(for cert: CertificatePair) -> some View {
-		Button(.localized("获取信息"), systemImage: "info.circle") {
+			Button("获取信息", systemImage: "info.circle") {
 			_isSelectedInfoPresenting = cert
 		}
 		Divider()
-		Button(.localized("证书时效状态"), systemImage: "person.text.rectangle") {
+			Button("证书时效状态", systemImage: "person.text.rectangle") {
 			Storage.shared.revokagedCertificate(for: cert)
 		}
 	}

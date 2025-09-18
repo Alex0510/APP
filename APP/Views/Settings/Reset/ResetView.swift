@@ -1,16 +1,16 @@
 
 import SwiftUI
-import NimbleViews
 import Nuke
 import CoreData
 
 struct ResetView: View {
     var body: some View {
-		NBList(.localized("重置")) {
+		List {
 			_cache()
 			_coredata()
 			_all()
 		}
+		.navigationTitle("重置")
     }
 	
 	private func _cacheSize() -> String {
@@ -27,11 +27,11 @@ struct ResetView: View {
 		action: @escaping () -> Void
 	) {
 		let action = UIAlertAction(
-			title: .localized("继续"),
+			title: "继续",
 			style: .destructive
 		) { _ in
 			action()
-			UIApplication.shared.suspendAndReopen()
+			// UIApplication.shared.suspendAndReopen() - not available in iOS 15
 		}
 		
 		let style: UIAlertController.Style = UIDevice.current.userInterfaceIdiom == .pad
@@ -40,7 +40,7 @@ struct ResetView: View {
 		
 		var msg = ""
 		if !message.isEmpty { msg = message + "\n" }
-		msg.append(.localized("此操作无法撤销。您确定要继续吗？"))
+		msg.append("此操作无法撤销。您确定要继续吗？")
 	
 		UIAlertController.showAlertWithCancel(
 			title: title,
@@ -55,15 +55,15 @@ extension ResetView {
 	@ViewBuilder
 	private func _cache() -> some View {
 		Section {
-			Button(.localized("重置工作缓存"), systemImage: "xmark.rectangle.portrait") {
-				Self.resetAlert(title: .localized("重置工作缓存")) {
+						Button("重置工作缓存", systemImage: "xmark.rectangle.portrait") {
+				Self.resetAlert(title: "重置工作缓存") {
 					Self.clearWorkCache()
 				}
 			}
 			
-			Button(.localized("重置网络缓存"), systemImage: "xmark.rectangle.portrait") {
+			Button("重置网络缓存", systemImage: "xmark.rectangle.portrait") {
 				Self.resetAlert(
-					title: .localized("重置网络缓存"),
+					title: "重置网络缓存",
 					message: _cacheSize()
 				) {
 					Self.clearNetworkCache()
@@ -76,27 +76,27 @@ extension ResetView {
 	private func _coredata() -> some View {
 		Section {
 			
-			Button(.localized("重置已签名应用"), systemImage: "xmark.circle") {
+						Button("重置已签名应用", systemImage: "xmark.circle") {
 				Self.resetAlert(
-					title: .localized("重置已签名应用"),
+					title: "重置已签名应用",
 					message: Storage.shared.countContent(for: Signed.self)
 				) {
 					Self.deleteSignedApps()
 				}
 			}
 			
-			Button(.localized("重置已导入应用"), systemImage: "xmark.circle") {
+			Button("重置已导入应用", systemImage: "xmark.circle") {
 				Self.resetAlert(
-					title: .localized("重置已导入应用"),
+					title: "重置已导入应用",
 					message: Storage.shared.countContent(for: Imported.self)
 				) {
 					Self.deleteImportedApps()
 				}
 			}
 			
-			Button(.localized("重置证书"), systemImage: "xmark.circle") {
+			Button("重置证书", systemImage: "xmark.circle") {
 				Self.resetAlert(
-					title: .localized("重置证书"),
+					title: "重置证书",
 					message: Storage.shared.countContent(for: CertificatePair.self)
 				) {
 					Self.resetCertificates()
@@ -108,14 +108,14 @@ extension ResetView {
 	@ViewBuilder
 	private func _all() -> some View {
 		Section {
-			Button(.localized("重置设置"), systemImage: "xmark.octagon") {
-				Self.resetAlert(title: .localized("重置设置")) {
+						Button("重置设置", systemImage: "xmark.octagon") {
+				Self.resetAlert(title: "重置设置") {
 					Self.resetUserDefaults()
 				}
 			}
 			
-			Button(.localized("重置全部"), systemImage: "xmark.octagon") {
-				Self.resetAlert(title: .localized("重置全部")) {
+			Button("重置全部", systemImage: "xmark.octagon") {
+				Self.resetAlert(title: "重置全部") {
 					Self.resetAll()
 				}
 			}
@@ -129,9 +129,9 @@ extension ResetView {
 		let fileManager = FileManager.default
 		let tmpDirectory = fileManager.temporaryDirectory
 		
-		if let files = try? fileManager.contentsOfDirectory(atPath: tmpDirectory.path()) {
+		if let files = try? fileManager.contentsOfDirectory(atPath: tmpDirectory.path) {
 			for file in files {
-				try? fileManager.removeItem(atPath: tmpDirectory.appendingPathComponent(file).path())
+				try? fileManager.removeItem(atPath: tmpDirectory.appendingPathComponent(file).path)
 			}
 		}
 	}

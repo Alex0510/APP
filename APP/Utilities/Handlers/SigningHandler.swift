@@ -4,6 +4,17 @@ import UIKit
 import OSLog
 import Darwin
 
+extension UIImage {
+    func resize(_ width: CGFloat, _ height: CGFloat) -> UIImage {
+        let size = CGSize(width: width, height: height)
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        draw(in: CGRect(origin: .zero, size: size))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return resizedImage ?? self
+    }
+}
+
 @_silgen_name("LCPatchMachOForSDK26")
 func LCPatchMachOForSDK26(_ path: UnsafePointer<CChar>?) -> NSString?
 
@@ -202,7 +213,7 @@ extension SigningHandler {
 		]
 		
 		for imageSize in imageSizes {
-			let resizedImage = image.resize(imageSize.width, imageSize.height)
+			let resizedImage = image.resize(CGFloat(imageSize.width), CGFloat(imageSize.height))
 			let imageData = resizedImage.pngData()
 			let fileURL = app.appendingPathComponent(imageSize.name)
 			
@@ -351,7 +362,7 @@ extension SigningHandler {
 	
 	private func _locateMachosAndChangeToSDK26(for app: URL) async throws {
 		if let url = Bundle(url: app)?.executableURL {
-			LCPatchMachOForSDK26(app.appendingPathComponent(url.relativePath).relativePath)
+			let _ = LCPatchMachOForSDK26(app.appendingPathComponent(url.relativePath).relativePath)
 		}
 	}
 	
@@ -361,7 +372,7 @@ extension SigningHandler {
 	
 	
 	private func _enumerateFiles(at base: URL, where predicate: (String) -> Bool) -> [URL] {
-		guard let fileEnum = _fileManager.enumerator(atPath: base.path()) else {
+		guard let fileEnum = _fileManager.enumerator(atPath: base.path) else {
 			return []
 		}
 		
@@ -386,11 +397,11 @@ enum SigningFileHandlerError: Error, LocalizedError {
 	
 	var errorDescription: String? {
 		switch self {
-		case .appNotFound: .localized("无法定位包路径。")
-		case .infoPlistNotFound: .localized("无法定位info.plist路径。")
-		case .missingCertifcate: .localized("未指定证书。")
-		case .disinjectFailed: .localized("移除mach-O加载路径失败。")
-		case .signFailed: .localized("签名失败。")
+		case .appNotFound: "无法定位包路径。"
+		case .infoPlistNotFound: "无法定位info.plist路径。"
+		case .missingCertifcate: "未指定证书。"
+		case .disinjectFailed: "移除mach-O加载路径失败。"
+		case .signFailed: "签名失败。"
 		}
 	}
 }

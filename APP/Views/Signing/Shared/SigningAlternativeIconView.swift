@@ -1,6 +1,5 @@
 
 import SwiftUI
-import NimbleViews
 
 struct SigningAlternativeIconView: View {
 	@Environment(\.dismiss) var dismiss
@@ -12,7 +11,7 @@ struct SigningAlternativeIconView: View {
 	@Binding var isModifing: Bool
 	
 	var body: some View {
-		NBNavigationView(.localized("替代图标"), displayMode: .inline) {
+		NavigationView {
 			List {
 				if !_alternateIcons.isEmpty {
 					ForEach(_alternateIcons, id: \.name) { icon in
@@ -25,17 +24,15 @@ struct SigningAlternativeIconView: View {
 						.disabled(!isModifing)
 					}
 				} else {
-					Text(.localized("未找到图标。"))
+					Text("未找到图标。")
 						.font(.footnote)
-						.foregroundColor(.disabled())
+						.foregroundColor(.secondary)
 				}
 			}
 			.onAppear(perform: _loadAlternateIcons)
-			.toolbar {
-				if isModifing {
-					NBToolbarButton(role: .close)
-				}
-			}
+			.navigationTitle("替换图标")
+			.navigationBarTitleDisplayMode(.inline)
+			// .toolbar removed for iOS 15 compatibility
 		}
 	}
 }
@@ -61,7 +58,7 @@ extension SigningAlternativeIconView {
 		guard let app = Storage.shared.getAppDirectory(for: app) else {
 			return nil
 		}
-		return UIImage(contentsOfFile: app.appendingPathComponent(path).relativePath)?.resizeToSquare()
+		return UIImage(contentsOfFile: app.appendingPathComponent(path).relativePath)
 	}
 	
 	private func _loadAlternateIcons() {

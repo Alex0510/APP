@@ -1,7 +1,44 @@
 
 import SwiftUI
-import NimbleViews
 import UniformTypeIdentifiers
+
+
+struct FileImporterRepresentableView: UIViewControllerRepresentable {
+    let allowedContentTypes: [UTType]
+    let onResult: (Result<URL, Error>) -> Void
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedContentTypes)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onResult: onResult)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onResult: (Result<URL, Error>) -> Void
+        
+        init(onResult: @escaping (Result<URL, Error>) -> Void) {
+            self.onResult = onResult
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else {
+                onResult(.failure(NSError(domain: "FileImporter", code: -1, userInfo: [NSLocalizedDescriptionKey: "No file selected"])))
+                return
+            }
+            onResult(.success(url))
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onResult(.failure(NSError(domain: "FileImporter", code: -2, userInfo: [NSLocalizedDescriptionKey: "User cancelled"])))
+        }
+    }
+}
 
 struct CertificatesAddView: View {
 	@Environment(\.dismiss) private var dismiss
@@ -19,44 +56,56 @@ struct CertificatesAddView: View {
 	}
 	
 	var body: some View {
-		NBNavigationView(.localized("新证书"), displayMode: .inline) {
+		NavigationView {
 			Form {
-				NBSection(.localized("文件")) {
-					_importButton(.localized("导入证书文件"), file: _p12URL) {
+				Section("文件") {
+					_importButton("导入证书文件", file: _p12URL) {
 						_isImportingP12Presenting = true
 					}
-					_importButton(.localized("导入配置文件"), file: _provisionURL) {
+					_importButton("导入配置文件", file: _provisionURL) {
 						_isImportingMobileProvisionPresenting = true
 					}
 				}
-				NBSection(.localized("密码")) {
-					SecureField(.localized("输入密码"), text: $_p12Password)
+				Section {
+					SecureField("输入密码", text: $_p12Password)
+				} header: {
+					Text("密码")
 				} footer: {
-					Text(.localized("输入与私钥关联的密码。如果没有密码要求，请留空。"))
+					Text("输入与私钥关联的密码。如果没有密码要求，请留空。")
 				}
 				
 				Section {
-					TextField(.localized("昵称（可选）"), text: $_certificateName)
+					TextField("昵称（可选）", text: $_certificateName)
 				}
 			}
+			.navigationTitle("新证书")
+			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
-				NBToolbarButton(role: .cancel)
+				ToolbarItem(placement: .cancellationAction) {
+					Button("取消") {
+						dismiss()
+					}
+				}
 				
-				NBToolbarButton(
-					.localized("保存"),
-					style: .text,
-					placement: .confirmationAction,
-					isDisabled: saveButtonDisabled
-				) {
-					_saveCertificate()
+				ToolbarItem(placement: .confirmationAction) {
+					Button {
+						_saveCertificate()
+					} label: {
+						Text("保存")
+					}
+					.disabled(saveButtonDisabled)
 				}
 			}
 			.sheet(isPresented: $_isImportingP12Presenting) {
 				FileImporterRepresentableView(
 					allowedContentTypes: [.p12],
-					onDocumentsPicked: { urls in
-						guard let selectedFileURL = urls.first else { return }
-						self._p12URL = selectedFileURL
+					onResult: { result in
+						switch result {
+						case .success(let url):
+							self._p12URL = url
+						case .failure(let error):
+							print("Error selecting file: \(error)")
+						}
 					}
 				)
 				.ignoresSafeArea()
@@ -64,9 +113,13 @@ struct CertificatesAddView: View {
 			.sheet(isPresented: $_isImportingMobileProvisionPresenting) {
 				FileImporterRepresentableView(
 					allowedContentTypes: [.mobileProvision],
-					onDocumentsPicked: { urls in
-						guard let selectedFileURL = urls.first else { return }
-						self._provisionURL = selectedFileURL
+					onResult: { result in
+						switch result {
+						case .success(let url):
+							self._provisionURL = url
+						case .failure(let error):
+							print("Error selecting file: \(error)")
+						}
 					}
 				)
 				.ignoresSafeArea()
@@ -85,7 +138,7 @@ extension CertificatesAddView {
 		Button(title) {
 			action()
 		}
-		.foregroundColor(file == nil ? .accentColor : .disabled())
+		.foregroundColor(file == nil ? .accentColor : .secondary)
 		.disabled(file != nil)
 		.animation(.easeInOut(duration: 0.3), value: file != nil)
 	}
@@ -99,8 +152,8 @@ extension CertificatesAddView {
 			FR.checkPasswordForCertificate(for: p12URL, with: _p12Password, using: provisionURL)
 		else {
 			UIAlertController.showAlertWithOk(
-				title: .localized("密码错误"),
-				message: .localized("请检查密码并重试。")
+				title: "密码错误",
+				message: "请检查密码并重试。"
 			)
 			return
 		}

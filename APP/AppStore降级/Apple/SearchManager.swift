@@ -5,12 +5,73 @@
 //  由 pxx917144686 于 2025/08/20 创建。
 //
 import Foundation
+import SwiftUI
+
+/// 搜索历史管理器
+class SearchHistoryManager: ObservableObject {
+    static let shared = SearchHistoryManager()
+    @Published var searchHistory: [iTunesClient.SearchHistoryItem] = []
+    private let maxHistoryCount = 20
+    private let userDefaults = UserDefaults.standard
+    private let historyKey = "SearchHistory"
+    
+    private init() {
+        loadSearchHistory()
+    }
+    
+    /// 添加搜索历史
+    func addSearchHistory(_ query: String, resultCount: Int = 0) {
+        let newItem = iTunesClient.SearchHistoryItem(query: query, resultCount: resultCount)
+        
+        // 移除重复项
+        searchHistory.removeAll { $0.query == query }
+        
+        // 添加到开头
+        searchHistory.insert(newItem, at: 0)
+        
+        // 限制历史记录数量
+        if searchHistory.count > maxHistoryCount {
+            searchHistory = Array(searchHistory.prefix(maxHistoryCount))
+        }
+        
+        saveSearchHistory()
+    }
+    
+    /// 清除搜索历史
+    func clearSearchHistory() {
+        searchHistory.removeAll()
+        saveSearchHistory()
+    }
+    
+    /// 删除特定搜索历史
+    func removeSearchHistory(_ item: iTunesClient.SearchHistoryItem) {
+        searchHistory.removeAll { $0.id == item.id }
+        saveSearchHistory()
+    }
+    
+    /// 保存搜索历史
+    private func saveSearchHistory() {
+        if let data = try? JSONEncoder().encode(searchHistory) {
+            userDefaults.set(data, forKey: historyKey)
+        }
+    }
+    
+    /// 加载搜索历史
+    private func loadSearchHistory() {
+        if let data = userDefaults.data(forKey: historyKey),
+           let history = try? JSONDecoder().decode([iTunesClient.SearchHistoryItem].self, from: data) {
+            searchHistory = history
+        }
+    }
+}
+
 /// 用于处理应用搜索和查找操作的搜索管理器
-class SearchManager {
+class SearchManager: ObservableObject {
     static let shared = SearchManager()
     private var itunesClient: iTunesClient {
         return iTunesClient.shared
     }
+    private let historyManager = SearchHistoryManager.shared
     private init() {}
     /// 按查询词搜索应用
     /// - 参数:
@@ -136,6 +197,78 @@ extension iTunesSearchResult {
     var category: String? {
         // 可以增强此功能，以便在可用时从应用元数据中提取类别信息
         return nil
+    }
+}
+
+// MARK: - 增强搜索功能
+extension SearchManager {
+    /// 增强搜索 - 支持过滤器和排序
+    func enhancedSearch(
+        query: String,
+        filter: iTunesClient.SearchFilter = iTunesClient.SearchFilter(),
+        limit: Int = 50,
+        countryCode: String = "US"
+    ) async -> Result<[iTunesSearchResult], SearchError> {
+        // 验证输入
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return .failure(.emptyQuery)
+        }
+        guard limit > 0 && limit <= 200 else {
+            return .failure(.invalidLimit)
+        }
+        
+        do {
+            let result = await itunesClient.enhancedSearch(
+                query: query,
+                filter: filter,
+                limit: limit,
+                country: countryCode
+            )
+            
+            switch result {
+            case .success(let results):
+                // 保存搜索历史
+                historyManager.addSearchHistory(query, resultCount: results.count)
+                return .success(results)
+            case .failure(let error):
+                return .failure(.networkError(error))
+            }
+        }
+    }
+    
+    /// 获取搜索建议
+    func getSearchSuggestions(for query: String) async -> Result<[iTunesClient.SuggestTerm], SearchError> {
+        guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return .failure(.emptyQuery)
+        }
+        
+        let result = await itunesClient.getSearchSuggestions(for: query)
+        switch result {
+        case .success(let suggestions):
+            return .success(suggestions)
+        case .failure(let error):
+            return .failure(.networkError(error))
+        }
+    }
+    
+    /// 添加搜索历史
+    func addSearchHistory(_ query: String, resultCount: Int = 0) {
+        historyManager.addSearchHistory(query, resultCount: resultCount)
+    }
+    
+    /// 获取搜索历史
+    func getSearchHistory() -> [iTunesClient.SearchHistoryItem] {
+        return historyManager.searchHistory
+    }
+    
+    /// 清除搜索历史
+    func clearSearchHistory() {
+        historyManager.clearSearchHistory()
+    }
+    
+    /// 删除特定搜索历史
+    func removeSearchHistory(_ item: iTunesClient.SearchHistoryItem) {
+        historyManager.removeSearchHistory(item)
     }
 }
 // MARK: - 扩展：高级能力封装（隐私/版本/评论/联想）

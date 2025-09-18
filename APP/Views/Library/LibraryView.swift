@@ -1,6 +1,6 @@
 import SwiftUI
 import CoreData
-import NimbleViews
+import UniformTypeIdentifiers
 
 struct LibraryView: View {
 	@StateObject var downloadManager = DownloadManager.shared
@@ -49,105 +49,52 @@ struct LibraryView: View {
 	) private var _importedApps: FetchedResults<Imported>
 	
     var body: some View {
-		NBNavigationView(.localized("库")) {
-			NBListAdaptable {
-				if
-					!_filteredSignedApps.isEmpty ||
-					!_filteredImportedApps.isEmpty
-				{
-					if
-						_selectedScope == .all ||
-						_selectedScope == .signed
-					{
-						NBSection(
-							.localized("已签名"),
-							secondary: _filteredSignedApps.count.description
-						) {
-							ForEach(_filteredSignedApps, id: \.uuid) { app in
-								LibraryCellView(
-									app: app,
-									selectedInfoAppPresenting: $_selectedInfoAppPresenting,
-									selectedSigningAppPresenting: $_selectedSigningAppPresenting,
-									selectedInstallAppPresenting: $_selectedInstallAppPresenting,
-									selectedAppUUIDs: $_selectedAppUUIDs // send to cell view
-								)
-								.compatMatchedTransitionSource(id: app.uuid ?? "", ns: _namespace)
+		NavigationView {
+			_mainContent
+				.navigationTitle("应用库")
+				.navigationBarTitleDisplayMode(.large)
+				.navigationBarItems(
+					leading: EditButton(),
+					trailing: Group {
+						if _editMode.isEditing {
+							Button("删除") {
+								_bulkDeleteSelectedApps()
+							}
+							.disabled(_selectedAppUUIDs.isEmpty)
+						} else {
+							Menu {
+								_importActions()
+							} label: {
+								Image(systemName: "plus")
 							}
 						}
 					}
-					
-					if
-						_selectedScope == .all ||
-							_selectedScope == .imported
-					{
-						NBSection(
-							.localized("已导入"),
-							secondary: _filteredImportedApps.count.description
-						) {
-							ForEach(_filteredImportedApps, id: \.uuid) { app in
-								LibraryCellView(
-									app: app,
-									selectedInfoAppPresenting: $_selectedInfoAppPresenting,
-									selectedSigningAppPresenting: $_selectedSigningAppPresenting,
-									selectedInstallAppPresenting: $_selectedInstallAppPresenting,
-									selectedAppUUIDs: $_selectedAppUUIDs
-								)
-								.compatMatchedTransitionSource(id: app.uuid ?? "", ns: _namespace)
-							}
-						}
-					}
-				}
-			}
-			.searchable(text: $_searchText, placement: .platform())
-			.compatSearchScopes($_selectedScope) {
-				ForEach(Scope.allCases, id: \.displayName) { scope in
-					Text(scope.displayName).tag(scope)
-				}
-			}
-			.scrollDismissesKeyboard(.interactively)
+				)
+		}
 			.overlay {
 				if
 					_filteredSignedApps.isEmpty,
 					_filteredImportedApps.isEmpty
 				{
-					if #available(iOS 17, *) {
-						ContentUnavailableView {
-							Label(.localized("无应用"), systemImage: "questionmark.app.fill")
-						} description: {
-							Text(.localized("通过导入您的第一个IPA文件开始使用。"))
-						} actions: {
-							Menu {
-								_importActions()
-							} label: {
-								NBButton(.localized("导入"), systemImage: "square.and.arrow.down", style: .text)
+					VStack(spacing: 20) {
+						Label("无应用", systemImage: "questionmark.app.fill")
+							.font(.title2)
+							.foregroundColor(.secondary)
+						
+						Text("通过导入您的第一个IPA文件开始使用。")
+							.font(.body)
+							.foregroundColor(.secondary)
+							.multilineTextAlignment(.center)
+						
+						Menu {
+							_importActions()
+						} label: {
+							Button("导入") {
+								_isImportingPresenting = true
 							}
 						}
 					}
-				}
-			}
-			.toolbar {
-				ToolbarItem(placement: .topBarLeading) {
-					EditButton()
-				}
-				
-				if _editMode.isEditing {
-                    NBToolbarButton(
-                        .localized("删除"),
-                        systemImage: "trash",
-                        style: .text,
-                        placement: .topBarTrailing,
-                        isDisabled: _selectedAppUUIDs.isEmpty
-                    ) {
-						_bulkDeleteSelectedApps()
-					}
-				} else {
-					NBToolbarMenu(
-						systemImage: "plus",
-						style: .icon,
-						placement: .topBarTrailing
-					) {
-						_importActions()
-					}
+					.padding()
 				}
 			}
 			.environment(\.editMode, $_editMode)
@@ -156,18 +103,13 @@ struct LibraryView: View {
 			}
 			.sheet(item: $_selectedInstallAppPresenting) { app in
 				InstallPreviewView(app: app.base, isSharing: app.archive)
-					.presentationDetents([.height(200)])
-					.presentationDragIndicator(.visible)
-					.compatPresentationRadius(21)
 			}
 			.fullScreenCover(item: $_selectedSigningAppPresenting) { app in
 				SigningView(app: app.base)
-					.compatNavigationTransition(id: app.base.uuid ?? "", ns: _namespace)
 			}
 			.sheet(isPresented: $_isImportingPresenting) {
-				FileImporterRepresentableView(
+				MultiFileImporterView(
 					allowedContentTypes:  [.ipa, .tipa],
-					allowsMultipleSelection: true,
 					onDocumentsPicked: { urls in
 						guard !urls.isEmpty else { return }
 						
@@ -180,13 +122,13 @@ struct LibraryView: View {
 				)
 				.ignoresSafeArea()
 			}
-			.alert(.localized("从URL导入"), isPresented: $_isDownloadingPresenting) {
-				TextField(.localized("URL"), text: $_alertDownloadString)
+			.alert("从URL导入", isPresented: $_isDownloadingPresenting) {
+				TextField("URL", text: $_alertDownloadString)
 					.textInputAutocapitalization(.never)
-				Button(.localized("取消"), role: .cancel) {
+				Button("取消", role: .cancel) {
 					_alertDownloadString = ""
 				}
-				Button(.localized("确定")) {
+				Button("确定") {
 					if let url = URL(string: _alertDownloadString) {
 						_ = downloadManager.startDownload(from: url, id: "FeatherManualDownload_\(UUID().uuidString)")
 					}
@@ -204,15 +146,14 @@ struct LibraryView: View {
 			}
         }
     }
-}
 
 extension LibraryView {
 	@ViewBuilder
 	private func _importActions() -> some View {
-		Button(.localized("从文件导入"), systemImage: "folder") {
+		Button("从文件导入", systemImage: "folder") {
 			_isImportingPresenting = true
 		}
-		Button(.localized("从URL导入"), systemImage: "globe") {
+		Button("从URL导入", systemImage: "globe") {
 			_isDownloadingPresenting = true
 		}
 	}
@@ -256,10 +197,112 @@ extension LibraryView {
 		
 		var displayName: String {
 			switch self {
-			case .all: return .localized("全部")
-			case .signed: return .localized("已签名")
-			case .imported: return .localized("已导入")
+			case .all: return "全部"
+			case .signed: return "已签名"
+			case .imported: return "已导入"
 			}
 		}
 	}
+	
+	@ViewBuilder
+	private var _mainContent: some View {
+		List {
+			_appsListContent
+		}
+		.searchable(text: $_searchText)
+	}
+	
+	@ViewBuilder
+	private var _appsListContent: some View {
+		if !_filteredSignedApps.isEmpty || !_filteredImportedApps.isEmpty {
+			_signedAppsSection
+			_importedAppsSection
+		}
+	}
+	
+	@ViewBuilder
+	private var _signedAppsSection: some View {
+		if _selectedScope == .all || _selectedScope == .signed {
+			Section(
+				header: Text("已签名"),
+				footer: Text(_filteredSignedApps.count.description)
+			) {
+				ForEach(_filteredSignedApps, id: \.uuid) { app in
+					LibraryCellView(
+						app: app,
+						selectedInfoAppPresenting: $_selectedInfoAppPresenting,
+						selectedSigningAppPresenting: $_selectedSigningAppPresenting,
+						selectedInstallAppPresenting: $_selectedInstallAppPresenting,
+						selectedAppUUIDs: $_selectedAppUUIDs
+					)
+				}
+			}
+		}
+	}
+	
+	@ViewBuilder
+	private var _importedAppsSection: some View {
+		if _selectedScope == .all || _selectedScope == .imported {
+			Section(
+				header: Text("已导入"),
+				footer: Text(_filteredImportedApps.count.description)
+			) {
+				ForEach(_filteredImportedApps, id: \.uuid) { app in
+					LibraryCellView(
+						app: app,
+						selectedInfoAppPresenting: $_selectedInfoAppPresenting,
+						selectedSigningAppPresenting: $_selectedSigningAppPresenting,
+						selectedInstallAppPresenting: $_selectedInstallAppPresenting,
+						selectedAppUUIDs: $_selectedAppUUIDs
+					)
+				}
+			}
+		}
+	}
+}
+
+// MARK: - Multi File Importer
+struct MultiFileImporterView: UIViewControllerRepresentable {
+    let allowedContentTypes: [UTType]
+    let onDocumentsPicked: ([URL]) -> Void
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedContentTypes)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = true
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDocumentsPicked: onDocumentsPicked)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let onDocumentsPicked: ([URL]) -> Void
+        
+        init(onDocumentsPicked: @escaping ([URL]) -> Void) {
+            self.onDocumentsPicked = onDocumentsPicked
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            // 处理文件权限
+            let accessibleUrls = urls.compactMap { url -> URL? in
+                if url.startAccessingSecurityScopedResource() {
+                    return url
+                }
+                return nil
+            }
+            
+            onDocumentsPicked(accessibleUrls)
+            
+            // 注意：不要调用stopAccessingSecurityScopedResource
+            // 因为文件处理可能需要持续访问权限
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            onDocumentsPicked([])
+        }
+    }
 }

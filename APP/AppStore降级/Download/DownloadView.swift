@@ -256,7 +256,9 @@ class SimpleHTTPServer: NSObject {
         requestLocalNetworkPermission { [weak self] granted in
             if granted {
                 self?.serverQueue.async { [weak self] in
-                    self?.startSimpleServer()
+                    Task {
+                        await self?.startSimpleServer()
+                    }
                 }
             }
         }
@@ -285,11 +287,11 @@ class SimpleHTTPServer: NSObject {
         }
     }
     
-    private func startSimpleServer() {
+    private func startSimpleServer() async {
         do {
             // 创建Vapor应用
             let config = Environment(name: "development", arguments: ["serve"])
-            app = Application(config)
+            app = try await Application.make(config)
             
             // 配置服务器
             app?.http.server.configuration.port = port
@@ -307,7 +309,7 @@ class SimpleHTTPServer: NSObject {
             setupSimpleRoutes()
             
             // 启动服务器
-            try app?.run()
+            try await app?.execute()
             isRunning = true
             NSLog("✅ [HTTP服务器] 服务器已启动，端口: \(port)")
             
@@ -1200,7 +1202,7 @@ struct DownloadCardView: SwiftUIView {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .tint(.blue)
                     } else {
                         // 其他错误，显示重试按钮
@@ -1216,7 +1218,7 @@ struct DownloadCardView: SwiftUIView {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .tint(.orange)
                     }
                 }
@@ -1742,8 +1744,7 @@ struct DownloadCardView: SwiftUIView {
         
         // 生成安装URL
         let manifestURL = "http://127.0.0.1:\(serverPort)/plist/\(appInfo.bundleIdentifier)"
-        let encodedManifestURL = manifestURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? manifestURL
-        let itmsURL = "itms-services://?action=download-manifest&url=\(encodedManifestURL)"
+        let _ = manifestURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? manifestURL
         
         await MainActor.run {
             installationMessage = "正在打开iOS安装对话框..."

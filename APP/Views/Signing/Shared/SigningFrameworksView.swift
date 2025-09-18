@@ -1,22 +1,21 @@
 
 import SwiftUI
-import NimbleViews
 
 struct SigningFrameworksView: View {
 	@State private var _frameworks: [String] = []
 	@State private var _plugins: [String] = []
 	
-	private let _frameworksPath: String = .localized("框架")
-	private let _pluginsPath: String = .localized("插件")
+	private let _frameworksPath: String = "框架"
+	private let _pluginsPath: String = "插件"
 	
 	var app: AppInfoPresentable
 	@Binding var options: Options?
 	
 	var body: some View {
-		NBList(.localized("框架和插件")) {
+		List {
 			Group {
 				if !_frameworks.isEmpty {
-					NBSection(_frameworksPath) {
+					Section(_frameworksPath) {
 						ForEach(_frameworks, id: \.self) { framework in
 							SigningToggleCellView(
 								title: "\(self._frameworksPath)/\(framework)",
@@ -28,7 +27,7 @@ struct SigningFrameworksView: View {
 				}
 				
 				if !_plugins.isEmpty {
-					NBSection(_pluginsPath) {
+					Section(_pluginsPath) {
 						ForEach(_plugins, id: \.self) { plugin in
 							SigningToggleCellView(
 								title: "\(self._pluginsPath)/\(plugin)",
@@ -43,13 +42,14 @@ struct SigningFrameworksView: View {
 					_frameworks.isEmpty,
 					_plugins.isEmpty
 				{
-					Text(.localized("未找到框架或插件。"))
+					Text("未找到框架或插件。")
 						.font(.footnote)
-						.foregroundColor(.disabled())
+						.foregroundColor(.secondary)
 				}
 			}
 			.disabled(options == nil)
 		}
+		.navigationTitle("框架和插件")
 		.onAppear(perform: _listFrameworksAndPlugins)
 	}
 }

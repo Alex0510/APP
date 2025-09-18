@@ -6,7 +6,7 @@ struct FRExpirationPillView: View {
 	
 	var body: some View {
 		let textLabel = revoked
-		? .localized("已撤销")
+		? "已撤销"
 		: expiration?.formatted ?? title
 		
 		let textForeground = (expiration == nil)

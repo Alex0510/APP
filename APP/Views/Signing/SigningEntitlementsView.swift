@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct SigningEntitlementsView: View {
@@ -16,30 +15,35 @@ struct SigningEntitlementsView: View {
 	
 	// MARK: Body
 	var body: some View {
-		NBList(.localized("Entitlements")) {
+		List {
 			if let ent = bindingValue {
 				Text(ent.lastPathComponent)
 					.swipeActions() {
-						Button(.localized("Delete")) {
+						Button("Delete") {
 							FileManager.default.deleteStored(ent) { _ in
 								bindingValue = nil
 							}
 						}
 					}
 			} else {
-				Button(.localized("Select entitlements file")) {
+				Button("Select entitlements file") {
 					_isAddingPresenting = true
 				}
 			}
 		}
+		.navigationTitle("Entitlements")
 		.sheet(isPresented: $_isAddingPresenting) {
 			FileImporterRepresentableView(
-				allowedContentTypes:  [.xmlPropertyList, .plist, .entitlements],
-				onDocumentsPicked: { urls in
+				allowedContentTypes:  [.xmlPropertyList, .entitlements],
+				onResult: { result in
 					DispatchQueue.main.async { _isAddingPresenting = false }
-					guard let selectedFileURL = urls.first else { return }
-					FileManager.default.moveAndStore(selectedFileURL, with: "FeatherEntitlement") { url in
-						DispatchQueue.main.async { bindingValue = url }
+					switch result {
+					case .success(let selectedFileURL):
+						FileManager.default.moveAndStore(selectedFileURL, with: "FeatherEntitlement") { url in
+							DispatchQueue.main.async { bindingValue = url }
+						}
+					case .failure(let error):
+						print("Failed to import entitlements file: \(error)")
 					}
 				}
 			)

@@ -393,10 +393,16 @@ extension StoreClient {
     /// 获取可用的应用版本
     func getAppVersions(
         trackId: String,
-        account: Account
+        account: Account,
+        countryCode: String? = nil
     ) async -> Result<[StoreAppVersion], StoreError> {
         // 为会话设置 cookie
         setCookies(account.cookies)
+        
+        // 使用账户的地区信息，如果没有提供则使用账户默认地区
+        let regionToUse = countryCode ?? account.countryCode
+        print("[StoreClient] 获取应用版本，使用地区: \(regionToUse)")
+        
         do {
             // 优先尝试使用第三方 API 获取版本信息
             if let thirdPartyVersions = try await fetchVersionsFromThirdPartyAPI(appId: trackId) {
@@ -405,11 +411,13 @@ extension StoreClient {
             }
             print("[调试] 第三方API失败或无数据，回退到苹果官方API")
             // 如果第三方 API 失败，回退到 Apple 官方 API
-            // 首先获取当前版本信息
+            // 首先获取当前版本信息，使用账户的storeFront信息
             let result = try await StoreRequest.shared.download(
                 appIdentifier: trackId,
                 directoryServicesIdentifier: account.dsPersonId,
-                appVersion: nil
+                appVersion: nil,
+                passwordToken: account.passwordToken,
+                storeFront: account.storeResponse.storeFront
             )
             // 检查 songList 是否为空，避免数组越界
             guard !result.songList.isEmpty else {

@@ -1,6 +1,5 @@
 
 import SwiftUI
-import NimbleViews
 
 struct AltIcon: Identifiable {
 	var displayName: String
@@ -54,10 +53,10 @@ struct AppIconView: View {
 	]
 	
 	var body: some View {
-		NBList(.localized("应用图标")) {
+		List {
 			ForEach(sections.keys.sorted(), id: \.self) { section in
 				if let icons = sections[section] {
-					NBSection(section) {
+					Section(section) {
 						ForEach(icons) { icon in
 							_icon(icon: icon)
 						}
@@ -65,6 +64,7 @@ struct AppIconView: View {
 				}
 			}
 		}
+		.navigationTitle("应用图标")
 		.onAppear {
 			currentIcon = UIApplication.shared.alternateIconName
 		}
@@ -87,12 +87,12 @@ extension AppIconView {
 				
 				NBTitleWithSubtitleView(
 					title: icon.displayName,
-					subtitle: icon.author,
-					linelimit: 0
+					subtitle: icon.author
 				)
 				
 				if currentIcon == icon.key {
-					Image(systemName: "checkmark").bold()
+					Image(systemName: "checkmark")
+						.font(.body)
 				}
 			}
 		}

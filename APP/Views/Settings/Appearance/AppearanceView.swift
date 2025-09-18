@@ -1,6 +1,5 @@
 
 import SwiftUI
-import NimbleViews
 import UIKit
 
 struct AppearanceView: View {
@@ -10,9 +9,9 @@ struct AppearanceView: View {
 	private var _ignoreSolariumLinkedOnCheck: Bool = false
 	
     var body: some View {
-		NBList(.localized("外观")) {
+		List {
 			Section {
-				Picker(.localized("外观"), selection: Binding(
+				Picker("外观", selection: Binding(
 					get: {
 						// 现在AppTheme的rawValue与UIUserInterfaceStyle的rawValue匹配，直接返回
 						return themeManager.selectedTheme.rawValue
@@ -31,23 +30,27 @@ struct AppearanceView: View {
 				.pickerStyle(.segmented)
 			}
 			
-			NBSection(.localized("颜色")) {
+			Section {
 				AppearanceTintColorView()
 					.listRowInsets(EdgeInsets())
 					.listRowBackground(EmptyView())
+			} header: {
+				Text("颜色")
 			}
 			
 			
 			if #available(iOS 19.0, *) {
-				NBSection(.localized("测试性质")) {
-					Toggle(.localized("切换:液态玻璃UI"), isOn: $_ignoreSolariumLinkedOnCheck)
+				Section {
+					Toggle("切换:液态玻璃UI", isOn: $_ignoreSolariumLinkedOnCheck)
+				} header: {
+					Text("测试性质")
 				} footer: {
-					Text(.localized("重启APP生效。遇到问题联系pxx917144686"))
+					Text("重启APP生效。遇到问题联系pxx917144686")
 				}
 			}
 		}
 		.onChange(of: _ignoreSolariumLinkedOnCheck) { _ in
-			UIApplication.shared.suspendAndReopen()
+			// UIApplication.shared.suspendAndReopen() - not available in iOS 15
 		}
     }
 }

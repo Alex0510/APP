@@ -1,7 +1,6 @@
 
 import SwiftUI
 import ZIPFoundation
-import NimbleViews
 
 // 创建与ZIPFoundation兼容的压缩级别枚举
 enum ZIPCompressionLevel: Int, CaseIterable, Identifiable {
@@ -14,10 +13,10 @@ enum ZIPCompressionLevel: Int, CaseIterable, Identifiable {
     
     var label: String {
         switch self {
-        case .none: .localized("无")
-        case .speed: .localized("快速")
-        case .default: .localized("默认")
-        case .best: .localized("最佳")
+        case .none: "无"
+        case .speed: "快速"
+        case .default: "默认"
+        case .best: "最佳"
         }
     }
     
@@ -35,9 +34,9 @@ struct ArchiveView: View {
     @AppStorage("Feather.useShareSheetForArchiving") private var _useShareSheet: Bool = false
     
     var body: some View {
-        NBList(.localized("归档与压缩")) {
-            Section {
-                Picker(.localized("压缩选择"), systemImage: "archivebox", selection: $_compressionLevel) {
+        List {
+            Section("归档与压缩") {
+                Picker("压缩选择", systemImage: "archivebox", selection: $_compressionLevel) {
                     ForEach(ZIPCompressionLevel.allCases) { level in
                         Text(level.label).tag(level.rawValue)
                     }
@@ -45,9 +44,9 @@ struct ArchiveView: View {
             }
             
             Section {
-                Toggle(.localized("导出时显示分享表"), systemImage: "square.and.arrow.up", isOn: $_useShareSheet)
+                Toggle("导出时显示分享表", systemImage: "square.and.arrow.up", isOn: $_useShareSheet)
             } footer: {
-                Text(.localized("切换显示分享表将在导出到您的文件后显示分享表。"))
+                Text("切换显示分享表将在导出到您的文件后显示分享表。")
             }
         }
     }

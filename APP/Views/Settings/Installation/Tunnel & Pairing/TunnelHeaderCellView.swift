@@ -6,13 +6,14 @@ struct TunnelHeaderView: View {
 	
 	var body: some View {
 		HStack {
-			Text(.localized("状态"))
+			Text("状态")
 			Spacer()
 			TunnelPulseRing(lastHeartbeat: $lastHeartbeatTime)
 		}
-		.onReceive(NotificationCenter.default.publisher(for: .heartbeat)) { _ in
-			lastHeartbeatTime = Date()
-		}
+		// TODO: Fix notification name
+		// .onReceive(NotificationCenter.default.publisher(for: .heartbeat)) { _ in
+		//	lastHeartbeatTime = Date()
+		// }
 	}
 }
 

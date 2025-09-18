@@ -96,9 +96,9 @@ struct Options: Codable, Equatable {
 
 		var localizedDescription: String {
 			switch self {
-			case .default: .localized("跟随系统")
-			case .light: .localized("浅色")
-			case .dark: .localized("深色")
+			case .default: "跟随系统"
+			case .light: "浅色"
+			case .dark: "深色"
 			}
 		}
 	}
@@ -113,7 +113,7 @@ struct Options: Codable, Equatable {
 
 		var localizedDescription: String {
 			switch self {
-			case .default: .localized("默认")
+			case .default: "默认"
 			case .v16: "16.0"
 			case .v15: "15.0"
 			case .v14: "14.0"
@@ -129,8 +129,8 @@ struct Options: Codable, Equatable {
 
 		var localizedDescription: String {
 			switch self {
-			case .default: .localized("默认")
-			case .onlyModify: .localized("仅修改")
+			case .default: "默认"
+			case .onlyModify: "仅修改"
 			}
 		}
 	}

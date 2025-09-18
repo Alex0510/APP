@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct ConfigurationDictView: View {
@@ -17,7 +16,7 @@ struct ConfigurationDictView: View {
 	
 	// MARK: Body
 	var body: some View {
-		NBList(title, type: .list) {
+		List {
 			ForEach(dataDict.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
 				Section(key) {
 					Text(value).swipeActions(edge: .trailing) {
@@ -26,16 +25,17 @@ struct ConfigurationDictView: View {
 				}
 			}
 		}
+		.navigationTitle(title)
 		.toolbar {
-			NBToolbarButton(
-				systemImage: "plus",
-				style: .icon,
-				placement: .topBarTrailing
-			) {
-				_isAddingPresenting = true
+			ToolbarItem(placement: .topBarTrailing) {
+				Button {
+					_isAddingPresenting = true
+				} label: {
+					Image(systemName: "plus")
+				}
 			}
 		}
-		.navigationDestination(isPresented: $_isAddingPresenting) {
+		.sheet(isPresented: $_isAddingPresenting) {
 			ConfigurationDictAddView(dataDict: $dataDict)
 		}
 	}
@@ -48,7 +48,7 @@ extension ConfigurationDictView {
 		Button(role: .destructive) {
 			dataDict.removeValue(forKey: key)
 		} label: {
-			Label(.localized("删除"), systemImage: "trash")
+			Label("删除", systemImage: "trash")
 		}
 	}
 }

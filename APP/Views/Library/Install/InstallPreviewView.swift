@@ -1,7 +1,5 @@
 
 import SwiftUI
-import NimbleViews
-import IDeviceSwift
 
 struct InstallPreviewView: View {
 	@Environment(\.dismiss) var dismiss
@@ -72,7 +70,7 @@ struct InstallPreviewView: View {
 				Button {
 					UIApplication.openApp(with: app.identifier ?? "")
 				} label: {
-					NBButton("打开", systemImage: "", style: .text)
+					Text("打开")
 				}
 				.padding()
 				.transition(.opacity)
@@ -85,8 +83,8 @@ struct InstallPreviewView: View {
 	private func _install() {
 		guard isSharing || app.identifier != Bundle.main.bundleIdentifier! || _installationMethod == 1 else {
 			UIAlertController.showAlertWithOk(
-				title: .localized("安装"),
-				message: .localized("无法覆盖安装 '%@'，有问题,联系pxx917144686。", arguments: Bundle.main.name ?? "未知")
+				title: "安装",
+				message: "无法覆盖安装 '\(Bundle.main.name ?? "未知")'，有问题,联系pxx917144686。"
 			)
 			return
 		}
@@ -99,14 +97,20 @@ struct InstallPreviewView: View {
 				let packageUrl = try await handler.archive()
 				
 				if await !isSharing {
-					if await _installationMethod == 0 {
+					if _installationMethod == 0 {
 						await MainActor.run {
 							installer.packageUrl = packageUrl
 							viewModel.status = .ready
 						}
-					} else if await _installationMethod == 1 {
-						let handler = await InstallationProxy(viewModel: viewModel)
-						try await handler.install(at: packageUrl, suspend: app.identifier == Bundle.main.bundleIdentifier!)
+					} else if _installationMethod == 1 {
+						let handler = ServerInstaller(app: app, viewModel: viewModel)
+						do {
+							try await handler.install(at: packageUrl, suspend: app.identifier == Bundle.main.bundleIdentifier!)
+						} catch {
+							await MainActor.run {
+								viewModel.status = .broken
+							}
+						}
 					}
 				} else {
 					let package = try await handler.moveToArchive(packageUrl, shouldOpen: !_useShareSheet)
@@ -127,7 +131,7 @@ struct InstallPreviewView: View {
 			} catch {
 				await MainActor.run {
 					UIAlertController.showAlertWithOk(
-						title: .localized("安装"),
+						title: "安装",
 						message: String(describing: error),
 						action: {
 							HeartbeatManager.shared.start(true)

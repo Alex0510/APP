@@ -47,7 +47,7 @@ enum SearchError: Error, LocalizedError {
     }
 }
 /// iTunes 应用商店 API 的设备类型
-enum DeviceFamily: String, CaseIterable {
+enum DeviceFamily: String, CaseIterable, Codable {
     case phone = "iPhone"
     case pad = "iPad"
     /// 默认设备类型
@@ -127,6 +127,7 @@ struct iTunesSearchResult: Codable, Identifiable, Hashable {
         case advisories, features
     }
 }
+
 /// 用于在 iTunes 应用商店搜索和查找应用的 API 客户端
 class iTunesClient {
     static let shared = iTunesClient()
@@ -272,7 +273,7 @@ class iTunesClient {
         page: Int = 1,
         sort: ReviewSort = .mostRecent
     ) async throws -> [AppReview] {
-        var url = URL(string: "https://itunes.apple.com/\(country)/rss/customerreviews/page=\(page)/id=\(id)/sortby=\(sort.rawValue)/json")!
+        let url = URL(string: "https://itunes.apple.com/\(country)/rss/customerreviews/page=\(page)/id=\(id)/sortby=\(sort.rawValue)/json")!
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await session.data(for: request)
@@ -348,6 +349,80 @@ class iTunesClient {
 
     // MARK: - Suggest (XML Plist)
     struct SuggestTerm: Codable, Identifiable, Hashable { let term: String; var id: String { term } }
+    
+    // MARK: - Search History
+    struct SearchHistoryItem: Codable, Identifiable, Hashable {
+        let id: UUID
+        let query: String
+        let timestamp: Date
+        let resultCount: Int
+        
+        init(query: String, resultCount: Int = 0) {
+            self.id = UUID()
+            self.query = query
+            self.timestamp = Date()
+            self.resultCount = resultCount
+        }
+    }
+    
+    // MARK: - Search Filter
+    struct SearchFilter: Codable {
+        var category: String = "0" // 所有分类
+        var price: PriceFilter = .all
+        var rating: RatingFilter = .all
+        var deviceType: DeviceFamily = .phone
+        var sortBy: SortOption = .relevance
+        
+        enum PriceFilter: String, CaseIterable, Codable {
+            case all = "all"
+            case free = "free"
+            case paid = "paid"
+            
+            var displayName: String {
+                switch self {
+                case .all: return "所有价格"
+                case .free: return "免费"
+                case .paid: return "付费"
+                }
+            }
+        }
+        
+        enum RatingFilter: String, CaseIterable, Codable {
+            case all = "all"
+            case fourPlus = "4+"
+            case threePlus = "3+"
+            case twoPlus = "2+"
+            case onePlus = "1+"
+            
+            var displayName: String {
+                switch self {
+                case .all: return "所有评分"
+                case .fourPlus: return "4星以上"
+                case .threePlus: return "3星以上"
+                case .twoPlus: return "2星以上"
+                case .onePlus: return "1星以上"
+                }
+            }
+        }
+        
+        enum SortOption: String, CaseIterable, Codable {
+            case relevance = "relevance"
+            case popularity = "popularity"
+            case rating = "rating"
+            case releaseDate = "releaseDate"
+            case price = "price"
+            
+            var displayName: String {
+                switch self {
+                case .relevance: return "相关性"
+                case .popularity: return "热门度"
+                case .rating: return "评分"
+                case .releaseDate: return "发布日期"
+                case .price: return "价格"
+                }
+            }
+        }
+    }
     func suggest(term: String) async throws -> [SuggestTerm] {
         guard let encoded = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return [] }
         let url = URL(string: "https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints?clientApplication=Software&term=\(encoded)")!
@@ -437,6 +512,95 @@ extension iTunesClient {
                 deviceFamily: deviceType
             )
             return .success(result)
+        } catch {
+            return .failure(error)
+        }
+    }
+    
+    /// 增强搜索方法 - 支持过滤器和排序
+    func enhancedSearch(
+        query: String,
+        filter: SearchFilter = SearchFilter(),
+        limit: Int = 50,
+        country: String = "US"
+    ) async -> Result<[iTunesSearchResult], Error> {
+        do {
+            var searchResults = try await search(
+                term: query,
+                limit: limit,
+                countryCode: country,
+                deviceFamily: filter.deviceType
+            ) ?? []
+            
+            // 应用过滤器
+            searchResults = applyFilters(searchResults, filter: filter)
+            
+            // 应用排序
+            searchResults = applySorting(searchResults, sortBy: filter.sortBy)
+            
+            return .success(searchResults)
+        } catch {
+            return .failure(error)
+        }
+    }
+    
+    /// 应用搜索过滤器
+    private func applyFilters(_ results: [iTunesSearchResult], filter: SearchFilter) -> [iTunesSearchResult] {
+        var filtered = results
+        
+        // 价格过滤
+        switch filter.price {
+        case .free:
+            filtered = filtered.filter { $0.price == 0.0 }
+        case .paid:
+            filtered = filtered.filter { ($0.price ?? 0.0) > 0.0 }
+        case .all:
+            break
+        }
+        
+        // 评分过滤
+        switch filter.rating {
+        case .fourPlus:
+            filtered = filtered.filter { ($0.averageUserRating ?? 0.0) >= 4.0 }
+        case .threePlus:
+            filtered = filtered.filter { ($0.averageUserRating ?? 0.0) >= 3.0 }
+        case .twoPlus:
+            filtered = filtered.filter { ($0.averageUserRating ?? 0.0) >= 2.0 }
+        case .onePlus:
+            filtered = filtered.filter { ($0.averageUserRating ?? 0.0) >= 1.0 }
+        case .all:
+            break
+        }
+        
+        // 分类过滤 - 暂时禁用，因为iTunesSearchResult没有primaryGenreId属性
+        // if filter.category != "0" {
+        //     filtered = filtered.filter { $0.primaryGenreId == Int(filter.category) }
+        // }
+        
+        return filtered
+    }
+    
+    /// 应用排序
+    private func applySorting(_ results: [iTunesSearchResult], sortBy: SearchFilter.SortOption) -> [iTunesSearchResult] {
+        switch sortBy {
+        case .relevance:
+            return results // 保持原始顺序
+        case .popularity:
+            return results.sorted { ($0.userRatingCount ?? 0) > ($1.userRatingCount ?? 0) }
+        case .rating:
+            return results.sorted { ($0.averageUserRating ?? 0.0) > ($1.averageUserRating ?? 0.0) }
+        case .releaseDate:
+            return results.sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
+        case .price:
+            return results.sorted { ($0.price ?? 0.0) < ($1.price ?? 0.0) }
+        }
+    }
+    
+    /// 获取搜索建议
+    func getSearchSuggestions(for query: String) async -> Result<[SuggestTerm], Error> {
+        do {
+            let suggestions = try await suggest(term: query)
+            return .success(suggestions)
         } catch {
             return .failure(error)
         }

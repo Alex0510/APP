@@ -3,7 +3,6 @@ import Vapor
 import NIOSSL
 import NIOTLS
 import SwiftUI
-import IDeviceSwift
 class ServerInstaller: Identifiable, ObservableObject {
 	let id = UUID()
 	let port = Int.random(in: 4000...8000)
@@ -39,11 +38,11 @@ class ServerInstaller: Identifiable, ObservableObject {
 	}
 		
 	private func _configureRoutes() throws {
-		_server?.get("*") { [weak self] req in
+		_server?.get("*") { [weak self] req async in
 			guard let self else { return Response(status: .badGateway) }
 			switch req.url.path {
 			case plistEndpoint.path:
-				self._updateStatus(.sendingManifest)
+				await self._updateStatus(.sendingManifest)
 				return Response(status: .ok, version: req.version, headers: [
 					"Content-Type": "text/xml",
 				], body: .init(data: installManifestData))
@@ -60,12 +59,16 @@ class ServerInstaller: Identifiable, ObservableObject {
 					return Response(status: .notFound)
 				}
 				
-				self._updateStatus(.sendingPayload)
+				await self._updateStatus(.sendingPayload)
 				
-				return req.fileio.streamFile(
-					at: packageUrl.path
-				) { result in
-					self._updateStatus(.completed(result))
+				do {
+					let response = try await req.fileio.asyncStreamFile(at: packageUrl.path)
+					Task {
+						await self._updateStatus(.completed)
+					}
+					return response
+				} catch {
+					return Response(status: .internalServerError)
 				}
 			case "/install":
 				var headers = HTTPHeaders()
@@ -85,10 +88,9 @@ class ServerInstaller: Identifiable, ObservableObject {
 		_server?.shutdown()
 	}
 	
+	@MainActor
 	private func _updateStatus(_ newStatus: InstallerStatusViewModel.InstallerStatus) {
-		DispatchQueue.main.async {
-			self.viewModel.status = newStatus
-		}
+		self.viewModel.status = newStatus
 	}
 		
 	func getServerMethod() -> Int {
@@ -97,5 +99,11 @@ class ServerInstaller: Identifiable, ObservableObject {
 	
 	func getIPFix() -> Bool {
 		UserDefaults.standard.bool(forKey: "Feather.ipFix")
+	}
+	
+	func install(at packageUrl: URL, suspend: Bool) async throws {
+		self.packageUrl = packageUrl
+		_updateStatus(.ready)
+		// 服务器已经在初始化时启动，这里只需要设置包URL
 	}
 }

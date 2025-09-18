@@ -1,5 +1,4 @@
 import SwiftUI
-import NimbleViews
 
 enum TabEnum: String, CaseIterable, Hashable {
 	case library
@@ -10,9 +9,9 @@ enum TabEnum: String, CaseIterable, Hashable {
 	
 	var title: String {
 		switch self {
-		case .library: 		return .localized("签名")
-		case .settings: 	return .localized("设置")
-		case .certificates:	return .localized("证书")
+		case .library: 		return "签名"
+		case .settings: 	return "设置"
+		case .certificates:	return "证书"
 		case .appstore:		return "AppStore降级"
 		case .downloads:	return "下载任务"
 		}
@@ -33,9 +32,9 @@ enum TabEnum: String, CaseIterable, Hashable {
 		switch tab {
 		case .library: LibraryView()
 		case .settings: SettingsView()
-		case .certificates: NBNavigationView(.localized("证书")) { CertificatesView() }
+		case .certificates: NavigationView { CertificatesView() }
 		case .appstore: SearchView()
-		case .downloads: NBNavigationView("下载管理") { DownloadView() }
+		case .downloads: NavigationView { DownloadView() }
 		}
 	}
 	

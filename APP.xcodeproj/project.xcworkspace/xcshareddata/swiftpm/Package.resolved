@@ -1,5 +1,5 @@
 {
-  "originHash" : "6ea9eee8a3802b00aec6d71990905384e21652ed09efae592b677d84244adfad",
+  "originHash" : "1c3dcc42cdffd3ee96eeef04f8aa138d36acb59366823d8221d11c2ab856b0c2",
   "pins" : [
     {
       "identity" : "altsourcekit",
@@ -56,30 +56,12 @@
       }
     },
     {
-      "identity" : "idevicekit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pxx917144686/IDeviceKit.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "8a1488793a424b8770eb5df521ba34a3fe038b61"
-      }
-    },
-    {
       "identity" : "multipart-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/multipart-kit.git",
       "state" : {
         "revision" : "3498e60218e6003894ff95192d756e238c01f44e",
         "version" : "4.7.1"
-      }
-    },
-    {
-      "identity" : "nimblekit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pxx917144686/NimbleKit.git",
-      "state" : {
-        "branch" : "main",
-        "revision" : "10afcf0ae7ee156d38a5ca5d4a160e0b9fd1dc9a"
       }
     },
     {

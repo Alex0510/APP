@@ -26,7 +26,9 @@ class UnifiedDownloadManager: ObservableObject {
     private let downloadManager = AppStoreDownloadManager.shared
     private let purchaseManager = PurchaseManager.shared
     
-    private init() {}
+    private init() {
+        setupSessionMonitoring()
+    }
     
     /// 添加下载请求
     func addDownload(
@@ -136,6 +138,31 @@ class UnifiedDownloadManager: ObservableObject {
                 countryCode: account.countryCode,
                 storeResponse: account.storeResponse
             )
+            
+            // 检查会话有效性
+            let isValid = await AuthenticationManager.shared.validateAccount(storeAccount)
+            if !isValid {
+                await MainActor.run {
+                    request.runtime.error = "Apple ID会话已过期，请重新登录"
+                    request.runtime.status = .failed
+                    self.activeDownloads.remove(request.id)
+                    print("❌ [会话失效] Apple ID会话已过期")
+                }
+                return
+            }
+            
+            // 验证地区设置（简单验证，避免状态变化）
+            let regionValidation = (account.countryCode == storeAccount.countryCode)
+            
+            if !regionValidation {
+                await MainActor.run {
+                    request.runtime.error = "地区设置不匹配，请检查账户地区设置"
+                    request.runtime.status = .failed
+                    self.activeDownloads.remove(request.id)
+                    print("❌ [地区错误] 账户地区与设置不匹配")
+                }
+                return
+            }
             
             // 增加购买验证流程
             print("🔍 [购买验证] 开始验证应用所有权: \(request.name)")
@@ -357,7 +384,7 @@ class DownloadRequest: Identifiable, ObservableObject, Equatable {
         }
         return switch runtime.status {
         case .waiting:
-            .localized("等待中...")
+            "等待中..."
         case .downloading:
             [
                 String(Int(runtime.progressValue * 100)) + "%",
@@ -366,13 +393,13 @@ class DownloadRequest: Identifiable, ObservableObject, Equatable {
             .compactMap { $0 }
             .joined(separator: " ")
         case .paused:
-            .localized("已暂停")
+            "已暂停"
         case .completed:
-            .localized("已完成")
+            "已完成"
         case .failed:
-            .localized("下载失败")
+            "下载失败"
         case .cancelled:
-            .localized("已取消")
+            "已取消"
         }
     }
     

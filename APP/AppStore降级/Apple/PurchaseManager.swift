@@ -29,7 +29,7 @@ class PurchaseManager {
         do {
             // 首先，如果提供的是包 ID，则获取曲目 ID
             let trackId: String
-            if let trackIdInt = Int(appIdentifier) {
+            if Int(appIdentifier) != nil {
                 // 已经是曲目 ID
                 trackId = appIdentifier
             } else {
@@ -47,7 +47,7 @@ class PurchaseManager {
                 }
             }
             // 尝试购买应用
-            let purchaseResponse = try await StoreRequest.shared.purchase(
+            let _ = try await StoreRequest.shared.purchase(
                 appIdentifier: trackId,
                 directoryServicesIdentifier: account.directoryServicesIdentifier,
                 passwordToken: account.passwordToken,
@@ -83,7 +83,7 @@ class PurchaseManager {
             // 尝试获取应用的下载信息
             // 如果成功，则用户拥有该应用
             let trackId: String
-            if let trackIdInt = Int(appIdentifier) {
+            if Int(appIdentifier) != nil {
                 trackId = appIdentifier
             } else {
                 let trackIdResult = await searchManager.getTrackId(

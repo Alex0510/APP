@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct ConfigurationDictAddView: View {
@@ -24,23 +23,24 @@ struct ConfigurationDictAddView: View {
 	
 	// MARK: Body
     var body: some View {
-		NBList(.localized("新建")) {
+		List {
 			Section {
-				TextField(.localized("值"), text: $_newKey)
-				TextField(.localized("替换值"), text: $_newValue)
+				TextField("值", text: $_newKey)
+				TextField("替换值", text: $_newValue)
 			}
 			.autocapitalization(.none)
 		}
+		.navigationTitle("新建")
 		.toolbar {
-			NBToolbarButton(
-				.localized("保存"),
-				style: .text,
-				placement: .confirmationAction,
-				isDisabled: saveButtonDisabled
-			) {
-				dataDict[_newKey] = _newValue
-				OptionsManager.shared.saveOptions()
-				dismiss()
+			ToolbarItem(placement: .confirmationAction) {
+				Button {
+					dataDict[_newKey] = _newValue
+					OptionsManager.shared.saveOptions()
+					dismiss()
+				} label: {
+					Text("保存")
+				}
+				.disabled(saveButtonDisabled)
 			}
 		}
     }

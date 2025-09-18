@@ -1126,8 +1126,8 @@ extension AppStoreDownloadManager {
         guard let downloadTask = task as? URLSessionDownloadTask,
               let downloadId = downloadTasks.first(where: { $0.value == downloadTask })?.key,
               let completion = completionHandlers[downloadId],
-              let destinationURL = downloadDestinations[downloadId],
-              let storeItem = downloadStoreItems[downloadId] else {
+              let _ = downloadDestinations[downloadId],
+              let _ = downloadStoreItems[downloadId] else {
             return
         }
         

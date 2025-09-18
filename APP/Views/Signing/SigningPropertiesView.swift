@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct SigningPropertiesView: View {
@@ -24,21 +23,22 @@ struct SigningPropertiesView: View {
 	
 	// MARK: Body
 	var body: some View {
-		NBList(title) {
+		List {
 			TextField(initialValue, text: $text)
 				.textInputAutocapitalization(.none)
 		}
+		.navigationTitle(title)
 		.toolbar {
-			NBToolbarButton(
-				.localized("保存"),
-				style: .text,
-				placement: .topBarTrailing,
-				isDisabled: saveButtonDisabled
-			) {
-				if !saveButtonDisabled {
-					bindingValue = text
-					dismiss()
+			ToolbarItem(placement: .topBarTrailing) {
+				Button {
+					if !saveButtonDisabled {
+						bindingValue = text
+						dismiss()
+					}
+				} label: {
+					Text("保存")
 				}
+				.disabled(saveButtonDisabled)
 			}
 		}
 		.onAppear {

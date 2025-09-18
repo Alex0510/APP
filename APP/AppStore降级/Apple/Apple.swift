@@ -392,7 +392,7 @@ public enum Apple {
         private var authenticatedAccount: Account?
         public init(email: String) {
             self.email = email
-            let httpClient = HTTPClient()
+            _ = HTTPClient()
             storeClient = StoreClient.shared
         }
         public func authenticate(password: String, code: String? = nil) async throws -> Account {

@@ -1,7 +1,5 @@
 
 import SwiftUI
-import NimbleExtensions
-import NimbleViews
 
 struct LibraryCellView: View {
 	@Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -54,9 +52,8 @@ struct LibraryCellView: View {
 			FRAppIconView(app: app, size: 57)
 			
 			NBTitleWithSubtitleView(
-				title: app.name ?? .localized("未知"),
-				subtitle: _desc,
-				linelimit: 0
+				title: app.name ?? "未知",
+				subtitle: _desc
 			)
 			
 			if !isEditing {
@@ -96,7 +93,7 @@ struct LibraryCellView: View {
 		if let version = app.version, let id = app.identifier {
 			return "\(version) • \(id)"
 		} else {
-			return .localized("未知")
+			return "未知"
 		}
 	}
 }
@@ -105,14 +102,14 @@ struct LibraryCellView: View {
 extension LibraryCellView {
 	@ViewBuilder
 	private func _actions(for app: AppInfoPresentable) -> some View {
-		Button(.localized("删除"), systemImage: "trash", role: .destructive) {
+		Button("删除", systemImage: "trash", role: .destructive) {
 			Storage.shared.deleteApp(for: app)
 		}
 	}
 	
 	@ViewBuilder
 	private func _contextActions(for app: AppInfoPresentable) -> some View {
-		Button(.localized("获取信息"), systemImage: "info.circle") {
+		Button("获取信息", systemImage: "info.circle") {
 			selectedInfoAppPresenting = AnyApp(base: app)
 		}
 	}
@@ -121,24 +118,24 @@ extension LibraryCellView {
 	private func _contextActionsExtra(for app: AppInfoPresentable) -> some View {
 		if app.isSigned {
 			if let id = app.identifier {
-				Button(.localized("打开"), systemImage: "app.badge.checkmark") {
+				Button("打开", systemImage: "app.badge.checkmark") {
 					UIApplication.openApp(with: id)
 				}
 			}
-			Button(.localized("安装"), systemImage: "square.and.arrow.down") {
+			Button("安装", systemImage: "square.and.arrow.down") {
 				selectedInstallAppPresenting = AnyApp(base: app)
 			}
-			Button(.localized("重新签名"), systemImage: "signature") {
+                        Button("重新签名", systemImage: "signature") {
 				selectedSigningAppPresenting = AnyApp(base: app)
 			}
-			Button(.localized("导出"), systemImage: "square.and.arrow.up") {
+			Button("导出", systemImage: "square.and.arrow.up") {
 				selectedInstallAppPresenting = AnyApp(base: app, archive: true)
 			}
 		} else {
-			Button(.localized("安装"), systemImage: "square.and.arrow.down") {
+			Button("安装", systemImage: "square.and.arrow.down") {
 				selectedInstallAppPresenting = AnyApp(base: app)
 			}
-			Button(.localized("签名"), systemImage: "signature") {
+                        Button("签名", systemImage: "signature") {
 				selectedSigningAppPresenting = AnyApp(base: app)
 			}
 		}
@@ -152,7 +149,7 @@ extension LibraryCellView {
 					selectedInstallAppPresenting = AnyApp(base: app)
 				} label: {
 					FRExpirationPillView(
-						title: .localized("安装"),
+						title: "安装",
 						revoked: certRevoked,
 						expiration: certInfo
 					)
@@ -162,7 +159,7 @@ extension LibraryCellView {
 					selectedSigningAppPresenting = AnyApp(base: app)
 				} label: {
 					FRExpirationPillView(
-						title: .localized("签名"),
+						title: "签名",
 						revoked: false,
 						expiration: nil
 					)

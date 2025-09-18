@@ -1,8 +1,6 @@
 import SwiftUI
-import NimbleViews
 import UIKit
 import Darwin
-import IDeviceSwift
 
 struct SettingsView: View {
     private let _githubUrl = "https://github.com/pxx917144686/APP"
@@ -10,7 +8,7 @@ struct SettingsView: View {
     @StateObject private var optionsManager = OptionsManager.shared
     
     var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 
                 // 高级功能区域 - 最显眼位置
@@ -66,10 +64,10 @@ extension SettingsView {
     private var appearanceSection: some View {
         Section {
             NavigationLink(destination: AppearanceView().environmentObject(ThemeManager.shared)) {
-                Label(.localized("外观"), systemImage: "paintbrush")
+                Label("外观", systemImage: "paintbrush")
             }
             NavigationLink(destination: AppIconView(currentIcon: $currentIcon)) {
-                Label(.localized("图标"), systemImage: "app.badge")
+                Label("图标", systemImage: "app.badge")
             }
         }
     }
@@ -77,43 +75,47 @@ extension SettingsView {
     private var signingSection: some View {
         Section {
             NavigationLink(destination: CertificatesView()) {
-                Label(.localized("证书"), systemImage: "checkmark.seal")
+                Label("证书", systemImage: "checkmark.seal")
             }
             NavigationLink(destination: ConfigurationView()) {
-                Label(.localized("签名选项"), systemImage: "signature")
+                Label("签名选项", systemImage: "signature")
             }
             NavigationLink(destination: ArchiveView()) {
-                Label(.localized("归档与压缩"), systemImage: "archivebox")
+                Label("归档与压缩", systemImage: "archivebox")
             }
             NavigationLink(destination: InstallationView()) {
-                Label(.localized("安装"), systemImage: "arrow.down.circle")
+                Label("安装", systemImage: "arrow.down.circle")
             }
         } footer: {
-            Text(.localized("安装方式、压缩,自定义修改。"))
+            Text("安装方式、压缩,自定义修改。")
         }
     }
     
     private var resetSection: some View {
         Section {
             NavigationLink(destination: ResetView()) {
-                Label(.localized("重置"), systemImage: "trash")
+                Label("重置", systemImage: "trash")
             }
         } footer: {
-            Text(.localized("重置应用的源、证书、应用程序和设置。"))
+            Text("重置应用的源、证书、应用程序和设置。")
         }
     }
 
     @ViewBuilder
     private func _feedback() -> some View {
         Section {
-            Button(.localized("提交反馈"), systemImage: "safari") {
-                UIApplication.open("\(_githubUrl)/issues")
+            Button("提交反馈", systemImage: "safari") {
+                if let url = URL(string: "\(_githubUrl)/issues") {
+                    UIApplication.shared.open(url)
+                }
             }
-            Button(.localized("👉看看源代码"), systemImage: "safari") {
-                UIApplication.open(_githubUrl)
+            Button("👉看看源代码", systemImage: "safari") {
+                if let url = URL(string: _githubUrl) {
+                    UIApplication.shared.open(url)
+                }
             }
         } footer: {
-            Text(.localized("有任何问题，或建议，请随时提交。"))
+            Text("有任何问题，或建议，请随时提交。")
         }
     }
 }

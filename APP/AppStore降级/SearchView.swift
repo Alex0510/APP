@@ -15,6 +15,7 @@ struct SearchView: SwiftUI.View {
     @State var searchType = DeviceFamily.phone
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var appStore: AppStore  // 添加AppStore环境对象
+    @StateObject private var regionValidator = RegionValidator.shared
     @State var searching = false
     
     // 视图模式状态 - 改用@State确保实时更新
@@ -392,16 +393,8 @@ struct SearchView: SwiftUI.View {
                 Color(.systemBackground)
                     .ignoresSafeArea()
                 
-                // 顶部安全区域占位 - 真机适配
+                // 全屏显示，减少顶部空白
                 VStack(spacing: 0) {
-                    GeometryReader { geometry in
-                        Color.clear
-                            .frame(height: geometry.safeAreaInsets.top > 0 ? geometry.safeAreaInsets.top : 44)
-                            .onAppear {
-                                print("[SearchView] 顶部安全区域: \(geometry.safeAreaInsets.top)")
-                            }
-                    }
-                    .frame(height: 44) // 固定高度，避免布局跳动
                     
                     // 主要内容区域
                     ScrollViewReader { proxy in
@@ -483,7 +476,7 @@ struct SearchView: SwiftUI.View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     detectAndSetRegion()
                     // 强制刷新UI - 使用状态变量触发刷新
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
                         self.uiRefreshTrigger = UUID()
                     }
                 }
@@ -534,15 +527,33 @@ struct SearchView: SwiftUI.View {
         
         print("[SearchView] 当前显示地区: \(effectiveSearchRegion), 用户手动选择标志: \(isUserSelectedRegion)")
         
-        // 强制更新UI - 使用状态变量触发刷新
-        DispatchQueue.main.async {
+        // 延迟验证和UI更新，避免在视图更新过程中触发状态变化
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // 异步验证地区设置
+            Task { @MainActor in
+                let validationResult = regionValidator.validateRegionSettings(
+                    account: appStore.selectedAccount,
+                    searchRegion: searchRegion,
+                    effectiveRegion: effectiveSearchRegion
+                )
+                
+                if !validationResult.isValid {
+                    print("⚠️ [SearchView] 地区验证失败: \(validationResult.errorMessage ?? "未知错误")")
+                    let advice = regionValidator.getRegionValidationAdvice(for: validationResult)
+                    for tip in advice {
+                        print("💡 [SearchView] 建议: \(tip)")
+                    }
+                }
+            }
+            
+            // 更新UI刷新触发器
             self.uiRefreshTrigger = UUID()
         }
     }
     
     // MARK: - 现代化搜索栏
     var modernSearchBar: some SwiftUI.View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             HStack(spacing: 8) {
                 // 搜索输入框
                 HStack(spacing: 8) {
@@ -584,7 +595,7 @@ struct SearchView: SwiftUI.View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+                .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(themeManager.selectedTheme == .dark ? Color(.systemGray6) : Color(.systemBackground))
@@ -628,6 +639,7 @@ struct SearchView: SwiftUI.View {
                 .scaleEffect(searching ? 0.95 : 1.0)
                 .animation(.spring(response: 0.3), value: searching)
             }
+            .padding(.top, 8)
             // 搜索类型、账户与地区同一行
             HStack(spacing: 16) {
                 // 搜索类型选择器
@@ -669,7 +681,10 @@ struct SearchView: SwiftUI.View {
                 // 智能地区选择器
                 smartRegionSelector
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
+        .padding(.top, 8)
     }
     
     // MARK: - 智能地区选择器
@@ -686,10 +701,13 @@ struct SearchView: SwiftUI.View {
                 
                 // 显示地区来源指示器
                 if let currentAccount = appStore.selectedAccount {
-                    Image(systemName: "person.circle.fill")
+                    // 使用简单的布尔判断，避免在视图更新中调用验证方法
+                    let isRegionValid = (effectiveSearchRegion == currentAccount.countryCode)
+                    
+                    Image(systemName: isRegionValid ? "person.circle.fill" : "person.circle.fill.trianglebadge.exclamationmark")
                         .font(.system(size: 10))
-                        .foregroundColor(.green)
-                        .help("来自登录账户: \(currentAccount.email)")
+                        .foregroundColor(isRegionValid ? .green : .red)
+                        .help(isRegionValid ? "来自登录账户: \(currentAccount.email)" : "地区不匹配: 账户(\(currentAccount.countryCode)) vs 设置(\(effectiveSearchRegion))")
                 } else if !searchRegion.isEmpty {
                     Image(systemName: "hand.point.up.fill")
                         .font(.system(size: 10))
@@ -1059,7 +1077,7 @@ struct SearchView: SwiftUI.View {
         print("[SearchView] 用户选择地区: \(regionCode)")
         
         // 强制更新UI - 使用状态变量触发刷新
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
             self.uiRefreshTrigger = UUID()
         }
         
@@ -1189,13 +1207,13 @@ struct SearchView: SwiftUI.View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 16)
         }
-        .padding(.bottom, 24)
+        .padding(.bottom, 8)
     }
     // MARK: - 搜索结果区域
     var searchResultsSection: some SwiftUI.View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             if !searchResult.isEmpty {
                 // 结果统计和视图切换器
                 HStack {
@@ -1213,7 +1231,7 @@ struct SearchView: SwiftUI.View {
                     // 视图模式切换器
                     viewModeToggle
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 16)
             }
             // 搜索结果网格/列表
             if let error = searchError {
@@ -1976,7 +1994,8 @@ struct SearchView: SwiftUI.View {
                 // 并行：StoreClient 版本ID集合 + iTunes 版本历史详情
                 async let storeVersionsTask: Result<[StoreAppVersion], StoreError> = StoreClient.shared.getAppVersions(
                     trackId: String(app.trackId),
-                    account: account
+                    account: account,
+                    countryCode: effectiveSearchRegion
                 )
                 async let historyTask: [iTunesClient.AppVersionInfo] = try iTunesClient.shared.versionHistory(id: app.trackId, country: effectiveSearchRegion)
                 let (storeVersionsResult, hist) = try await (storeVersionsTask, historyTask)
@@ -2333,7 +2352,7 @@ struct SearchView: SwiftUI.View {
         appStore.logoutAccount()
         
         // 强制刷新UI
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
             self.uiRefreshTrigger = UUID()
         }
     }

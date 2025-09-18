@@ -1,6 +1,5 @@
 
 import SwiftUI
-import NimbleViews
 import ZsignSwift
 
 struct SigningDylibView: View {
@@ -11,7 +10,7 @@ struct SigningDylibView: View {
 	@Binding var options: Options?
 	
 	var body: some View {
-		NBList(.localized("动态库"), type: .list) {
+		List {
 			Section {
 				ForEach(_dylibs, id: \.self) { dylib in
 					SigningToggleCellView(
@@ -23,12 +22,13 @@ struct SigningDylibView: View {
 			}
 			.disabled(options == nil)
 			
-			NBSection(.localized("隐藏")) {
-				Text(verbatim: .localized("%lld个必需的系统动态库未显示。", arguments: _hiddenDylibCount))
+			Section("隐藏") {
+				Text("\(_hiddenDylibCount)个必需的系统动态库未显示。")
 					.font(.footnote)
-					.foregroundColor(.disabled())
+					.foregroundColor(.secondary)
 			}
 		}
+		.navigationTitle("动态库")
 		.onAppear(perform: _loadDylibs)
 	}
 }

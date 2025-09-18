@@ -2,7 +2,6 @@ import Foundation
 import UIKit.UIApplication
 import ZIPFoundation
 import SwiftUI
-import IDeviceSwift
 
 final class ArchiveHandler: NSObject {
 	@ObservedObject var viewModel: InstallerStatusViewModel
@@ -38,29 +37,27 @@ final class ArchiveHandler: NSObject {
 	}
 	
 	func archive() async throws -> URL {
-		return try await Task.detached(priority: .background) { [self] in
-			guard let payloadUrl = await self._payloadUrl else {
-				throw SigningFileHandlerError.appNotFound
-			}
-			
-			let zipUrl = self._uniqueWorkDir.appendingPathComponent("Archive.zip")
-			let ipaUrl = self._uniqueWorkDir.appendingPathComponent("Archive.ipa")
-			
-			let progress = Progress(totalUnitCount: 100)
-			try self._fileManager.zipItem(
-				at: payloadUrl,
-				to: zipUrl,
-				compressionMethod: .deflate,
-				progress: progress
-			)
-			
-			Task { @MainActor in
-				self.viewModel.packageProgress = progress.fractionCompleted
-			}
-			
-			try FileManager.default.moveItem(at: zipUrl, to: ipaUrl)
-			return ipaUrl
-		}.value
+		guard let payloadUrl = _payloadUrl else {
+			throw SigningFileHandlerError.appNotFound
+		}
+		
+		let zipUrl = _uniqueWorkDir.appendingPathComponent("Archive.zip")
+		let ipaUrl = _uniqueWorkDir.appendingPathComponent("Archive.ipa")
+		
+		let progress = Progress(totalUnitCount: 100)
+		try _fileManager.zipItem(
+			at: payloadUrl,
+			to: zipUrl,
+			compressionMethod: .deflate,
+			progress: progress
+		)
+		
+		Task { @MainActor in
+			self.viewModel.packageProgress = progress.fractionCompleted
+		}
+		
+		try FileManager.default.moveItem(at: zipUrl, to: ipaUrl)
+		return ipaUrl
 	}
 	
 	func moveToArchive(_ package: URL, shouldOpen: Bool = false) async throws -> URL? {
@@ -74,7 +71,14 @@ final class ArchiveHandler: NSObject {
 		
 		if shouldOpen {
 			await MainActor.run {
-				UIApplication.open(FileManager.default.archives.toSharedDocumentsURL()!)
+				let archivesURL = FileManager.default.archives
+				let urlString = archivesURL.absoluteString
+				if urlString.hasPrefix("file://") {
+					let newURLString = "shareddocuments://" + urlString.dropFirst("file://".count)
+					if let sharedURL = URL(string: newURLString) {
+						UIApplication.shared.open(sharedURL)
+					}
+				}
 			}
 		}
 		

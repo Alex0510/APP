@@ -11,7 +11,7 @@ struct AppearanceTintColorView: View {
 		VStack(spacing: 20) {
 			// 当前选择的颜色预览
 			HStack {
-				Text(.localized("整体颜色"))
+				Text("整体颜色")
 					.font(.headline)
 					.foregroundColor(.primary)
 				
@@ -31,7 +31,7 @@ struct AppearanceTintColorView: View {
 							.font(.system(.caption, design: .monospaced))
 							.foregroundColor(.secondary)
 						
-						Text(.localized("点击选择"))
+						Text(verbatim: "点击选择")
 							.font(.system(.caption2))
 							.foregroundColor(.secondary.opacity(0.7))
 					}
@@ -48,7 +48,7 @@ struct AppearanceTintColorView: View {
 						.font(.title2)
 						.foregroundColor(selectedColor)
 					
-					Text(.localized("选择颜色"))
+					Text(verbatim: "选择颜色")
 						.font(.headline)
 						.foregroundColor(.primary)
 					
@@ -74,7 +74,7 @@ struct AppearanceTintColorView: View {
 			
 			// 预设颜色快速选择
 			VStack(alignment: .leading, spacing: 12) {
-				Text(.localized("快速选择"))
+                                Text(verbatim: "快速选择")
 					.font(.subheadline)
 					.foregroundColor(.secondary)
 					.padding(.horizontal, 20)
@@ -181,26 +181,26 @@ struct ColorPickerView: View {
 				.padding(.top, 20)
 				
 				// iOS原生ColorPicker
-				ColorPicker(.localized("选择颜色"), selection: $selectedColor, supportsOpacity: false)
+				ColorPicker("选择颜色", selection: $selectedColor, supportsOpacity: false)
 					.padding(.horizontal, 20)
 				
 				Spacer()
 			}
-			.navigationTitle(.localized("颜色选择器"))
+			.navigationTitle("颜色选择器")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
 				ToolbarItem(placement: .navigationBarLeading) {
-					Button(.localized("取消")) {
+					Button("取消") {
 						dismiss()
 					}
 				}
 				
 				ToolbarItem(placement: .navigationBarTrailing) {
-					Button(.localized("返回")) {
+					Button("返回") {
 						selectedColorHex = selectedColor.toHex()
 						dismiss()
 					}
-					.fontWeight(.semibold)
+					.font(.body)
 				}
 			}
 		}

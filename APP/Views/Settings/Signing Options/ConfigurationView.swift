@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import NimbleViews
 
 // MARK: - View
 struct ConfigurationView: View {
@@ -16,34 +15,35 @@ struct ConfigurationView: View {
 	
 	// MARK: Body
     var body: some View {
-		NBList(.localized("签名选项")) {
+		List {
             Section {
                 NavigationLink(destination: ConfigurationDictView(
-                    title: .localized("显示名称"),
+						title: "显示名称",
                         dataDict: $_optionsManager.options.displayNames
                     )
                 ) {
-                    Label(.localized("显示名称"), systemImage: "character.cursor.ibeam")
+					Label("显示名称", systemImage: "character.cursor.ibeam")
                 }
                 NavigationLink(destination: ConfigurationDictView(
-                        title: .localized("标识符"),
+						title: "标识符",
                         dataDict: $_optionsManager.options.identifiers
                     )
                 ) {
-                    Label(.localized("标识符"), systemImage: "person.text.rectangle")
+					Label("标识符", systemImage: "person.text.rectangle")
                 }
             }footer: {
-                Text(.localized("设置规则，在签名时自动替换Bundle ID/显示名称。"))
+				Text("设置规则，在签名时自动替换Bundle ID/显示名称。")
             }
             SigningOptionsView(options: $_optionsManager.options)
 		}
+		.navigationTitle("签名选项")
 		.toolbar {
-			NBToolbarMenu(
-				systemImage: "character.textbox",
-				style: .icon,
-				placement: .topBarTrailing
-			) {
-				_randomMenuItem()
+			ToolbarItem(placement: .topBarTrailing) {
+				Menu {
+					_randomMenuItem()
+				} label: {
+					Image(systemName: "character.textbox")
+				}
 			}
 		}
 		.alert(_optionsManager.options.ppqString, isPresented: $isRandomAlertPresenting) {
@@ -60,10 +60,10 @@ extension ConfigurationView {
 	@ViewBuilder
 	private func _randomMenuItem() -> some View {
 		Section(_optionsManager.options.ppqString) {
-			Button(.localized("更改")) {
+			Button("更改") {
 				isRandomAlertPresenting = true
 			}
-			Button(.localized("复制")) {
+			Button("复制") {
 				UIPasteboard.general.string = _optionsManager.options.ppqString
 			}
 		}
@@ -71,13 +71,13 @@ extension ConfigurationView {
 	
 	@ViewBuilder
 	private func _randomMenuAlert() -> some View {
-		TextField(.localized("字符串"), text: $randomString)
-		Button(.localized("保存")) {
+			TextField("字符串", text: $randomString)
+			Button("保存") {
 			if !randomString.isEmpty {
 				_optionsManager.options.ppqString = randomString
 			}
 		}
 		
-		Button(.localized("取消"), role: .cancel) {}
+			Button("取消", role: .cancel) {}
 	}
 }

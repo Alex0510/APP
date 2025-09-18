@@ -1,6 +1,28 @@
 import Foundation
 import Combine
-import IDeviceSwift
+
+class InstallerStatusViewModel: ObservableObject {
+    @Published var status: InstallerStatus = .none
+    @Published var packageProgress: Double = 0.0
+    
+    enum InstallerStatus {
+        case none
+        case ready
+        case sendingManifest
+        case sendingPayload
+        case installing
+        case completed
+        case broken
+    }
+    
+    var isCompleted: Bool {
+        status == .completed
+    }
+    
+    init(isIdevice: Bool = false) {
+        // 初始化逻辑
+    }
+}
 
 extension InstallerStatusViewModel {
 	var overallProgress: Double {
@@ -20,13 +42,13 @@ extension InstallerStatusViewModel {
 	
 	var statusLabel: String {
 		switch status {
-		case .none: .localized("打包中")
-		case .ready: .localized("准备")
-		case .sendingManifest: .localized("发送清单")
-		case .sendingPayload: .localized("发送文件")
-		case .installing: .localized("安装中")
-		case .completed: .localized("完成")
-		case .broken: .localized("错误")
+		case .none: "打包中"
+		case .ready: "准备"
+		case .sendingManifest: "发送清单"
+		case .sendingPayload: "发送文件"
+		case .installing: "安装中"
+		case .completed: "完成"
+		case .broken: "错误"
 		}
 	}
 }

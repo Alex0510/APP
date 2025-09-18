@@ -77,9 +77,57 @@ class AuthenticationManager {
     /// - 参数 account: 要验证的账户
     /// - 返回: 如果账户仍然有效则返回true
     func validateAccount(_ account: Account) async -> Bool {
-        // 尝试发起一个简单的请求来验证账户
-        // 可以通过发起一个轻量级的API调用来实现
-        return true // 占位实现
+        do {
+            // 设置Cookie
+            setCookies(account.cookies)
+            
+            // 检查Cookie是否仍然有效
+            guard let cookies = HTTPCookieStorage.shared.cookies else { return false }
+            
+            var hasValidCookie = false
+            for cookie in cookies {
+                if cookie.domain.contains("apple.com") {
+                    if let expiresDate = cookie.expiresDate {
+                        if expiresDate.timeIntervalSinceNow > 0 {
+                            hasValidCookie = true
+                            break
+                        }
+                    } else {
+                        // 会话Cookie（没有过期时间）
+                        hasValidCookie = true
+                        break
+                    }
+                }
+            }
+            
+            return hasValidCookie
+        } catch {
+            print("🔐 [AuthenticationManager] 账户验证失败: \(error)")
+            return false
+        }
+    }
+    
+    /// 检查会话是否即将过期
+    /// - 参数 account: 要检查的账户
+    /// - 返回: 如果会话即将过期则返回true
+    func isSessionExpiring(_ account: Account) async -> Bool {
+        // 检查Cookie的过期时间
+        guard let cookies = HTTPCookieStorage.shared.cookies else { return true }
+        
+        for cookie in cookies {
+            if cookie.domain.contains("apple.com") {
+                if let expiresDate = cookie.expiresDate {
+                    let timeUntilExpiry = expiresDate.timeIntervalSinceNow
+                    // 如果Cookie在5分钟内过期，认为会话即将过期
+                    if timeUntilExpiry < 300 {
+                        print("🔐 [AuthenticationManager] Cookie即将过期: \(cookie.name)")
+                        return true
+                    }
+                }
+            }
+        }
+        
+        return false
     }
     /// 刷新账户的Cookie
     /// - 参数 account: 要刷新Cookie的账户

@@ -1,9 +1,7 @@
 import Foundation.NSURL
 import UIKit.UIImage
 import Zsign
-import NimbleJSON
 import AltSourceKit
-import IDeviceSwift
 import OSLog
 
 enum FR {
@@ -192,7 +190,7 @@ enum FR {
 				var title: String
 				let decoded = Storage.shared.getProvisionFileDecoded(for: cert)
 				
-				title = cert.nickname ?? decoded?.Name ?? .localized("未知")
+				title = cert.nickname ?? decoded?.Name ?? "未知"
 				
 				if let getTaskAllow = decoded?.Entitlements?["get-task-allow"]?.value as? Bool, getTaskAllow == true {
 					title = "🐞 \(title)"
@@ -205,8 +203,8 @@ enum FR {
 			}
 			
 			UIAlertController.showAlertWithCancel(
-				title: .localized("导出证书"),
-				message: .localized("您想要将证书导出到外部应用吗？该应用将能够使用您的证书对应用进行签名。"),
+				title: "导出证书",
+				message: "您想要将证书导出到外部应用吗？该应用将能够使用您的证书对应用进行签名。",
 				style: .alert,
 				actions: selectionActions
 			)
