@@ -32,37 +32,63 @@ struct CertificatesView: View {
 		.overlay {
 			if _certificates.isEmpty {
 				if #available(iOS 17, *) {
-						VStack(spacing: 16) {
-							Image(systemName: "questionmark.folder.fill")
-								.font(.system(size: 48))
-								.foregroundColor(.secondary)
+					ContentUnavailableView {
+						Label("无证书", systemImage: "questionmark.folder.fill")
+					} description: {
+						Text("通过导入一个证书开始签名。")
+					} actions: {
+						Button {
+							print("ContentUnavailableView 导入按钮被点击")
+							_isAddingPresenting = true
+						} label: {
+							Text("导入")
+						}
+					}
+				} else {
+					VStack(spacing: 20) {
+						Image(systemName: "questionmark.folder.fill")
+							.font(.system(size: 60))
+							.foregroundColor(.secondary)
+						
+						VStack(spacing: 8) {
 							Text("无证书")
 								.font(.title2)
-								.fontWeight(.medium)
+								.fontWeight(.semibold)
+							
 							Text("通过导入一个证书开始签名。")
 								.font(.body)
 								.foregroundColor(.secondary)
-							Button {
-								_isAddingPresenting = true
-							} label: {
-								Label("导入", systemImage: "plus")
-							}
-							.buttonStyle(.bordered)
-							
-							if _bindingSelectedCert == nil {
-								Button {
-									_isAddingPresenting = true
-								} label: {
-									Label("添加证书", systemImage: "plus")
-								}
-								.buttonStyle(.bordered)
-							}
+								.multilineTextAlignment(.center)
 						}
+						
+						Button {
+							print("VStack 导入按钮被点击")
+							_isAddingPresenting = true
+						} label: {
+							Text("导入")
+								.font(.headline)
+								.foregroundColor(.white)
+								.padding(.horizontal, 24)
+								.padding(.vertical, 12)
+								.background(Color.accentColor)
+								.cornerRadius(8)
+						}
+					}
+					.padding()
 				}
 			}
 		}
 		.navigationBarTitleDisplayMode(.inline)
 		.navigationBarBackButtonHidden(false)
+		.navigationBarItems(
+			trailing: _bindingSelectedCert == nil ? 
+				Button {
+					print("右上角 + 按钮被点击")
+					_isAddingPresenting = true
+				} label: {
+					Image(systemName: "plus")
+				} : nil
+		)
 		.sheet(item: $_isSelectedInfoPresenting) { cert in
 			CertificatesInfoView(cert: cert)
 		}

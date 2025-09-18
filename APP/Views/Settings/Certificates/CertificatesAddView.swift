@@ -8,7 +8,7 @@ struct FileImporterRepresentableView: UIViewControllerRepresentable {
     let onResult: (Result<URL, Error>) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedContentTypes)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedContentTypes, asCopy: true)
         picker.delegate = context.coordinator
         return picker
     }
@@ -135,12 +135,21 @@ extension CertificatesAddView {
 		file: URL?,
 		action: @escaping () -> Void
 	) -> some View {
-		Button(title) {
-			action()
+		HStack {
+			Button(title) {
+				action()
+			}
+			.foregroundColor(.accentColor)
+			
+			Spacer()
+			
+			if let file = file {
+				Text(file.lastPathComponent)
+					.font(.caption)
+					.foregroundColor(.secondary)
+					.lineLimit(1)
+			}
 		}
-		.foregroundColor(file == nil ? .accentColor : .secondary)
-		.disabled(file != nil)
-		.animation(.easeInOut(duration: 0.3), value: file != nil)
 	}
 }
 
