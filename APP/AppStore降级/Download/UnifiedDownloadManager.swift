@@ -525,6 +525,11 @@ extension UnifiedDownloadManager {
                     activeDownloads.remove(request.id)
                     NSLog("✅ [UnifiedDownloadManager] 标记为已完成(文件存在): \(request.name)")
                 }
+                // 确保已完成状态的文件也在completedRequests中
+                if !completedRequests.contains(request.id) {
+                    completedRequests.insert(request.id)
+                    NSLog("✅ [UnifiedDownloadManager] 补充标记为已完成: \(request.name)")
+                }
             } else if request.runtime.status == .downloading {
                 // 如果文件不存在但状态是下载中，标记为失败
                 request.runtime.status = .failed
@@ -533,6 +538,9 @@ extension UnifiedDownloadManager {
                 NSLog("❌ [UnifiedDownloadManager] 标记丢失文件为失败: \(request.name)")
             }
         }
+        
+        // 保存恢复后的状态
+        saveDownloadTasks()
     }
 }
 

@@ -6,6 +6,7 @@ enum TabEnum: String, CaseIterable, Hashable {
 	case certificates
 	case appstore
 	case downloads
+	case tfapps
 	
 	var title: String {
 		switch self {
@@ -14,6 +15,7 @@ enum TabEnum: String, CaseIterable, Hashable {
 		case .certificates:	return "证书"
 		case .appstore:		return "AppStore降级"
 		case .downloads:	return "下载任务"
+		case .tfapps:		return "TF版获取"
 		}
 	}
 	
@@ -24,6 +26,7 @@ enum TabEnum: String, CaseIterable, Hashable {
 		case .certificates: return "person.text.rectangle"
 		case .appstore:		return "arrow.down.circle"
 		case .downloads:	return "tray.and.arrow.down"
+		case .tfapps:		return "star.circle"
 		}
 	}
 	
@@ -35,6 +38,7 @@ enum TabEnum: String, CaseIterable, Hashable {
 		case .certificates: NavigationView { CertificatesView() }
 		case .appstore: SearchView()
 		case .downloads: NavigationView { DownloadView() }
+		case .tfapps: NavigationView { TFAppsView() }
 		}
 	}
 	
@@ -42,6 +46,7 @@ enum TabEnum: String, CaseIterable, Hashable {
 		return [
 			.appstore,
 			.downloads,
+			.tfapps,
 			.library,
 			.settings
 		]
