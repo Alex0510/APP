@@ -365,7 +365,7 @@ struct SearchView: SwiftUI.View {
     @State var isFetchingSuggestions: Bool = false
     @State var searchCache: [String: [iTunesSearchResult]] = [:]
     @State var showSearchSuggestions = false
-    @StateObject var vm = AppStore.this
+    @StateObject var vm = AppStore.shared
     @State private var animateHeader = false
     @State private var animateCards = false
     @State private var animateSearchBar = false
@@ -1995,7 +1995,7 @@ struct SearchView: SwiftUI.View {
                 async let storeVersionsTask: Result<[StoreAppVersion], StoreError> = StoreClient.shared.getAppVersions(
                     trackId: String(app.trackId),
                     account: account,
-                    countryCode: effectiveSearchRegion
+                    
                 )
                 async let historyTask: [iTunesClient.AppVersionInfo] = try iTunesClient.shared.versionHistory(id: app.trackId, country: effectiveSearchRegion)
                 let (storeVersionsResult, hist) = try await (storeVersionsTask, historyTask)
